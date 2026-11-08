@@ -679,7 +679,7 @@ rules and classification, so it also prefills a recalculation.
   "transactions": [
     {
       "index": 0, "date": "2026-01-02", "reference": "0001", "merchant": "WAL MART SUC 123",
-      "amount": "1000", "currency": "MXN", "isCredit": false, "kind": "PURCHASE",
+      "amount": "1000", "currency": "MXN", "isCredit": false, "kind": "PURCHASE", "creditType": null,
       "convertedAmount": null, "exchangeRate": null, "exchangeRateSource": null, "excludedReason": null,
       "matchedMerchantId": "a2b9...", "matchedMerchantName": "Walmart",
       "categoryId": "6f1c...", "categoryName": "Supermarkets",
@@ -779,7 +779,7 @@ keep the ones stored earlier. The response is the full verification with
   "transactions": [
     {
       "index": 0, "date": "2026-01-02", "reference": "0001", "merchant": "WAL MART SUC 123",
-      "amount": "1000", "currency": "MXN", "isCredit": false, "kind": "PURCHASE",
+      "amount": "1000", "currency": "MXN", "isCredit": false, "kind": "PURCHASE", "creditType": null,
       "convertedAmount": "1000", "exchangeRate": "1", "exchangeRateSource": null, "excludedReason": null,
       "matchedMerchantId": "a2b9...", "matchedMerchantName": "Walmart",
       "categoryId": "6f1c...", "categoryName": "Supermarkets",
@@ -955,7 +955,12 @@ on the statement in the opposite direction are inverted by the server.
 - `transactions[]`: in statement order (`index` is 0-based). `amount` is always
   positive and expressed in the line's own `currency`; `isCredit: true` means
   refund/credit (it subtracts). `reference` is the bank reference number or
-  `null`. `kind` is `PURCHASE|REFUND|FEE|INTEREST|INSURANCE|PAYMENT|OTHER`.
+  `null`. `creditType` (`PAYMENT` | `REFUND` | `OTHER_CREDIT` | `null`) is how
+  to label a credit line: `null` for charges, `PAYMENT` for a payment made to the
+  card (**never show it as a refund**), `REFUND` for a return/reversal of a
+  purchase, `OTHER_CREDIT` for anything else that reduces the balance (membership
+  bonus, rewards credited by the bank, fee reversals, adjustments; excluded from
+  the reward calculation). `kind` is `PURCHASE|REFUND|FEE|INTEREST|INSURANCE|PAYMENT|OTHER`.
   After confirm, `convertedAmount` is the **signed** amount in the primary
   currency (negative for credits; `null` when it could not be converted or the
   line is not a purchase/refund); `exchangeRate`/`exchangeRateSource` as in
@@ -1297,6 +1302,13 @@ consumable products in RevenueCat/the stores.
 ---
 
 ## 12. Changelog (breaking changes)
+
+### Credit labeling
+
+Transactions gain `creditType` (`PAYMENT` | `REFUND` | `OTHER_CREDIT` | `null`),
+derived from `kind` + `isCredit`. Apps should label credits with it instead of
+assuming every `isCredit` line is a refund. The extraction prompt now classifies
+bonuses ("BONO POR MEMBRESIA") as `kind: OTHER` with `isCredit: true`.
 
 ### Totals check
 

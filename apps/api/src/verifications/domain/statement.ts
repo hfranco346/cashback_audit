@@ -20,6 +20,23 @@ export const REWARD_ELIGIBLE_KINDS: readonly TransactionKind[] = [
   'REFUND',
 ];
 
+export type CreditType = 'PAYMENT' | 'REFUND' | 'OTHER_CREDIT';
+
+/**
+ * How a credit line should be labeled: a payment to the card is never a
+ * refund; bonuses/adjustments/fee reversals are other credits (they never earn
+ * or subtract reward). Null for charges.
+ */
+export function creditTypeOf(
+  kind: TransactionKind,
+  isCredit: boolean,
+): CreditType | null {
+  if (!isCredit) return null;
+  if (kind === 'PAYMENT') return 'PAYMENT';
+  if (kind === 'REFUND' || kind === 'PURCHASE') return 'REFUND';
+  return 'OTHER_CREDIT';
+}
+
 /** Result of reading a statement PDF. Amounts are exact decimals. */
 export interface ExtractedTransaction {
   /** ISO date `YYYY-MM-DD`. */

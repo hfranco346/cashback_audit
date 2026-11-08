@@ -1091,6 +1091,35 @@ describe('Verifications (e2e)', () => {
     });
   });
 
+  describe('credit labeling', () => {
+    it('exposes creditType: payments are never refunds, bonuses are other credits', async () => {
+      extraction.statement = mxn({
+        transactions: [
+          line('WAL MART SUC 123', 1000),
+          line('WAL MART SUC 123', 100, { isCredit: true, kind: 'REFUND' }),
+          line('PAGO RECIBIDO', 500, { isCredit: true, kind: 'PAYMENT' }),
+          line('BONO POR MEMBRESIA', 50, { isCredit: true, kind: 'OTHER' }),
+        ],
+      });
+      const started = (await upload(alice).expect(201)).body;
+      expect(
+        started.transactions.map((t: any) => [t.kind, t.creditType]),
+      ).toEqual([
+        ['PURCHASE', null],
+        ['REFUND', 'REFUND'],
+        ['PAYMENT', 'PAYMENT'],
+        ['OTHER', 'OTHER_CREDIT'],
+      ]);
+      const done = (await confirm(alice, started.id).expect(200)).body;
+      expect(done.transactions[3]).toMatchObject({
+        creditType: 'OTHER_CREDIT',
+        excludedReason: 'NON_PURCHASE_KIND',
+        expectedReward: '0',
+      });
+      expect(done.transactions[2].creditType).toBe('PAYMENT');
+    });
+  });
+
   describe('status and history', () => {
     it('lists both statuses and filters by status', async () => {
       const done = (await upload(alice).expect(201)).body;

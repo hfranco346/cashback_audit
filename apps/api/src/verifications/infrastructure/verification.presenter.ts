@@ -2,9 +2,10 @@ import type {
   RateProposal,
   RateProposalEntry,
 } from '../domain/rate-proposal.js';
-import type {
-  LoyaltyProgram,
-  StatementExchangeRate,
+import {
+  creditTypeOf,
+  type LoyaltyProgram,
+  type StatementExchangeRate,
 } from '../domain/statement.js';
 import type {
   Verification,
@@ -232,6 +233,7 @@ export function presentVerification(v: Verification, proposal: RateProposal) {
       currency: t.currency,
       isCredit: t.isCredit,
       kind: t.kind,
+      creditType: creditTypeOf(t.kind, t.isCredit),
       convertedAmount: str(t.convertedAmount),
       exchangeRate: str(t.exchangeRate),
       exchangeRateSource: t.rateSource,
