@@ -1,132 +1,120 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Cashback Audit API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS + Prisma + Postgres backend. Users upload a credit-card statement PDF;
+Claude extracts the transactions and the reward reported by the bank; the API
+computes the reward the card should have earned from the user's rules and
+categories, and stores a verdict.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+The HTTP contract for client developers is in
+[`../../docs/api-contract.md`](../../docs/api-contract.md).
 
-## Description
+## Requirements
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- Node 24, pnpm 10
+- Docker (for Postgres 16)
 
-## Project setup
+## Quick start
 
 ```bash
-$ pnpm install
+# from the repository root: Postgres on localhost:5433 (dev + test databases)
+docker compose up -d
+
+cd apps/api
+cp .env.example .env        # then edit the secrets, see "Configuration"
+pnpm install                # also runs `prisma generate`
+pnpm db:deploy              # applies migrations (use `pnpm db:migrate` while developing schema changes)
+pnpm start:dev              # http://localhost:3000/api/v1/health  and  /docs (Swagger)
 ```
 
-## Compile and run the project
+Set `SUBSCRIPTION_GATE_ENABLED=false` in `.env` to try `POST /verifications`
+without a RevenueCat subscription.
 
-```bash
-# development
-$ pnpm run start
+## Scripts
 
-# watch mode
-$ pnpm run start:dev
+| Command | What it does |
+| --- | --- |
+| `pnpm build` | Compile to `dist/` |
+| `pnpm start:dev` / `pnpm start:prod` | Run with watch / run the compiled build |
+| `pnpm lint` | oxlint (type-aware) |
+| `pnpm format` / `pnpm format:check` | Prettier |
+| `pnpm test` | Unit tests (Vitest, no database needed) |
+| `pnpm test:e2e` | End-to-end tests against the docker Postgres `cashback_audit_test` database; migrations are applied automatically. Token verifiers, `StatementExtractor` and `MerchantClassifier` are stubbed, so no Google/Apple/Anthropic access is needed |
+| `pnpm db:migrate` | `prisma migrate dev` (create + apply a migration) |
+| `pnpm db:deploy` | `prisma migrate deploy` (apply existing migrations) |
 
-# production mode
-$ pnpm run start:prod
+The Prisma client is generated into `src/shared/prisma/generated` (git-ignored)
+by `postinstall`; run `pnpm db:generate` after editing `prisma/schema.prisma`.
+
+## Configuration
+
+All variables are validated at startup (`src/config/env.ts`); see
+[`.env.example`](.env.example) for the full list with comments.
+
+| Variable | Notes |
+| --- | --- |
+| `DATABASE_URL` | Postgres connection string |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | >= 32 chars each, different values. `openssl rand -base64 48` |
+| `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL` | `15m`, `12h`, `30d` or seconds. Defaults 15m / 30d |
+| `GOOGLE_CLIENT_IDS` | Comma separated OAuth client IDs (iOS, Android, web) accepted as the token audience |
+| `APPLE_BUNDLE_ID` | Audience of Apple identity tokens (the iOS bundle ID) |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Default model `claude-sonnet-5-5` |
+| `REVENUECAT_WEBHOOK_AUTH` | Shared secret; RevenueCat sends it verbatim in the `Authorization` header |
+| `REVENUECAT_ENTITLEMENT_ID` | Default `pro` |
+| `SUBSCRIPTION_GATE_ENABLED` | `true` (default) / `false` for local dev |
+| `THROTTLE_*`, `VERIFICATION_THROTTLE_LIMIT` | Rate limits (default 120/min; 5/min for verifications) |
+
+Missing optional credentials fail closed: with no `GOOGLE_CLIENT_IDS` /
+`APPLE_BUNDLE_ID` sign-in returns 503, with no `ANTHROPIC_API_KEY` verification
+returns 503, and with no `REVENUECAT_WEBHOOK_AUTH` every webhook call is rejected.
+
+## Architecture
+
+Hexagonal, one folder per feature under `src/`:
+
+```
+src/<feature>/
+  domain/           pure types, rules and ports (abstract classes) - no Nest/Prisma imports
+  application/      use cases (orchestrate ports)
+  infrastructure/   Prisma repositories, controllers + DTOs, Claude/Google/Apple/jose adapters
 ```
 
-## Run tests
+Features: `auth`, `users`, `cards`, `categories` (categories + merchants),
+`verifications`, `subscriptions`; shared pieces in `src/shared`
+(Prisma service, `DomainError` + global exception filter, throttling, decimal
+validation). The reward maths lives in
+`src/verifications/domain/reward-calculator.ts` and the deterministic merchant
+matcher in `merchant-matcher.ts`.
 
-```bash
-# unit tests
-$ pnpm run test
+Ports that tests replace: `GoogleIdTokenVerifier`, `AppleIdTokenVerifier`,
+`StatementExtractor`, `MerchantClassifier`.
 
-# e2e tests
-$ pnpm run test:e2e
+## Manual setup you still need to do
 
-# test coverage
-$ pnpm run test:cov
-```
+These need accounts/consoles that cannot be automated:
 
-## Deployment
+1. **Anthropic**: create an API key at <https://console.anthropic.com> and set
+   `ANTHROPIC_API_KEY`. The statement PDF is sent to Anthropic for analysis;
+   mention that in your privacy policy.
+2. **Google Sign-In**: in Google Cloud Console create OAuth client IDs (iOS,
+   Android, and a *web* client - the web client ID is what the Flutter
+   `google_sign_in` plugin uses as `serverClientId` to obtain an ID token).
+   Put every client ID you expect as an `aud` into `GOOGLE_CLIENT_IDS`.
+3. **Sign in with Apple**: enable the capability for the app ID in the Apple
+   Developer portal and set `APPLE_BUNDLE_ID` to the iOS bundle ID (the audience
+   of the identity token). Sign in with Apple through a Services ID (web or
+   Android) would need its own audience and is not supported in v1.
+4. **RevenueCat**: create the project, the products in App Store Connect / Play
+   Console, an entitlement with identifier `pro` (or change
+   `REVENUECAT_ENTITLEMENT_ID`) and an offering. Add a webhook pointing to
+   `https://<your-host>/api/v1/webhooks/revenuecat` and set its *Authorization
+   header value* to the same string as `REVENUECAT_WEBHOOK_AUTH`. The app must
+   call `Purchases.logIn(<our user id>)` (see the API contract, section 9).
+5. **Production**: generate strong JWT secrets, serve over HTTPS, and run
+   `pnpm db:deploy` as part of the release. No deployment config is included yet.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Known limits
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-To add it to this project, run this and approve the code it prints at [observe.nestjs.com/link](https://observe.nestjs.com/link) - signing up for free if you have no account:
-
-```bash
-$ npx @nestjs/observe link
-```
-
-It installs `@nestjs/observe`, wires it into `AppModule` and `main.ts`, and writes the app key and secret into `.env`, which every `nest start` script (`start`, `start:dev`, `start:debug`) then loads. In production, set `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` in the environment instead.
-
-Or do it by hand:
-
-```bash
-$ pnpm install @nestjs/observe
-```
-
-Then follow the [setup guide](https://docs.nestjs.com/observability/sdk) - it takes a single import and an app key.
-
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- The Claude integration (document input + structured outputs) is covered by
+  tests with a fake SDK client; it has not been exercised against the live API.
+  Do a manual smoke test with a real statement after setting `ANTHROPIC_API_KEY`.
+- Offset pagination only on `GET /verifications`; other lists are unpaginated.
