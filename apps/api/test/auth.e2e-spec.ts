@@ -3,35 +3,8 @@ import {
   AppleIdTokenVerifier,
   GoogleIdTokenVerifier,
 } from '../src/auth/domain/identity-token-verifier.js';
-import { InvalidIdentityTokenError } from '../src/auth/domain/auth-errors.js';
-import type { VerifiedIdentity } from '../src/users/domain/user.js';
+import { appleStub, googleStub } from './stubs.js';
 import { createTestApp, resetDatabase, type TestApp } from './test-app.js';
-
-const googleStub = {
-  verify: async (token: string): Promise<VerifiedIdentity> => {
-    if (!token.startsWith('google-ok:')) throw new InvalidIdentityTokenError();
-    return {
-      provider: 'GOOGLE',
-      subject: token.slice('google-ok:'.length),
-      email: 'ana@example.com',
-      name: 'Ana Google',
-    };
-  },
-};
-const appleStub = {
-  verify: async (
-    token: string,
-    fullName?: string,
-  ): Promise<VerifiedIdentity> => {
-    if (!token.startsWith('apple-ok:')) throw new InvalidIdentityTokenError();
-    return {
-      provider: 'APPLE',
-      subject: token.slice('apple-ok:'.length),
-      email: 'relay@privaterelay.appleid.com',
-      name: fullName?.trim() || null,
-    };
-  },
-};
 
 describe('Auth (e2e)', () => {
   let ctx: TestApp;

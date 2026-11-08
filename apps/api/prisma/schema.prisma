@@ -1,7 +1,7 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/shared/prisma/generated"
-  moduleFormat = "esm"
+  provider            = "prisma-client"
+  output              = "../src/shared/prisma/generated"
+  moduleFormat        = "esm"
   importFileExtension = "js"
 }
 
@@ -24,6 +24,9 @@ model User {
   updatedAt       DateTime     @updatedAt
 
   refreshTokens RefreshToken[]
+  cards         Card[]
+  categories    MerchantCategory[]
+  merchants     Merchant[]
 
   @@unique([provider, providerSubject])
 }
@@ -43,4 +46,79 @@ model RefreshToken {
 
   @@index([userId])
   @@index([familyId])
+}
+
+enum RewardUnit {
+  CASHBACK_CURRENCY
+  POINTS
+}
+
+/// Never stores a PAN: only the last four digits.
+model Card {
+  id                    String     @id @default(uuid()) @db.Uuid
+  userId                String     @db.Uuid
+  alias                 String
+  bank                  String
+  last4                 String     @db.Char(4)
+  network               String?
+  rewardUnit            RewardUnit
+  /// Points earned per currency unit of reward (used when rewardUnit = POINTS).
+  pointsPerCurrencyUnit Decimal    @default(1) @db.Decimal(12, 4)
+  baseRatePercent       Decimal    @db.Decimal(7, 4)
+  currency              String     @db.Char(3)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rules CardRule[]
+
+  @@index([userId])
+}
+
+model MerchantCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchants Merchant[]
+  rules     CardRule[]
+
+  @@unique([userId, name])
+}
+
+model Merchant {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  name       String
+  /// Aliases / statement descriptors, e.g. "WAL MART", "WALMART SUC".
+  keywords   String[]
+  /// The category this merchant is EXPECTED to accrue under.
+  categoryId String   @db.Uuid
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category MerchantCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, name])
+  @@index([categoryId])
+}
+
+model CardRule {
+  id          String   @id @default(uuid()) @db.Uuid
+  cardId      String   @db.Uuid
+  categoryId  String   @db.Uuid
+  ratePercent Decimal  @db.Decimal(7, 4)
+  /// Max reward (in the card's reward unit) from this rule per statement period.
+  monthlyCap  Decimal? @db.Decimal(14, 2)
+
+  card     Card             @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  category MerchantCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, categoryId])
+  @@index([categoryId])
 }
