@@ -13,6 +13,11 @@ import '../../features/cards/presentation/cards_controller.dart';
 import '../../features/categories/data/catalog_repositories_impl.dart';
 import '../../features/categories/domain/catalog_repositories.dart';
 import '../../features/categories/presentation/catalog_controller.dart';
+import '../../features/verifications/data/file_picker_pdf_picker.dart';
+import '../../features/verifications/data/verification_repository_impl.dart';
+import '../../features/verifications/domain/pdf_picker.dart';
+import '../../features/verifications/domain/verification_repository.dart';
+import '../../features/verifications/presentation/history_controller.dart';
 import '../../features/onboarding/data/onboarding_repository_impl.dart';
 import '../../features/onboarding/domain/onboarding_repository.dart';
 import '../config/app_config.dart';
@@ -77,6 +82,15 @@ class InitialBinding extends Bindings {
       MerchantRepositoryImpl(dio, db),
       permanent: true,
     );
+    Get.put<VerificationRepository>(
+      VerificationRepositoryImpl(dio, db),
+      permanent: true,
+    );
+    Get.put<PdfPicker>(FilePickerPdfPicker(), permanent: true);
+    Get.lazyPut<LatestVerificationsController>(
+      () => LatestVerificationsController(Get.find<VerificationRepository>()),
+      fenix: true,
+    );
     // Shared stores; recreated lazily after logout.
     Get.lazyPut<CardsController>(
       () => CardsController(Get.find<CardRepository>()),
@@ -96,5 +110,6 @@ class InitialBinding extends Bindings {
     await Get.find<AppDatabase>().clearAll();
     Get.delete<CardsController>(force: true);
     Get.delete<CatalogController>(force: true);
+    Get.delete<LatestVerificationsController>(force: true);
   }
 }

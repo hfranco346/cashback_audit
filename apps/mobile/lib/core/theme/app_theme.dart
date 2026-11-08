@@ -94,6 +94,70 @@ class VerdictColors extends ThemeExtension<VerdictColors> {
   }
 }
 
+/// Semantic success/danger colors (e.g. transaction counted / not counted).
+/// Always pair them with an icon and label; never rely on color alone.
+@immutable
+class StatusColors extends ThemeExtension<StatusColors> {
+  const StatusColors({
+    required this.success,
+    required this.successContainer,
+    required this.danger,
+    required this.dangerContainer,
+  });
+
+  final Color success;
+  final Color successContainer;
+  final Color danger;
+  final Color dangerContainer;
+
+  static const light = StatusColors(
+    success: Color(0xFF0B7A5B),
+    successContainer: Color(0xFFD7F2E8),
+    danger: Color(0xFFC4351F),
+    dangerContainer: Color(0xFFFFE1DA),
+  );
+
+  static const dark = StatusColors(
+    success: Color(0xFF58D3A8),
+    successContainer: Color(0xFF0E3A2E),
+    danger: Color(0xFFFF8C77),
+    dangerContainer: Color(0xFF4A1A12),
+  );
+
+  @override
+  StatusColors copyWith({
+    Color? success,
+    Color? successContainer,
+    Color? danger,
+    Color? dangerContainer,
+  }) => StatusColors(
+    success: success ?? this.success,
+    successContainer: successContainer ?? this.successContainer,
+    danger: danger ?? this.danger,
+    dangerContainer: dangerContainer ?? this.dangerContainer,
+  );
+
+  @override
+  StatusColors lerp(ThemeExtension<StatusColors>? other, double t) {
+    if (other is! StatusColors) return this;
+    return StatusColors(
+      success: Color.lerp(success, other.success, t)!,
+      successContainer: Color.lerp(
+        successContainer,
+        other.successContainer,
+        t,
+      )!,
+      danger: Color.lerp(danger, other.danger, t)!,
+      dangerContainer: Color.lerp(dangerContainer, other.dangerContainer, t)!,
+    );
+  }
+}
+
+extension StatusColorsContext on BuildContext {
+  StatusColors get statusColors =>
+      Theme.of(this).extension<StatusColors>() ?? StatusColors.light;
+}
+
 extension VerdictColorsContext on BuildContext {
   VerdictColors get verdictColors =>
       Theme.of(this).extension<VerdictColors>() ?? VerdictColors.light;
@@ -114,6 +178,7 @@ abstract final class AppTheme {
       secondary: const Color(0xFF3F6B66),
     ),
     VerdictColors.light,
+    StatusColors.light,
   );
 
   static ThemeData get dark => _build(
@@ -125,9 +190,14 @@ abstract final class AppTheme {
       primary: const Color(0xFF7FD6C8),
     ),
     VerdictColors.dark,
+    StatusColors.dark,
   );
 
-  static ThemeData _build(ColorScheme scheme, VerdictColors verdicts) {
+  static ThemeData _build(
+    ColorScheme scheme,
+    VerdictColors verdicts,
+    StatusColors status,
+  ) {
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
@@ -166,7 +236,7 @@ abstract final class AppTheme {
     return base.copyWith(
       textTheme: text,
       scaffoldBackgroundColor: scheme.surface,
-      extensions: [verdicts],
+      extensions: [verdicts, status],
       appBarTheme: AppBarTheme(
         backgroundColor: scheme.surface,
         surfaceTintColor: Colors.transparent,

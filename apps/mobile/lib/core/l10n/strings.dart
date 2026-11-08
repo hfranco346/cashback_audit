@@ -175,4 +175,92 @@ abstract final class S {
 
   static const settingsTitle = 'Perfil y ajustes';
   static const longPressHint = 'Mantén presionada una tarjeta para eliminarla';
+
+  // Upload
+  static const uploadTitle = 'Verificar estado de cuenta';
+  static const uploadStep1 = 'Elige la tarjeta';
+  static const uploadStep2 = 'Selecciona el PDF';
+  static const pickPdf = 'Elegir PDF';
+  static const changePdf = 'Cambiar archivo';
+  static const noCardsForUpload =
+      'Primero agrega una tarjeta para poder verificar un estado de cuenta.';
+  static const verify = 'Verificar';
+  static const uploading = 'Subiendo archivo…';
+  static const analyzing = 'Analizando tu estado de cuenta…';
+  static const analyzingHint =
+      'Puede tardar hasta un minuto. No cierres la app.';
+  static const uploadPrivacy =
+      'Procesamos el PDF en memoria y no lo guardamos.';
+  static const fileTooLarge = 'El archivo supera el límite de 10 MB.';
+  static const fileNotPdf = 'Elige un archivo PDF.';
+  static const uploadTimeout =
+      'El análisis tardó demasiado. Revisa tu historial antes de reintentar: puede que ya se haya procesado.';
+  static const overrideTitle = 'Escribe la recompensa que te dio el banco';
+  static const overrideLabel = 'Recompensa reportada';
+  static const overrideHelper =
+      'Búscala en tu estado de cuenta (bonificación o puntos del periodo).';
+  static const overrideInvalid = 'Escribe un monto válido (hasta 2 decimales)';
+  static const selectCardFirst = 'Elige una tarjeta';
+
+  // Verdicts and result
+  static const resultTitle = 'Resultado';
+  static const verdictMatch = 'Todo en orden';
+  static const verdictUnderpaid = 'Te pagaron de menos';
+  static const verdictOverpaid = 'Te pagaron de más';
+  static const verdictMatchHint = 'La recompensa coincide con lo esperado.';
+  static String verdictUnderpaidHint(String amount) =>
+      'El banco te debe $amount. Puedes reclamarlo con tu estado de cuenta.';
+  static String verdictOverpaidHint(String amount) =>
+      'El banco te pagó $amount de más.';
+  static const expectedLabel = 'Esperado';
+  static const reportedLabel = 'Reportado';
+  static const differenceLabel = 'Diferencia';
+  static const reportedOverrideNote = 'Capturado por ti';
+  static const breakdownTitle = 'Desglose por rubro';
+  static const baseRateLine = 'Tasa base';
+  static String breakdownDetail(String spend, int count) =>
+      '$spend en $count movimiento(s)';
+  static const capped = 'Tope alcanzado';
+  static String capOf(String cap) => 'Tope $cap';
+  static const transactionsTitle = 'Movimientos';
+  static const filterAll = 'Todos';
+  static const filterCounted = 'En rubro';
+  static const filterUncounted = 'Sin rubro';
+  static String filterWithCount(String label, int n) => '$label ($n)';
+  static String transactionsSummary(int counted, int uncounted) =>
+      '$counted en rubro · $uncounted sin rubro';
+  static const countedLabel = 'Contó en rubro';
+  static const uncountedLabel = 'Sin rubro';
+  static const aiChip = 'IA';
+  static const aiChipTooltip = 'Asignado por inteligencia artificial';
+  static const assignToCategory = 'Asignar a rubro';
+  static const assignedNotice = 'Asignado para próximas verificaciones';
+  static String assignedTo(String category) =>
+      'Asignado a $category · aplicará en la próxima verificación';
+  static String appliedRate(String rate) => 'Tasa $rate';
+  static const baseOnly = 'Solo tasa base';
+  static const refund = 'Reembolso';
+  static const assignSheetTitle = 'Asignar comercio a un rubro';
+  static const noCategoriesToAssign =
+      'Crea un rubro primero para poder asignar este comercio.';
+  static const goToCategories = 'Ir a rubros';
+  static const merchantAssigned = 'Comercio asignado';
+  static const warningsTitle = 'Avisos';
+  static const noTransactionsMatch = 'No hay movimientos en esta vista.';
+  static const periodLabel = 'Periodo';
+  static const deleteVerification = 'Eliminar verificación';
+  static const deleteVerificationBody =
+      '¿Eliminar esta verificación del historial?';
+
+  // History
+  static const historyTitle = 'Historial';
+  static const historyEmptyTitle = 'Sin verificaciones todavía';
+  static const historyEmptyBody =
+      'Cuando verifiques un estado de cuenta aparecerá aquí.';
+  static const allCards = 'Todas';
+  static const loadMore = 'Ver más';
+  static const latestVerifications = 'Últimas verificaciones';
+  static const seeAll = 'Ver todo';
+  static const verifyAction = 'Verificar estado';
+  static const historyAction = 'Historial';
 }

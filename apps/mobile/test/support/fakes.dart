@@ -18,6 +18,21 @@ class FakeNavigator implements AppNavigator {
   void offAll(String route) => routes.add(route);
   @override
   void showNotice(String title, String message) => notices.add(title);
+  final pushed = <String>[];
+  final pushedArgs = <Object?>[];
+  final replaced = <String>[];
+  final replacedArgs = <Object?>[];
+  @override
+  void push(String route, {Object? arguments}) {
+    pushed.add(route);
+    pushedArgs.add(arguments);
+  }
+
+  @override
+  void replace(String route, {Object? arguments}) {
+    replaced.add(route);
+    replacedArgs.add(arguments);
+  }
 }
 
 class FakeGoogle implements GoogleIdentityProvider {
