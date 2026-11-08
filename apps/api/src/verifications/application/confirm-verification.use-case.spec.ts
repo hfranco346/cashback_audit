@@ -632,7 +632,7 @@ describe('ConfirmVerificationUseCase: reward currency and several rates', () => 
     const w = world(crcUsdEurStatement(), crc);
     await w.start();
     for (const bad of [
-      { exchangeRates: { USD: '0' } },
+      { exchangeRates: { USD: '0' } } as Record<string, unknown>,
       { exchangeRates: { USD: 'abc' } },
       { exchangeRates: { USD: '1.1234567' } },
       { exchangeRates: { CRC: '1' } },

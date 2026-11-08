@@ -8,6 +8,7 @@ import {
   CAT_PHARMACY,
   CAT_SUPER,
   d,
+  detected,
   hnlUsdTwoProgramsStatement,
   line,
   mxnCashbackStatement,
@@ -493,5 +494,93 @@ describe('CreateVerificationUseCase (step 1)', () => {
     const v = await run(setup({}));
     expect(v.transactions[0]!.amount).toBeInstanceOf(Decimal);
     expect(program('x', '1').accumulated).toBeInstanceOf(Decimal);
+  });
+});
+
+describe('CreateVerificationUseCase: statement category hints', () => {
+  const ficohsa = (over: Partial<ExtractedStatement> = {}) =>
+    mxnCashbackStatement({
+      detectedRates: [
+        detected({
+          categoryHint: 'Farmacias y Hospitales',
+          suggestedCategoryId: CAT_PHARMACY,
+          ratePercent: d(7),
+          evidence: '7% Farmacias y Hospitales',
+        }),
+        detected({
+          categoryHint: 'Restaurantes y Comida rápida',
+          ratePercent: d(7),
+          evidence: '7% Restaurantes y Comida rápida',
+        }),
+      ],
+      transactions: [
+        line('HOSPITAL MEDICO', 900),
+        line('POLLO CAMPERO 12', 120),
+        line('POLLO CAMPERO 13', 130),
+        line('PEMEX', 50),
+      ],
+      ...over,
+    });
+
+  it('broadens a category with the wider statement wording', async () => {
+    const s = setup({ statement: ficohsa() });
+    await run(s);
+    const candidates = s.categoryCalls[0] as {
+      id: string;
+      description: string | null;
+    }[];
+    const pharmacy = candidates.find((c) => c.id === CAT_PHARMACY)!;
+    expect(pharmacy.description).toContain('pharmacies, drugstores');
+    expect(pharmacy.description).toContain('"Farmacias y Hospitales"');
+    // a wording equal to the category name adds nothing
+    expect(candidates.find((c) => c.id === CAT_SUPER)!.description).toBeNull();
+  });
+
+  it('offers the missing categories as hint:<n> and tags the lines they fit', async () => {
+    const s = setup({
+      statement: ficohsa(),
+      guesses: [
+        verdict('HOSPITAL MEDICO', {
+          categoryId: CAT_PHARMACY,
+          reason: 'Hospital: cae en Farmacias y Hospitales',
+        }),
+        verdict('POLLO CAMPERO 12', {
+          categoryId: 'hint:0',
+          reason: 'Comida rápida del estado de cuenta',
+        }),
+        verdict('POLLO CAMPERO 13', { categoryId: 'hint:0' }),
+        verdict('PEMEX', { categoryId: 'hint:0', confidence: 0.3 }),
+      ],
+    });
+    const v = await run(s);
+    const candidates = s.categoryCalls[0] as { id: string; name: string }[];
+    expect(candidates.find((c) => c.id === 'hint:0')).toMatchObject({
+      name: 'Restaurantes y Comida rápida',
+    });
+    expect(candidates.find((c) => c.id === 'hint:1')).toBeUndefined();
+    expect(v.transactions[0]).toMatchObject({
+      categoryId: CAT_PHARMACY,
+      matchSource: 'AI_CATEGORY',
+    });
+    expect(v.transactions[1]).toMatchObject({
+      categoryId: null,
+      matchSource: 'NONE',
+      suggestedHint: 'Restaurantes y Comida rápida',
+      matchReason: 'Comida rápida del estado de cuenta',
+    });
+    expect(v.transactions[2]!.suggestedHint).toBe(
+      'Restaurantes y Comida rápida',
+    );
+    // below the confidence threshold: left alone
+    expect(v.transactions[3]).toMatchObject({
+      suggestedHint: null,
+      matchSource: 'NONE',
+    });
+  });
+
+  it('still classifies when the user has no categories but the statement has hints', async () => {
+    const s = setup({ statement: ficohsa(), categories: [] });
+    await run(s);
+    expect(s.classifierCalls).toHaveLength(1);
   });
 });

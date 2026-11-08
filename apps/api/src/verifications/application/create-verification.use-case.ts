@@ -7,6 +7,11 @@ import { CardRepository } from '../../cards/domain/card.repository.js';
 import { CardNotFoundError } from '../../cards/domain/card-errors.js';
 import { CategoryRepository } from '../../categories/domain/category.repository.js';
 import { MerchantRepository } from '../../merchants/domain/merchant.repository.js';
+import {
+  broadeningWordings,
+  HINT_ID_PREFIX,
+  statementCategoryHints,
+} from '../domain/statement-hints.js';
 import { selectLoyaltyProgram } from '../domain/loyalty-program-selector.js';
 import {
   MerchantMatcher,
@@ -193,6 +198,7 @@ export class CreateVerificationUseCase {
       source: MatchSource;
       confidence: number | null;
       reason: string | null;
+      suggestedHint?: string | null;
     }
     const matches: Match[] = statement.transactions.map((tx, i) => {
       const merchant = eligible[i] ? matcher.match(tx.merchant) : null;
@@ -212,7 +218,14 @@ export class CreateVerificationUseCase {
           .map((t) => t.merchant),
       ),
     ];
-    if (unmatchedDescriptors.length > 0 && categories.length > 0) {
+    // Statement rates for kinds of spending the user has no category for are
+    // offered to the classifier as pseudo-categories (`hint:<n>`).
+    const hints = statementCategoryHints(statement.detectedRates);
+    const wordings = broadeningWordings(statement.detectedRates, categories);
+    if (
+      unmatchedDescriptors.length > 0 &&
+      categories.length + hints.length > 0
+    ) {
       try {
         const merchantsByCategory = new Map<
           string,
@@ -223,12 +236,32 @@ export class CreateVerificationUseCase {
           list.push({ id: m.id, name: m.name });
           merchantsByCategory.set(m.categoryId, list);
         }
-        const candidates: CategoryCandidate[] = categories.map((c) => ({
-          id: c.id,
-          name: c.name,
-          description: c.description,
-          merchants: merchantsByCategory.get(c.id) ?? [],
-        }));
+        const candidates: CategoryCandidate[] = [
+          ...categories.map((c) => ({
+            id: c.id,
+            name: c.name,
+            description:
+              [
+                c.description,
+                wordings.has(c.id)
+                  ? `Also covers what the statement calls: ${wordings
+                      .get(c.id)!
+                      .map((w) => `"${w}"`)
+                      .join(', ')}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join('. ') || null,
+            merchants: merchantsByCategory.get(c.id) ?? [],
+          })),
+          ...hints.map((h, n) => ({
+            id: `${HINT_ID_PREFIX}${n}`,
+            name: h.name,
+            description:
+              'Kind of spending named by the statement; the user has no category for it',
+            merchants: [],
+          })),
+        ];
         const classified = await this.classifier.classify(
           unmatchedDescriptors,
           candidates,
@@ -244,7 +277,19 @@ export class CreateVerificationUseCase {
           const merchant = verdict.matchedMerchantId
             ? merchantById.get(verdict.matchedMerchantId)
             : undefined;
-          if (merchant) {
+          const hint = verdict.categoryId?.startsWith(HINT_ID_PREFIX)
+            ? hints[Number(verdict.categoryId.slice(HINT_ID_PREFIX.length))]
+            : undefined;
+          if (hint) {
+            matches[i] = {
+              merchantId: null,
+              categoryId: null,
+              source: 'NONE',
+              confidence: verdict.confidence,
+              reason: verdict.reason || null,
+              suggestedHint: hint.name,
+            };
+          } else if (merchant) {
             matches[i] = {
               merchantId: merchant.id,
               categoryId: merchant.categoryId,
@@ -308,6 +353,7 @@ export class CreateVerificationUseCase {
           matchSource: match.source,
           matchConfidence: match.confidence,
           matchReason: match.reason,
+          suggestedHint: match.suggestedHint ?? null,
           appliedRatePercent: null,
           ruleApplied: false,
           expectedReward: null,

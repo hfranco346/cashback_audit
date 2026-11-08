@@ -10,6 +10,7 @@ import {
   proposeSpendConversions,
   resolveRewardCurrency,
 } from '../domain/reward-currency.js';
+import { proposeSuggestedCategories } from '../domain/statement-hints.js';
 import { REWARD_ELIGIBLE_KINDS } from '../domain/statement.js';
 import type { Verification } from '../domain/verification.js';
 
@@ -27,7 +28,12 @@ export class RateProposalService {
   ): Promise<RateProposal> {
     const card = await this.cards.findById(userId, verification.cardId);
     if (!card) {
-      return { entries: [], rewardConversion: null, spendConversions: [] };
+      return {
+        entries: [],
+        rewardConversion: null,
+        spendConversions: [],
+        suggestedCategories: [],
+      };
     }
     const categories = await this.categories.listWithCounts(userId);
     const entries = buildRateProposal({
@@ -56,6 +62,10 @@ export class RateProposalService {
         rewardCurrency,
         printedRates,
       }),
+      suggestedCategories: proposeSuggestedCategories(
+        verification.detectedRates,
+        verification.transactions,
+      ),
       spendConversions: proposeSpendConversions({
         primaryCurrency: verification.primaryCurrency,
         lines: verification.transactions,

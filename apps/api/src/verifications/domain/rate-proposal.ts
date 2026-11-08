@@ -1,6 +1,7 @@
 import { Decimal } from 'decimal.js';
 import type { CardRule } from '../../cards/domain/card.js';
 import type { DetectedRate } from './statement.js';
+import type { SuggestedCategory } from './statement-hints.js';
 import type {
   RewardConversionProposal,
   SpendConversionProposal,
@@ -32,6 +33,8 @@ export interface RateProposal {
   rewardConversion: RewardConversionProposal | null;
   /** One entry per foreign spend currency present in eligible lines. */
   spendConversions: SpendConversionProposal[];
+  /** Statement category rates the user has no category for. */
+  suggestedCategories: SuggestedCategory[];
 }
 
 export interface RateProposalInput {

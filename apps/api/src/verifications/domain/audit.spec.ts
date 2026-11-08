@@ -31,6 +31,7 @@ const tx = (
   matchSource: 'NONE',
   matchConfidence: null,
   matchReason: null,
+  suggestedHint: null,
   appliedRatePercent: null,
   ruleApplied: false,
   expectedReward: null,

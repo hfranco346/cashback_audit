@@ -453,6 +453,40 @@ describe('ClaudeLineClassifier', () => {
   const make = (client: Anthropic) =>
     new ClaudeLineClassifier(new ClaudeJsonClient(client, config()));
 
+  it('asks for Spanish reasons, explains hint ids and keeps hint answers', async () => {
+    const { client, calls } = fakeClient(
+      textMessage({
+        matches: [
+          {
+            descriptor: 'POLLO CAMPERO',
+            categoryId: 'hint:0',
+            matchedMerchantId: null,
+            confidence: 0.9,
+            reason: 'Comida rápida',
+          },
+        ],
+      }),
+    );
+    const out = await make(client).classify(
+      ['POLLO CAMPERO'],
+      [
+        ...categories,
+        {
+          id: 'hint:0',
+          name: 'Restaurantes y Comida rápida',
+          description: 'Kind of spending named by the statement',
+          merchants: [],
+        },
+      ],
+    );
+    expect(out.results[0]!.categoryId).toBe('hint:0');
+    expect(calls[0].system).toContain('ALWAYS in Spanish');
+    expect(calls[0].system).toContain('"hint:"');
+    expect(calls[0].messages[0].content[0].text).toContain(
+      'Restaurantes y Comida rápida',
+    );
+  });
+
   it('sends categories (with description and merchant examples) and validates the answer', async () => {
     const { client, calls } = fakeClient(
       textMessage({
@@ -567,6 +601,8 @@ describe('ClaudeResultExplainer', () => {
     verdict: 'UNDERPAID',
     rewardUnit: 'CASHBACK_CURRENCY',
     primaryCurrency: 'HNL',
+    rewardCurrency: 'HNL',
+    expectedInPrimaryCurrency: null,
     reported: '30',
     expected: '58',
     difference: '-28',
@@ -603,7 +639,14 @@ describe('ClaudeResultExplainer', () => {
     expect(calls[0].output_config).toBeUndefined();
     expect(calls[0].system).toContain('NUNCA calcules');
     expect(calls[0].system).toContain('no confiables');
-    expect(JSON.parse(calls[0].messages[0].content[0].text)).toEqual(facts);
+    const sent = JSON.parse(calls[0].messages[0].content[0].text);
+    expect(sent).toMatchObject({
+      resultado: 'te pagaron de menos',
+      reportadoPorElBanco: 'HNL 30.00',
+      esperado: 'HNL 58.00',
+    });
+    expect(JSON.stringify(sent)).not.toMatch(/UNDERPAID|MATCH|OVERPAID/);
+    expect(calls[0].system).toContain('NUNCA escribas códigos internos');
   });
 
   it.each([

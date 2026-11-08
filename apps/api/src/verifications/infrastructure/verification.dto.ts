@@ -4,6 +4,7 @@ import { Type } from 'class-transformer';
 import { CardRuleDto } from '../../cards/infrastructure/card.dto.js';
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -130,6 +131,27 @@ export class ConfirmVerificationDto {
   @IsNotEmpty()
   @MaxLength(80)
   rewardProgramName?: string;
+}
+
+export class CategoriesFromSuggestionsDto {
+  @ApiProperty({
+    type: [String],
+    example: ['Restaurantes y Comida rápida'],
+    description:
+      'Statement wordings to turn into categories (the `name` of `suggestedCategories[]`). Existing categories with the same name are reused.',
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(20)
+  @Transform(({ value }: { value: unknown }) =>
+    Array.isArray(value)
+      ? value.map((v) => (typeof v === 'string' ? v.trim() : v))
+      : value,
+  )
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(80, { each: true })
+  names!: string[];
 }
 
 export class UpdateTransactionDto {

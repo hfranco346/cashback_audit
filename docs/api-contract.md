@@ -805,6 +805,27 @@ keep the ones stored earlier. The response is the full verification with
 
 A failed confirm leaves the verification untouched.
 
+### POST /verifications/:id/categories-from-suggestions
+
+Turns statement-stated spending kinds the user has no category for into
+categories. Body `{ "names": ["Restaurantes y Comida rápida"] }` (1-20 strings,
+max 80 chars; use the `name` of `suggestedCategories[]`). `200`; no Claude call,
+no credit; allowed on `AWAITING_RATES` and `COMPLETED` verifications; it does
+**not** recompute a completed audit (confirm again for that).
+
+For each name: if the user already has a category with the same name
+(case/accent-insensitive) it is **reused**, otherwise it is created with the
+statement wording as `description`. Then (a) every line with no category whose
+`suggestedHint` equals that wording moves to the category (`matchSource:
+"AI_CATEGORY"`, `suggestedHint: null`) and (b) the statement rate is linked to
+the category, so the refreshed `rateProposal` has an entry for it prefilled with
+`source: "STATEMENT"`. Names that are not current suggestions are still
+created/reused (no lines move). Repeating the call is harmless.
+
+Response: the full verification (as in confirm) plus
+`categoriesResult: { created: [{ id, name }], reused: [{ id, name }] }`.
+Errors: `400` (empty list, blank or too long name), `404 VERIFICATION_NOT_FOUND`.
+
 ### PATCH /verifications/:id/transactions/:index
 
 Body `{ "categoryId": "<uuid>" | null }`. Corrects the category of one line (for
@@ -816,6 +837,24 @@ be categorized (`422 TRANSACTION_NOT_CLASSIFIABLE`). The line becomes
 figures stay as they were until the client calls `POST /verifications/:id/confirm`
 again. Errors: `400` (bad body / negative index), `404 VERIFICATION_NOT_FOUND`,
 `404 TRANSACTION_NOT_FOUND`, `404 CATEGORY_NOT_FOUND`.
+
+### Statement categories the user lacks
+
+Statements often state rates for kinds of spending the user has no category for
+(e.g. "7% Restaurantes y Comida rápida" when the user only has Supermercados).
+`suggestedCategories[]` (top level, next to `rateProposal`) lists them:
+`{ name (statement wording), ratePercent (string|null), evidence,
+matchingTransactionCount }`. `matchingTransactionCount` is how many currently
+uncategorized lines the classifier tagged with that wording (`transactions[].
+suggestedHint` equals `name`; such lines keep `categoryId: null`,
+`matchSource: "NONE"` and carry the classifier `matchConfidence`/`matchReason`).
+Offer the user to create them with `POST /verifications/:id/categories-from-suggestions`.
+
+When a statement wording is broader than one of the user's categories ("Farmacias
+y Hospitales" vs the user's "Farmacia"), the wording is added to that category's
+description for the classifier, so hospital lines classify into "Farmacia"; the
+`matchReason` then mentions the wording. `matchReason` is always in Spanish
+(max ~12 words).
 
 ### Reward currency and exchange rates
 
@@ -893,7 +932,7 @@ on the statement in the opposite direction are inverted by the server.
   `REQUEST`, `CARD`, `ONLY_PROGRAM` or `null`; `requestedProgramName` is the
   name asked for. `accumulated` may be a running balance rather than earned this
   period; see `REPORTED_VALUE_MAY_BE_CUMULATIVE`.
-- `explanation`: one short paragraph in Spanish written by a cheap model after
+- `explanation`: one short paragraph in Spanish (never contains internal codes such as MATCH/UNDERPAID/OVERPAID; amounts appear as e.g. "HNL 1,526.84") written by a cheap model after
   confirm, summarizing why the verdict is `MATCH`/`UNDERPAID`/`OVERPAID`. It is
   only a narrative of numbers already computed by the server (the model never
   calculates). `null` while `AWAITING_RATES` or if it could not be generated
@@ -1252,6 +1291,16 @@ consumable products in RevenueCat/the stores.
 ---
 
 ## 12. Changelog (breaking changes)
+
+### Statement categories, Spanish reasons and explanation wording
+
+Additive: new top-level `suggestedCategories[]`, new transaction field
+`suggestedHint` (string|null), new endpoint
+`POST /verifications/:id/categories-from-suggestions`. Behavior changes:
+`matchReason` is now Spanish; lines the user's categories do not cover may carry
+`suggestedHint`; the Spanish `explanation` no longer leaks enum names and writes
+money as `<CURRENCY> 1,526.84`. Categories can now be broadened by statement
+wordings (more lines classify into them than before).
 
 ### Reward currency and several exchange rates
 

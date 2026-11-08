@@ -6,6 +6,7 @@ import { CategoriesModule } from '../categories/categories.module.js';
 import { CreditsModule } from '../credits/credits.module.js';
 import type { Env } from '../config/env.js';
 import { CleanupAwaitingRatesService } from './application/cleanup-awaiting-rates.service.js';
+import { CategoriesFromSuggestionsUseCase } from './application/categories-from-suggestions.use-case.js';
 import { UpdateTransactionCategoryUseCase } from './application/update-transaction.use-case.js';
 import { ConfirmVerificationUseCase } from './application/confirm-verification.use-case.js';
 import { RateProposalService } from './application/rate-proposal.service.js';
@@ -42,6 +43,7 @@ import { VerificationsController } from './infrastructure/verifications.controll
     ConfirmVerificationUseCase,
     RateProposalService,
     UpdateTransactionCategoryUseCase,
+    CategoriesFromSuggestionsUseCase,
     CleanupAwaitingRatesService,
     ListVerificationsUseCase,
     GetVerificationUseCase,

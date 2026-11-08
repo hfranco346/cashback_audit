@@ -55,6 +55,7 @@ const deserializeTransaction = (j: Json): VerificationTransaction =>
   ({
     reference: null,
     matchReason: null,
+    suggestedHint: null,
     kind: j.isCredit ? 'REFUND' : 'PURCHASE',
     rateSource: null,
     excludedReason: null,

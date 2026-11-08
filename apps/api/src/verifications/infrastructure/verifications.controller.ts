@@ -22,6 +22,7 @@ import { CurrentUser } from '../../auth/infrastructure/current-user.decorator.js
 import { IdParam } from '../../shared/http/id.param.js';
 import { StrictThrottle } from '../../shared/http/throttling.js';
 import { CreditsGuard } from '../../credits/infrastructure/credits.guard.js';
+import { CategoriesFromSuggestionsUseCase } from '../application/categories-from-suggestions.use-case.js';
 import { UpdateTransactionCategoryUseCase } from '../application/update-transaction.use-case.js';
 import { ConfirmVerificationUseCase } from '../application/confirm-verification.use-case.js';
 import { RateProposalService } from '../application/rate-proposal.service.js';
@@ -32,6 +33,7 @@ import {
   ListVerificationsUseCase,
 } from '../application/verification.use-cases.js';
 import {
+  CategoriesFromSuggestionsDto,
   ConfirmVerificationDto,
   CreateVerificationDto,
   ListVerificationsQuery,
@@ -77,6 +79,7 @@ export class VerificationsController {
     private readonly confirmVerification: ConfirmVerificationUseCase,
     private readonly proposals: RateProposalService,
     private readonly updateTransaction: UpdateTransactionCategoryUseCase,
+    private readonly categoriesFromSuggestions: CategoriesFromSuggestionsUseCase,
     private readonly listVerifications: ListVerificationsUseCase,
     private readonly getVerification: GetVerificationUseCase,
     private readonly deleteVerification: DeleteVerificationUseCase,
@@ -150,6 +153,27 @@ export class VerificationsController {
       verification,
       await this.proposals.forVerification(user.id, verification),
     );
+  }
+
+  @Post(':id/categories-from-suggestions')
+  @HttpCode(200)
+  async createCategoriesFromSuggestions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() { id }: IdParam,
+    @Body() dto: CategoriesFromSuggestionsDto,
+  ) {
+    const result = await this.categoriesFromSuggestions.execute({
+      userId: user.id,
+      verificationId: id,
+      names: dto.names,
+    });
+    return {
+      ...presentVerification(
+        result.verification,
+        await this.proposals.forVerification(user.id, result.verification),
+      ),
+      categoriesResult: { created: result.created, reused: result.reused },
+    };
   }
 
   @Patch(':id/transactions/:index')

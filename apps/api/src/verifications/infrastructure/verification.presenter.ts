@@ -141,6 +141,12 @@ export function presentVerification(v: Verification, proposal: RateProposal) {
           note: REWARD_RATE_NOTE,
         }
       : null,
+    suggestedCategories: proposal.suggestedCategories.map((c) => ({
+      name: c.name,
+      ratePercent: str(c.ratePercent),
+      evidence: c.evidence,
+      matchingTransactionCount: c.matchingTransactionCount,
+    })),
     exchangeRateProposal: proposal.spendConversions.map((c) => ({
       currency: c.currency,
       rate: str(c.rate),
@@ -235,6 +241,7 @@ export function presentVerification(v: Verification, proposal: RateProposal) {
       matchSource: t.matchSource,
       matchConfidence: t.matchConfidence,
       matchReason: t.matchReason,
+      suggestedHint: t.suggestedHint,
       appliedRatePercent: str(t.appliedRatePercent),
       ruleApplied: t.ruleApplied,
       expectedReward: str(t.expectedReward),

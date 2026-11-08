@@ -74,12 +74,14 @@ describe('Verifications (e2e)', () => {
       unclassified: [] as string[],
       results: descriptors.map((descriptor) => ({
         descriptor,
-        categoryId: descriptor.includes('FARMACIA')
-          ? pharmacyCategoryId
-          : descriptor.includes('SUPERMERCADO') ||
-              descriptor === 'WM SUPERCENTER'
-            ? superCategoryId
-            : null,
+        categoryId: descriptor.includes('POLLO')
+          ? 'hint:0'
+          : descriptor.includes('FARMACIA')
+            ? pharmacyCategoryId
+            : descriptor.includes('SUPERMERCADO') ||
+                descriptor === 'WM SUPERCENTER'
+              ? superCategoryId
+              : null,
         matchedMerchantId:
           descriptor === 'WM SUPERCENTER' ? aiMerchantId : null,
         confidence: 0.85,
@@ -968,6 +970,124 @@ describe('Verifications (e2e)', () => {
         .send({ rewardCurrency: null })
         .expect(200);
       expect(cleared.body.rewardCurrency).toBeNull();
+    });
+  });
+
+  describe('statement categories the user lacks', () => {
+    const RESTAURANTS = 'Restaurantes y Comida rápida';
+    const withHints = () =>
+      mxn({
+        detectedRates: [
+          detected({ scope: 'BASE', ratePercent: d(1), evidence: '1% base' }),
+          detected({
+            categoryHint: RESTAURANTS,
+            ratePercent: d(7),
+            evidence: '7% Restaurantes y Comida rápida',
+          }),
+        ],
+        transactions: [
+          line('WAL MART SUC 123', 1000),
+          line('POLLO CAMPERO 1', 120),
+          line('POLLO CAMPERO 2', 130),
+          line('PEMEX 4455', 300),
+        ],
+      });
+    const fromSuggestions = (user: TestUser, id: string, names: string[]) =>
+      http()
+        .post(`/api/v1/verifications/${id}/categories-from-suggestions`)
+        .set(user.auth)
+        .send({ names });
+
+    it('suggests the missing category and creates it, reassigning the lines', async () => {
+      extraction.statement = withHints();
+      const started = (await upload(alice).expect(201)).body;
+      expect(started.suggestedCategories).toEqual([
+        {
+          name: RESTAURANTS,
+          ratePercent: '7',
+          evidence: '7% Restaurantes y Comida rápida',
+          matchingTransactionCount: 2,
+        },
+      ]);
+      expect(started.transactions[1]).toMatchObject({
+        categoryId: null,
+        matchSource: 'NONE',
+        suggestedHint: RESTAURANTS,
+      });
+      const calls = extraction.calls;
+
+      const res = (
+        await fromSuggestions(alice, started.id, [RESTAURANTS]).expect(200)
+      ).body;
+      expect(extraction.calls).toBe(calls);
+      expect(res.categoriesResult.created).toHaveLength(1);
+      expect(res.categoriesResult.reused).toEqual([]);
+      const newId = res.categoriesResult.created[0].id;
+      expect(res.transactions.slice(1, 3)).toEqual([
+        expect.objectContaining({
+          categoryId: newId,
+          categoryName: RESTAURANTS,
+          matchSource: 'AI_CATEGORY',
+          suggestedHint: null,
+        }),
+        expect.objectContaining({ categoryId: newId }),
+      ]);
+      expect(res.suggestedCategories).toEqual([]);
+      expect(res.rateProposal).toContainEqual(
+        expect.objectContaining({
+          categoryId: newId,
+          ratePercent: '7',
+          source: 'STATEMENT',
+          required: false,
+        }),
+      );
+
+      const category = (
+        await http()
+          .get(`/api/v1/categories/${newId}`)
+          .set(alice.auth)
+          .expect(200)
+      ).body;
+      expect(category).toMatchObject({
+        name: RESTAURANTS,
+        description: RESTAURANTS,
+      });
+
+      // Calling again reuses the category and changes nothing else.
+      const again = (
+        await fromSuggestions(alice, started.id, [RESTAURANTS]).expect(200)
+      ).body;
+      expect(again.categoriesResult).toEqual({
+        created: [],
+        reused: [{ id: newId, name: RESTAURANTS }],
+      });
+
+      // The audit then counts the lines at the statement rate.
+      const done = (
+        await confirm(alice, started.id, {
+          categoryRates: [
+            { categoryId: superCategoryId, ratePercent: '5' },
+            { categoryId: newId, ratePercent: '7' },
+          ],
+        }).expect(200)
+      ).body;
+      expect(
+        done.breakdown.find((b: any) => b.categoryId === newId),
+      ).toMatchObject({ spend: '250', expectedReward: '17.5' });
+    });
+
+    it('works on a completed verification, validates names and is per user', async () => {
+      extraction.statement = withHints();
+      const started = (await upload(alice).expect(201)).body;
+      await confirm(alice, started.id).expect(200);
+      await fromSuggestions(alice, started.id, [RESTAURANTS]).expect(200);
+      await fromSuggestions(alice, started.id, []).expect(400);
+      await http()
+        .post(`/api/v1/verifications/${started.id}/categories-from-suggestions`)
+        .set(alice.auth)
+        .send({ names: [''] })
+        .expect(400);
+      await fromSuggestions(bob, started.id, [RESTAURANTS]).expect(404);
     });
   });
 

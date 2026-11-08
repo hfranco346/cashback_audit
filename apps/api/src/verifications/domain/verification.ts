@@ -50,8 +50,13 @@ export interface VerificationTransaction {
   matchSource: MatchSource;
   /** Only for AI matches (0..1). */
   matchConfidence: number | null;
-  /** Short classifier explanation for AI matches. */
+  /** Short classifier explanation (Spanish) for AI matches and hinted lines. */
   matchReason: string | null;
+  /**
+   * For lines with no category of the user: the statement wording of a
+   * category the classifier thinks they belong to (see suggestedCategories).
+   */
+  suggestedHint: string | null;
   /** Null until the rates are confirmed. */
   appliedRatePercent: Decimal | null;
   /** True when a card rule (not the base rate) was applied. */

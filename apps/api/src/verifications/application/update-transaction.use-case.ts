@@ -59,6 +59,7 @@ export class UpdateTransactionCategoryUseCase {
               : ('NONE' as const),
             matchConfidence: null,
             matchReason: null,
+            suggestedHint: null,
           }
         : t,
     );
