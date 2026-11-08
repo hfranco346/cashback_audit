@@ -77,6 +77,28 @@ void main() {
     expect(points.containsKey('network'), isTrue);
   });
 
+  test('rewardProgramName: parsed, sent when set, null clears on update', () {
+    final card = CardMapper.fromJson(cardJson(rewardProgramName: 'CASH BAC'));
+    expect(card.rewardProgramName, 'CASH BAC');
+    expect(CardMapper.fromJson(cardJson()).rewardProgramName, isNull);
+    final draft = card.toDraft();
+    expect(
+      CardMapper.toRequest(draft, forUpdate: false)['rewardProgramName'],
+      'CASH BAC',
+    );
+    final cleared = CardMapper.fromJson(cardJson()).toDraft();
+    expect(
+      CardMapper.toRequest(
+        cleared,
+        forUpdate: false,
+      ).containsKey('rewardProgramName'),
+      isFalse,
+    );
+    final onUpdate = CardMapper.toRequest(cleared, forUpdate: true);
+    expect(onUpdate.containsKey('rewardProgramName'), isTrue);
+    expect(onUpdate['rewardProgramName'], isNull);
+  });
+
   test('getCards is network-first and caches', () async {
     final result = await repo().getCards();
     expect(result.fromCache, isFalse);

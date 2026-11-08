@@ -56,6 +56,161 @@ void main() {
     expect(v.warnings.single.code, 'AI_MATCHING_UNAVAILABLE');
   });
 
+  group('mapper (two-step contract)', () {
+    test('completed verification exposes the new sections', () {
+      final v = VerificationMapper.detail(verificationJson());
+      expect(v.status, VerificationStatus.completed);
+      expect(v.primaryCurrency, 'MXN');
+      expect(v.reported?.label, 'Bonificacion');
+      expect(v.expectedAmount, Decimal.parse('58'));
+      expect(v.explanation, contains('18'));
+      expect(v.appliedRates?.baseRatePercent, Decimal.parse('1'));
+      expect(v.appliedRates?.categoryRates.single.categoryId, 'cat1');
+      expect(v.currencies.single.isPrimary, isTrue);
+      expect(v.loyalty.selectedProgram?.name, 'Bonificacion');
+      expect(v.loyalty.programs, hasLength(1));
+      expect(v.models['classification'], 'claude-haiku-5-5');
+      final proposal = v.rateProposal;
+      expect(proposal.first.isBase, isTrue);
+      expect(proposal.last.source, RateSource.statement);
+      expect(proposal.last.evidence, '5% en super');
+    });
+
+    test('awaiting verification: no result, required entries, nulls', () {
+      final v = VerificationMapper.detail(awaitingVerificationJson());
+      expect(v.isAwaitingRates, isTrue);
+      expect(v.verdict, isNull);
+      expect(v.reported, isNull);
+      expect(v.expectedAmount, isNull);
+      expect(v.appliedRates, isNull);
+      expect(v.rateProposal.every((e) => e.required), isTrue);
+      expect(v.rateProposal.first.ratePercent, isNull);
+      expect(v.transactions.single.appliedRatePercent, isNull);
+      expect(v.transactions.single.matchSource, MatchSource.aiCategory);
+      expect(v.transactions.single.matchSource.isAi, isTrue);
+    });
+
+    test('transaction kinds, sources, reasons and exclusions', () {
+      final v = VerificationMapper.detail(
+        verificationJson(
+          transactions: [
+            txJson(0, 'PAGO', '500', kind: 'PAYMENT', source: 'NONE'),
+            txJson(
+              1,
+              'AMAZON',
+              '20',
+              currency: 'USD',
+              excludedReason: 'NO_EXCHANGE_RATE',
+              source: 'NONE',
+            ),
+            txJson(
+              2,
+              'SUPER',
+              '90',
+              source: 'AI_CATEGORY',
+              reason: 'Es un super',
+            ),
+            txJson(3, 'FARMA', '10', source: 'AI_MERCHANT'),
+            txJson(4, 'TIENDA', '10', source: 'USER'),
+            txJson(5, 'OTRO', '10', source: 'NONE'),
+          ],
+        ),
+      );
+      final t = v.transactions;
+      expect(t[0].kind, TransactionKind.payment);
+      expect(t[0].excludedReason, ExcludedReason.nonPurchaseKind);
+      expect(t[0].isExcluded, isTrue);
+      expect(t[1].excludedReason, ExcludedReason.noExchangeRate);
+      expect(t[1].currency, 'USD');
+      expect(t[2].matchReason, 'Es un super');
+      expect(t[3].matchSource, MatchSource.aiMerchant);
+      expect(t[4].matchSource, MatchSource.user);
+      expect(t[4].matchSource.isAi, isFalse);
+      expect(v.countedTransactions, 3);
+      expect(v.uncountedTransactions, 1);
+      expect(v.excludedTransactions, 2);
+      expect(v.hasForeignPurchases, isTrue);
+    });
+
+    test(
+      'legacy cached JSON (pre multi-currency, source AI) does not crash',
+      () {
+        final v = VerificationMapper.detail(legacyVerificationJson());
+        expect(v.status, VerificationStatus.completed);
+        expect(v.verdict, Verdict.underpaid);
+        expect(v.rateProposal, isEmpty);
+        expect(v.appliedRates, isNull);
+        expect(v.loyalty.programs, isEmpty);
+        expect(v.currencies, isEmpty);
+        expect(v.explanation, isNull);
+        expect(v.currency, 'MXN');
+        final t = v.transactions.single;
+        expect(t.matchSource, MatchSource.aiMerchant);
+        expect(t.kind, TransactionKind.purchase);
+        expect(t.currency, 'MXN');
+        expect(t.isExcluded, isFalse);
+        expect(v.hasForeignPurchases, isFalse);
+      },
+    );
+
+    test('summaries: awaiting has no figures, legacy has no status', () {
+      final awaiting = VerificationMapper.summary({
+        ...summaryJson('a'),
+        'status': 'AWAITING_RATES',
+        'reportedAmount': null,
+        'expectedAmount': null,
+        'difference': null,
+        'verdict': null,
+      });
+      expect(awaiting.isAwaitingRates, isTrue);
+      expect(awaiting.verdict, isNull);
+      final legacy = summaryJson('b')
+        ..remove('status')
+        ..remove('primaryCurrency');
+      final s = VerificationMapper.summary(legacy);
+      expect(s.status, VerificationStatus.completed);
+      expect(s.currency, 'MXN');
+    });
+
+    test('summaryJsonFromDetail keeps status and nullable figures', () {
+      final s = VerificationMapper.summaryJsonFromDetail(
+        awaitingVerificationJson(),
+      );
+      expect(s['status'], 'AWAITING_RATES');
+      expect(s['reportedAmount'], isNull);
+      expect(VerificationMapper.summary(s).isAwaitingRates, isTrue);
+    });
+
+    test('confirm body serializes decimals as strings', () {
+      final body = VerificationMapper.confirmBody(
+        ConfirmRequest(
+          baseRatePercent: Decimal.parse('1.5'),
+          categoryRates: [
+            CategoryRateInput(
+              categoryId: 'cat1',
+              ratePercent: Decimal.parse('7'),
+              monthlyCap: Decimal.parse('50'),
+            ),
+          ],
+          saveToCard: true,
+          exchangeRate: Decimal.parse('26.35'),
+          rewardProgramName: ' CASH BAC ',
+        ),
+      );
+      expect(body['baseRatePercent'], '1.5');
+      expect(body['saveToCard'], true);
+      expect(body['exchangeRate'], '26.35');
+      expect(body['rewardProgramName'], 'CASH BAC');
+      expect(body.containsKey('reportedRewardOverride'), isFalse);
+      final cat = (body['categoryRates'] as List).single as Map;
+      expect(cat, {
+        'categoryId': 'cat1',
+        'ratePercent': '7',
+        'monthlyCap': '50',
+      });
+    });
+  });
+
   test('credits expose negative signed amounts', () {
     final v = VerificationMapper.detail(
       verificationJson(transactions: [txJson(0, 'REFUND', '58', credit: true)]),
@@ -64,25 +219,31 @@ void main() {
   });
 
   test(
-    'verify uploads multipart with cardId, pdf and optional override',
+    'verify uploads multipart with cardId, pdf and optional rate/program',
     () async {
       final file = File('${tmp.path}/s.pdf')
         ..writeAsBytesSync([37, 80, 68, 70]);
-      adapter = FakeAdapter((o) => FakeResponse(201, verificationJson()));
+      adapter = FakeAdapter(
+        (o) => FakeResponse(201, awaitingVerificationJson()),
+      );
       final progress = <int>[];
       final v = await repo().verify(
         cardId: 'c1',
         filePath: file.path,
-        reportedRewardOverride: '125,40',
+        exchangeRate: '26,35',
+        rewardProgramName: 'CASH BAC',
         onProgress: (s, t) => progress.add(s),
       );
       expect(v.id, 'v1');
+      expect(v.isAwaitingRates, isTrue);
       final req = adapter.requests.single;
       expect(req.path, '/verifications');
       final form = req.data as FormData;
       final fields = {for (final f in form.fields) f.key: f.value};
       expect(fields['cardId'], 'c1');
-      expect(fields['reportedRewardOverride'], '125.40');
+      expect(fields['exchangeRate'], '26.35');
+      expect(fields['rewardProgramName'], 'CASH BAC');
+      expect(fields.containsKey('reportedRewardOverride'), isFalse);
       expect(form.files.single.key, 'file');
       expect(form.files.single.value.contentType.toString(), 'application/pdf');
       expect(req.receiveTimeout, const Duration(minutes: 3));
@@ -92,24 +253,20 @@ void main() {
     },
   );
 
-  test('verify maps 402 and 422 codes', () async {
+  test('verify maps 402 NO_CREDITS', () async {
     final file = File('${tmp.path}/s.pdf')..writeAsBytesSync([37]);
     adapter = FakeAdapter(
       (o) => const FakeResponse(402, {
         'statusCode': 402,
-        'code': 'SUBSCRIPTION_REQUIRED',
+        'code': 'NO_CREDITS',
         'message': 'x',
-        'details': {'entitlementId': 'pro'},
+        'details': {'total': 0},
       }),
     );
     await expectLater(
       repo().verify(cardId: 'c1', filePath: file.path),
       throwsA(
-        isA<AppException>().having(
-          (e) => e.isSubscriptionRequired,
-          'sub',
-          true,
-        ),
+        isA<AppException>().having((e) => e.isNoCredits, 'noCredits', true),
       ),
     );
   });
@@ -161,4 +318,61 @@ void main() {
       expect(await db.readVerificationDetail('v1'), isNull);
     },
   );
+
+  test('confirm posts the rates and refreshes the cache', () async {
+    adapter = FakeAdapter((o) => FakeResponse(200, verificationJson()));
+    final v = await repo().confirm(
+      'v1',
+      ConfirmRequest(
+        baseRatePercent: Decimal.parse('1'),
+        categoryRates: const [],
+      ),
+    );
+    expect(v.isCompleted, isTrue);
+    final req = adapter.requests.single;
+    expect(req.method, 'POST');
+    expect(req.path, '/verifications/v1/confirm');
+    expect((req.data as Map)['baseRatePercent'], '1');
+    final cached = await db.readVerificationSummaries();
+    expect(cached.single['status'], 'COMPLETED');
+  });
+
+  test('confirm surfaces RATES_REQUIRED details', () async {
+    adapter = FakeAdapter(
+      (o) => const FakeResponse(422, {
+        'statusCode': 422,
+        'code': 'RATES_REQUIRED',
+        'message': 'x',
+        'details': {
+          'missing': [
+            {'categoryId': 'cat1', 'categoryName': 'Super'},
+          ],
+        },
+      }),
+    );
+    await expectLater(
+      repo().confirm(
+        'v1',
+        ConfirmRequest(
+          baseRatePercent: Decimal.parse('1'),
+          categoryRates: const [],
+        ),
+      ),
+      throwsA(
+        isA<AppException>()
+            .having((e) => e.code, 'code', 'RATES_REQUIRED')
+            .having((e) => e.details, 'details', isA<Map>()),
+      ),
+    );
+  });
+
+  test('correctTransaction patches the line and caches the result', () async {
+    adapter = FakeAdapter((o) => FakeResponse(200, verificationJson()));
+    await repo().correctTransaction('v1', 1, 'cat1');
+    final req = adapter.requests.single;
+    expect(req.method, 'PATCH');
+    expect(req.path, '/verifications/v1/transactions/1');
+    expect(req.data, {'categoryId': 'cat1'});
+    expect(await db.readVerificationDetail('v1'), isNotNull);
+  });
 }

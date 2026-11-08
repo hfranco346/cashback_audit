@@ -5,7 +5,7 @@ enum AppErrorKind {
   network,
   timeout,
   unauthorized,
-  subscriptionRequired,
+  noCredits,
   validation,
   notFound,
   conflict,
@@ -35,7 +35,8 @@ class AppException implements Exception {
   final String? serverMessage;
   final Object? details;
 
-  bool get isSubscriptionRequired => kind == AppErrorKind.subscriptionRequired;
+  /// The user has no verification credits left (`402 NO_CREDITS`).
+  bool get isNoCredits => kind == AppErrorKind.noCredits;
 
   /// Maps a [DioException] using the API error body
   /// `{statusCode, code, message, details?}`.
@@ -79,8 +80,8 @@ class AppException implements Exception {
   }
 
   static AppErrorKind _kindFor(int status, String? code) {
-    if (code == 'SUBSCRIPTION_REQUIRED' || status == 402) {
-      return AppErrorKind.subscriptionRequired;
+    if (code == 'NO_CREDITS' || status == 402) {
+      return AppErrorKind.noCredits;
     }
     return switch (status) {
       400 => AppErrorKind.validation,

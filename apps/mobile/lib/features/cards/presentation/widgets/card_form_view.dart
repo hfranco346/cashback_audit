@@ -19,6 +19,7 @@ class CardFormView extends StatelessWidget {
     required this.bank,
     required this.last4,
     required this.network,
+    required this.rewardProgram,
     required this.currency,
     required this.pointsFactor,
     required this.baseRate,
@@ -41,6 +42,7 @@ class CardFormView extends StatelessWidget {
   final TextEditingController bank;
   final TextEditingController last4;
   final TextEditingController network;
+  final TextEditingController rewardProgram;
   final TextEditingController currency;
   final TextEditingController pointsFactor;
   final TextEditingController baseRate;
@@ -130,6 +132,17 @@ class CardFormView extends StatelessWidget {
             decoration: const InputDecoration(labelText: S.cardNetwork),
             validator: (v) =>
                 (v ?? '').trim().length > 30 ? S.fieldTooLong(30) : null,
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            key: const Key('field-reward-program'),
+            controller: rewardProgram,
+            decoration: const InputDecoration(
+              labelText: S.cardRewardProgram,
+              helperText: S.cardRewardProgramHelper,
+            ),
+            validator: (v) =>
+                (v ?? '').trim().length > 80 ? S.fieldTooLong(80) : null,
           ),
           const SizedBox(height: 22),
           Text(

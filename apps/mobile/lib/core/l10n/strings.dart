@@ -22,8 +22,17 @@ abstract final class S {
       'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
   static const errTimeout = 'La solicitud tardó demasiado. Inténtalo de nuevo.';
   static const errUnauthorized = 'Tu sesión expiró. Inicia sesión otra vez.';
-  static const errSubscription =
-      'Necesitas una suscripción activa para verificar estados de cuenta.';
+  static const errNoCredits =
+      'No tienes verificaciones disponibles. Suscríbete o compra un paquete para continuar.';
+  static const errRatesRequired =
+      'Escribe el porcentaje de los rubros marcados como obligatorios.';
+  static const errProgramAmbiguous =
+      'Tu estado de cuenta tiene varios programas de recompensa. Elige cuál auditar.';
+  static const errTransactionNotFound = 'No encontramos ese movimiento.';
+  static const errTransactionNotClassifiable =
+      'Este movimiento no genera recompensa, así que no se puede asignar a un rubro.';
+  static const errVerificationNotFound =
+      'Esta verificación ya no existe. Las que no se confirman en 7 días se eliminan.';
   static const errValidation = 'Revisa los datos e inténtalo de nuevo.';
   static const errNotFound = 'No encontramos lo que buscabas.';
   static const errConflict =
@@ -114,6 +123,9 @@ abstract final class S {
   static const cardLast4Helper = 'Nunca pedimos el número completo.';
   static const cardNetwork = 'Red (opcional)';
   static const cardCurrency = 'Moneda';
+  static const cardRewardProgram = 'Programa de recompensa a auditar';
+  static const cardRewardProgramHelper =
+      'Opcional. Si tu estado de cuenta lista varios programas (p. ej. CASH BAC), escribe el nombre del que quieres auditar.';
   static const rewardUnitLabel = 'Tipo de recompensa';
   static const unitCashback = 'Cashback';
   static const unitPoints = 'Puntos';
@@ -204,6 +216,8 @@ abstract final class S {
 
   // Verdicts and result
   static const resultTitle = 'Resultado';
+  static const resultNotConfirmed =
+      'Esta verificación aún no tiene resultado. Confirma los porcentajes para calcularlo.';
   static const verdictMatch = 'Todo en orden';
   static const verdictUnderpaid = 'Te pagaron de menos';
   static const verdictOverpaid = 'Te pagaron de más';
@@ -253,6 +267,7 @@ abstract final class S {
       '¿Eliminar esta verificación del historial?';
 
   // History
+  static const awaitingRatesChip = 'Pendiente de confirmar %';
   static const historyTitle = 'Historial';
   static const historyEmptyTitle = 'Sin verificaciones todavía';
   static const historyEmptyBody =

@@ -29,12 +29,26 @@ void main() {
     expect(userMessageFor(e), S.errCategoryInUse);
   });
 
-  test('402 means subscription required', () {
+  test('402 NO_CREDITS means the user has no credits left', () {
     final e = AppException.fromDio(
-      _bad(402, {'statusCode': 402, 'code': 'SUBSCRIPTION_REQUIRED'}),
+      _bad(402, {'statusCode': 402, 'code': 'NO_CREDITS'}),
     );
-    expect(e.isSubscriptionRequired, isTrue);
-    expect(userMessageFor(e), S.errSubscription);
+    expect(e.isNoCredits, isTrue);
+    expect(userMessageFor(e), S.errNoCredits);
+  });
+
+  test('new verification error codes map to Spanish copy', () {
+    String msg(String code, int status) => userMessageFor(
+      AppException.fromDio(_bad(status, {'statusCode': status, 'code': code})),
+    );
+    expect(msg('RATES_REQUIRED', 422), S.errRatesRequired);
+    expect(msg('REWARD_PROGRAM_AMBIGUOUS', 422), S.errProgramAmbiguous);
+    expect(msg('REPORTED_REWARD_NOT_FOUND', 422), S.errRewardNotFound);
+    expect(msg('TRANSACTION_NOT_FOUND', 404), S.errTransactionNotFound);
+    expect(
+      msg('TRANSACTION_NOT_CLASSIFIABLE', 422),
+      S.errTransactionNotClassifiable,
+    );
   });
 
   test('network and timeout errors', () {

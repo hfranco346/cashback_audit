@@ -22,8 +22,23 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'cashback_audit'));
 
+  /// Bump when the cached API payloads change shape. v2: two-step
+  /// verifications (status, rates, loyalty, multi-currency lines).
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      // Cached payloads are only a read model: drop the verification rows
+      // written with the old contract and let the next fetch refill them.
+      if (from < 2) {
+        await delete(cachedVerifications).go();
+        await delete(cachedVerificationDetails).go();
+      }
+    },
+  );
 
   JsonMap _decode(String json) => jsonDecode(json) as JsonMap;
 

@@ -131,6 +131,7 @@ void main() {
               bank: controller.bank,
               last4: controller.last4,
               network: controller.network,
+              rewardProgram: controller.rewardProgram,
               currency: controller.currency,
               pointsFactor: controller.pointsFactor,
               baseRate: controller.baseRate,
@@ -177,6 +178,20 @@ void main() {
       expect(d.baseRatePercent.toString(), '1.5');
       expect(d.rules.single.categoryId, 'cat1');
       expect(d.rules.single.monthlyCap.toString(), '500');
+    });
+
+    testWidgets('reward program field is optional and trimmed', (tester) async {
+      await pumpForm(tester);
+      expect(find.byKey(const Key('field-reward-program')), findsOneWidget);
+      controller.alias.text = 'Daily';
+      controller.bank.text = 'BAC';
+      controller.last4.text = '4321';
+      controller.baseRate.text = '1';
+      expect(await controller.save(), isTrue);
+      expect(repo.saved.last.rewardProgramName, isNull);
+      controller.rewardProgram.text = '  CASH BAC CREDOMATIC ';
+      expect(await controller.save(), isTrue);
+      expect(repo.saved.last.rewardProgramName, 'CASH BAC CREDOMATIC');
     });
 
     testWidgets('rejects duplicate categories and missing rates', (

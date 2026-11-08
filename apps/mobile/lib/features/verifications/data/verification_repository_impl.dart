@@ -18,14 +18,16 @@ class VerificationRepositoryImpl implements VerificationRepository {
   Future<Verification> verify({
     required String cardId,
     required String filePath,
-    String? reportedRewardOverride,
+    String? exchangeRate,
+    String? rewardProgramName,
     UploadProgress? onProgress,
   }) => guardApi(() async {
-    final override = reportedRewardOverride?.trim().replaceAll(',', '.');
+    final rate = exchangeRate?.trim().replaceAll(',', '.');
+    final program = rewardProgramName?.trim();
     final form = FormData.fromMap({
       'cardId': cardId,
-      if (override != null && override.isNotEmpty)
-        'reportedRewardOverride': override,
+      if (rate != null && rate.isNotEmpty) 'exchangeRate': rate,
+      if (program != null && program.isNotEmpty) 'rewardProgramName': program,
       'file': await MultipartFile.fromFile(
         filePath,
         filename: 'statement.pdf',
@@ -43,13 +45,40 @@ class VerificationRepositoryImpl implements VerificationRepository {
         sendTimeout: const Duration(minutes: 2),
       ),
     );
-    final json = res.data!;
+    return _store(res.data!);
+  });
+
+  @override
+  Future<Verification> confirm(String id, ConfirmRequest request) =>
+      guardApi(() async {
+        final res = await _dio.post<JsonMap>(
+          '/verifications/$id/confirm',
+          data: VerificationMapper.confirmBody(request),
+        );
+        return _store(res.data!);
+      });
+
+  @override
+  Future<Verification> correctTransaction(
+    String id,
+    int index,
+    String? categoryId,
+  ) => guardApi(() async {
+    final res = await _dio.patch<JsonMap>(
+      '/verifications/$id/transactions/$index',
+      data: {'categoryId': categoryId},
+    );
+    return _store(res.data!);
+  });
+
+  /// Writes a fresh verification through to the offline cache.
+  Future<Verification> _store(JsonMap json) async {
     await _db.saveVerificationDetail(json);
     await _db.saveVerificationSummaries([
       VerificationMapper.summaryJsonFromDetail(json),
     ]);
     return VerificationMapper.detail(json);
-  });
+  }
 
   @override
   Future<Cached<VerificationPage>> history({

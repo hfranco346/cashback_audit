@@ -9,63 +9,15 @@ import 'package:cashback_audit/features/categories/presentation/catalog_controll
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
 import 'package:cashback_audit/features/verifications/domain/pdf_picker.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
-import 'package:cashback_audit/features/verifications/domain/verification_repository.dart';
 import 'package:cashback_audit/features/verifications/presentation/history_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/upload_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/fake_verification_repository.dart';
 import '../../support/fakes.dart';
 import '../../support/fixtures.dart';
 import '../categories/fake_catalog.dart';
-
-class _VerRepo implements VerificationRepository {
-  Object? verifyError;
-  String? lastOverride;
-  final deleted = <String>[];
-  List<VerificationSummary> items = [];
-  int pageSizeSeen = 0;
-
-  @override
-  Future<Verification> verify({
-    required String cardId,
-    required String filePath,
-    String? reportedRewardOverride,
-    UploadProgress? onProgress,
-  }) async {
-    lastOverride = reportedRewardOverride;
-    onProgress?.call(5, 10);
-    onProgress?.call(10, 10);
-    if (verifyError != null) throw verifyError!;
-    return VerificationMapper.detail(verificationJson());
-  }
-
-  @override
-  Future<Cached<VerificationPage>> history({
-    String? cardId,
-    int page = 1,
-    int pageSize = 20,
-  }) async {
-    pageSizeSeen = pageSize;
-    final start = (page - 1) * pageSize;
-    final slice = items.skip(start).take(pageSize).toList();
-    return Cached(
-      VerificationPage(
-        items: slice,
-        page: page,
-        pageSize: pageSize,
-        total: items.length,
-      ),
-    );
-  }
-
-  @override
-  Future<Cached<Verification>> detail(String id) async =>
-      Cached(VerificationMapper.detail(verificationJson(id: id)));
-
-  @override
-  Future<void> delete(String id) async => deleted.add(id);
-}
 
 class _Picker implements PdfPicker {
   _Picker(this.result);
@@ -92,14 +44,14 @@ const _pdf = PickedPdf(name: 'edo.pdf', path: '/tmp/edo.pdf', sizeBytes: 1000);
 
 void main() {
   group('UploadController', () {
-    late _VerRepo repo;
+    late FakeVerificationRepository repo;
     late _Picker picker;
     late FakeNavigator nav;
     late UploadController c;
     var verified = 0;
 
     setUp(() {
-      repo = _VerRepo();
+      repo = FakeVerificationRepository();
       picker = _Picker(_pdf);
       nav = FakeNavigator();
       verified = 0;
@@ -147,36 +99,14 @@ void main() {
 
     test('402 routes to the paywall', () async {
       repo.verifyError = const AppException(
-        kind: AppErrorKind.subscriptionRequired,
+        kind: AppErrorKind.noCredits,
         statusCode: 402,
-        code: 'SUBSCRIPTION_REQUIRED',
+        code: 'NO_CREDITS',
       );
       await c.pickFile();
       await c.submit();
       expect(nav.pushed, ['/paywall']);
-      expect(c.errorMessage.value, S.errSubscription);
-    });
-
-    test('missing reward asks for an override and retries with it', () async {
-      repo.verifyError = const AppException(
-        kind: AppErrorKind.unprocessable,
-        statusCode: 422,
-        code: 'REPORTED_REWARD_NOT_FOUND',
-      );
-      await c.pickFile();
-      await c.submit();
-      expect(c.needsOverride.value, isTrue);
-      expect(c.errorMessage.value, S.errRewardNotFound);
-
-      c.overrideText.text = 'abc';
-      await c.submit();
-      expect(c.overrideError.value, S.overrideInvalid);
-
-      repo.verifyError = null;
-      c.overrideText.text = '125,40';
-      await c.submit();
-      expect(repo.lastOverride, '125,40');
-      expect(nav.replaced, ['/result']);
+      expect(c.errorMessage.value, S.errNoCredits);
     });
 
     test('timeouts tell the user to check history before retrying', () async {
@@ -203,7 +133,7 @@ void main() {
       );
       await catalog.load();
       c = ResultController(
-        repository: _VerRepo(),
+        repository: FakeVerificationRepository(),
         catalog: catalog,
         initial: VerificationMapper.detail(verificationJson()),
       )..onInit();
@@ -235,7 +165,7 @@ void main() {
 
     test('loads by id when opened from history', () async {
       final byId = ResultController(
-        repository: _VerRepo(),
+        repository: FakeVerificationRepository(),
         catalog: catalog,
         verificationId: 'v9',
       )..onInit();
@@ -252,7 +182,7 @@ void main() {
 
   group('HistoryController', () {
     test('paginates, filters by card and deletes', () async {
-      final repo = _VerRepo()
+      final repo = FakeVerificationRepository()
         ..items = [
           for (var i = 0; i < 3; i++)
             VerificationMapper.summary(summaryJson('v$i')),
@@ -275,7 +205,7 @@ void main() {
     });
 
     test('latest controller loads three', () async {
-      final repo = _VerRepo()
+      final repo = FakeVerificationRepository()
         ..items = [
           for (var i = 0; i < 5; i++)
             VerificationMapper.summary(summaryJson('v$i')),

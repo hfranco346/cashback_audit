@@ -22,9 +22,6 @@ class UploadPage extends GetView<UploadController> {
         canSubmit: controller.canSubmit,
         onSubmit: controller.submit,
         onAddCard: () => Get.toNamed<void>(Routes.cardForm),
-        needsOverride: controller.needsOverride.value,
-        overrideController: controller.overrideText,
-        overrideError: controller.overrideError.value,
         errorMessage: controller.errorMessage.value,
       ),
     );

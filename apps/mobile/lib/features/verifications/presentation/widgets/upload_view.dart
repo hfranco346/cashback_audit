@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../../core/l10n/strings.dart';
 import '../../../../shared/widgets/molecules/empty_state.dart';
@@ -22,9 +21,6 @@ class UploadView extends StatelessWidget {
     required this.canSubmit,
     required this.onSubmit,
     required this.onAddCard,
-    required this.needsOverride,
-    required this.overrideController,
-    this.overrideError,
     this.errorMessage,
   });
 
@@ -38,9 +34,6 @@ class UploadView extends StatelessWidget {
   final bool canSubmit;
   final VoidCallback onSubmit;
   final VoidCallback onAddCard;
-  final bool needsOverride;
-  final TextEditingController overrideController;
-  final String? overrideError;
   final String? errorMessage;
 
   bool get _busy => phase != UploadPhase.idle;
@@ -86,27 +79,6 @@ class UploadView extends StatelessWidget {
               Text(S.uploadStep2, style: theme.textTheme.titleMedium),
               const SizedBox(height: 10),
               _FileBox(file: file, onPick: _busy ? null : onPick),
-              if (needsOverride) ...[
-                const SizedBox(height: 24),
-                Text(S.overrideTitle, style: theme.textTheme.titleMedium),
-                const SizedBox(height: 10),
-                TextField(
-                  key: const Key('override-field'),
-                  controller: overrideController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                  ],
-                  decoration: InputDecoration(
-                    labelText: S.overrideLabel,
-                    helperText: S.overrideHelper,
-                    helperMaxLines: 2,
-                    errorText: overrideError,
-                  ),
-                ),
-              ],
               if (errorMessage != null) ...[
                 const SizedBox(height: 16),
                 InlineMessage(message: errorMessage!),

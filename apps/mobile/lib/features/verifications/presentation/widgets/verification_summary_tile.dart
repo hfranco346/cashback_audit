@@ -1,7 +1,9 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/l10n/strings.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/verification_entities.dart';
 import '../format_reward.dart';
 import 'verdict_style.dart';
@@ -31,8 +33,16 @@ class VerificationSummaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final style = VerdictStyle.of(context, summary.verdict);
-    final currency = summary.statement.currency ?? 'MXN';
+    final verdict = summary.verdict;
+    if (summary.isAwaitingRates || verdict == null) {
+      return _AwaitingTile(
+        cardLabel: cardLabel,
+        period: _period(),
+        onTap: onTap,
+      );
+    }
+    final style = VerdictStyle.of(context, verdict);
+    final currency = summary.currency;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -80,7 +90,7 @@ class VerificationSummaryTile extends StatelessWidget {
                 children: [
                   Text(
                     formatReward(
-                      summary.difference,
+                      summary.difference ?? Decimal.zero,
                       summary.unit,
                       currency: currency,
                     ),
@@ -90,11 +100,89 @@ class VerificationSummaryTile extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${S.expectedLabel} ${formatReward(summary.expectedAmount, summary.unit, currency: currency)}',
+                    '${S.expectedLabel} ${formatReward(summary.expectedAmount ?? Decimal.zero, summary.unit, currency: currency)}',
                     style: theme.textTheme.labelSmall,
                   ),
                 ],
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// History row of a statement whose rates were not confirmed yet.
+class _AwaitingTile extends StatelessWidget {
+  const _AwaitingTile({
+    required this.cardLabel,
+    required this.period,
+    required this.onTap,
+  });
+
+  final String cardLabel;
+  final String period;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final verdicts = context.verdictColors;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const Key('awaiting-tile'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: verdicts.warningContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.percent_rounded, color: verdicts.warning),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      key: const Key('awaiting-chip'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: verdicts.warningContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        S.awaitingRatesChip,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: verdicts.warning,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$cardLabel · $period',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
             ],
           ),
         ),

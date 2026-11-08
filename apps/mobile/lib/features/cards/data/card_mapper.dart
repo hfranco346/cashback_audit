@@ -12,6 +12,7 @@ abstract final class CardMapper {
     pointsPerCurrencyUnit: parseDecimal(json['pointsPerCurrencyUnit'] ?? '1'),
     baseRatePercent: parseDecimal(json['baseRatePercent']),
     currency: json['currency'] as String,
+    rewardProgramName: json['rewardProgramName'] as String?,
     rules: [
       for (final r in (json['rules'] as List<dynamic>? ?? const []))
         RewardRule(
@@ -29,6 +30,7 @@ abstract final class CardMapper {
     required bool forUpdate,
   }) {
     final network = d.network?.trim();
+    final program = d.rewardProgramName?.trim();
     return {
       'alias': d.alias.trim(),
       'bank': d.bank.trim(),
@@ -37,6 +39,10 @@ abstract final class CardMapper {
         'network': network
       else if (forUpdate)
         'network': null,
+      if (program != null && program.isNotEmpty)
+        'rewardProgramName': program
+      else if (forUpdate)
+        'rewardProgramName': null,
       'rewardUnit': d.rewardUnit.apiValue,
       if (d.rewardUnit == RewardUnit.points && d.pointsPerCurrencyUnit != null)
         'pointsPerCurrencyUnit': decimalToApi(d.pointsPerCurrencyUnit!),

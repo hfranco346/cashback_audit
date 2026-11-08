@@ -26,6 +26,18 @@ String userMessageFor(Object error) {
       return S.errIdentityToken;
     case 'IDENTITY_PROVIDER_UNAVAILABLE':
       return S.errIdentityUnavailable;
+    case 'NO_CREDITS':
+      return S.errNoCredits;
+    case 'RATES_REQUIRED':
+      return S.errRatesRequired;
+    case 'REWARD_PROGRAM_AMBIGUOUS':
+      return S.errProgramAmbiguous;
+    case 'TRANSACTION_NOT_FOUND':
+      return S.errTransactionNotFound;
+    case 'TRANSACTION_NOT_CLASSIFIABLE':
+      return S.errTransactionNotClassifiable;
+    case 'VERIFICATION_NOT_FOUND':
+      return S.errVerificationNotFound;
     case 'DUPLICATE_RULE_CATEGORY':
       return S.errValidation;
   }
@@ -33,7 +45,7 @@ String userMessageFor(Object error) {
     AppErrorKind.network => S.errNetwork,
     AppErrorKind.timeout => S.errTimeout,
     AppErrorKind.unauthorized => S.errUnauthorized,
-    AppErrorKind.subscriptionRequired => S.errSubscription,
+    AppErrorKind.noCredits => S.errNoCredits,
     AppErrorKind.validation => S.errValidation,
     AppErrorKind.notFound => S.errNotFound,
     AppErrorKind.conflict => S.errConflict,

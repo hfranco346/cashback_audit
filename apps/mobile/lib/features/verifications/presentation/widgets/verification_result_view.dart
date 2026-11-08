@@ -1,7 +1,7 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/l10n/strings.dart';
-import '../../../../core/utils/decimal_utils.dart';
 import '../../../../shared/widgets/molecules/inline_message.dart';
 import '../../domain/verification_entities.dart';
 import '../format_reward.dart';
@@ -30,10 +30,15 @@ class VerificationResultView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final v = verification;
-    final currency = v.statement.currency ?? 'MXN';
-    String reward(d) => formatReward(d, v.unit, currency: currency);
-    final diff = v.difference;
-    final hint = switch (v.verdict) {
+    final currency = v.currency;
+    final verdict = v.verdict;
+    final reported = v.reported;
+    if (!v.isCompleted || verdict == null || reported == null) {
+      return const Center(child: Text(S.resultNotConfirmed));
+    }
+    String reward(Decimal d) => formatReward(d, v.unit, currency: currency);
+    final diff = v.difference ?? Decimal.zero;
+    final hint = switch (verdict) {
       Verdict.match => S.verdictMatchHint,
       Verdict.underpaid => S.verdictUnderpaidHint(reward(-diff)),
       Verdict.overpaid => S.verdictOverpaidHint(reward(diff)),
@@ -43,12 +48,12 @@ class VerificationResultView extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
       children: [
         VerdictCard(
-          verdict: v.verdict,
+          verdict: verdict,
           hint: hint,
-          expected: reward(v.expectedAmount),
-          reported: reward(v.reported.amount),
-          difference: diff > parseDecimal(0) ? '+$signed' : signed,
-          reportedNote: v.reported.fromOverride ? S.reportedOverrideNote : null,
+          expected: reward(v.expectedAmount ?? Decimal.zero),
+          reported: reward(reported.amount),
+          difference: diff > Decimal.zero ? '+$signed' : signed,
+          reportedNote: reported.fromOverride ? S.reportedOverrideNote : null,
           heroTag: 'verdict-${v.id}',
         ),
         if (v.warnings.isNotEmpty) ...[

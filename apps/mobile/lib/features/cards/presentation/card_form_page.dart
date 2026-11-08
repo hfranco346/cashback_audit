@@ -39,6 +39,7 @@ class CardFormPage extends GetView<CardFormController> {
                 bank: controller.bank,
                 last4: controller.last4,
                 network: controller.network,
+                rewardProgram: controller.rewardProgram,
                 currency: controller.currency,
                 pointsFactor: controller.pointsFactor,
                 baseRate: controller.baseRate,

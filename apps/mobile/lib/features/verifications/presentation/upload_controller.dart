@@ -37,15 +37,8 @@ class UploadController extends GetxController {
   final progress = 0.0.obs;
   final errorMessage = RxnString();
 
-  /// Set when the statement shows no reward figure; asks the user to type it.
-  final needsOverride = false.obs;
-  final overrideText = TextEditingController();
-  final overrideError = RxnString();
-
   CardsController get cards => _cards;
   bool get busy => phase.value != UploadPhase.idle;
-
-  static final _amount = RegExp(r'^\d+([.,]\d{1,2})?$');
 
   @override
   void onInit() {
@@ -89,16 +82,6 @@ class UploadController extends GetxController {
 
   Future<void> submit() async {
     if (!canSubmit) return;
-    String? override;
-    if (needsOverride.value) {
-      final text = overrideText.text.trim();
-      if (!_amount.hasMatch(text)) {
-        overrideError.value = S.overrideInvalid;
-        return;
-      }
-      override = text;
-    }
-    overrideError.value = null;
     errorMessage.value = null;
     phase.value = UploadPhase.uploading;
     progress.value = 0;
@@ -106,7 +89,6 @@ class UploadController extends GetxController {
       final verification = await _repository.verify(
         cardId: cardId.value!,
         filePath: file.value!.path,
-        reportedRewardOverride: override,
         onProgress: (sent, total) {
           if (total <= 0) return;
           progress.value = sent / total;
@@ -123,22 +105,13 @@ class UploadController extends GetxController {
   }
 
   void _handleError(AppException e) {
-    if (e.isSubscriptionRequired) {
+    if (e.isNoCredits) {
       _navigator.push(Routes.paywall);
       errorMessage.value = userMessageFor(e);
       return;
     }
-    if (e.code == 'REPORTED_REWARD_NOT_FOUND') {
-      needsOverride.value = true;
-    }
     errorMessage.value = e.kind == AppErrorKind.timeout
         ? S.uploadTimeout
         : userMessageFor(e);
-  }
-
-  @override
-  void onClose() {
-    overrideText.dispose();
-    super.onClose();
   }
 }

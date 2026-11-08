@@ -68,4 +68,27 @@ void main() {
     expect(await db.readCategories(), isEmpty);
     expect(await db.readMerchants(), isEmpty);
   });
+
+  test('upgrading from v1 drops stale verification payloads only', () async {
+    // `raw` is the sqlite3 Database handed to drift's setup callback.
+    void seedV1(dynamic raw) {
+      if (raw.select('PRAGMA user_version').first.values.first != 0) return;
+      raw.execute('''
+        CREATE TABLE cached_cards (id TEXT NOT NULL PRIMARY KEY, position INTEGER NOT NULL, json TEXT NOT NULL);
+        CREATE TABLE cached_verifications (id TEXT NOT NULL PRIMARY KEY, card_id TEXT NOT NULL, created_at INTEGER NOT NULL, json TEXT NOT NULL);
+        CREATE TABLE cached_verification_details (id TEXT NOT NULL PRIMARY KEY, json TEXT NOT NULL);
+        INSERT INTO cached_cards VALUES ('a', 0, '{"id":"a"}');
+        INSERT INTO cached_verifications VALUES ('v1', 'a', 1767225600, '{"id":"v1"}');
+        INSERT INTO cached_verification_details VALUES ('v1', '{"id":"v1"}');
+        PRAGMA user_version = 1;
+      ''');
+    }
+
+    final upgraded = AppDatabase(NativeDatabase.memory(setup: seedV1));
+    addTearDown(upgraded.close);
+    expect(await upgraded.readVerificationSummaries(), isEmpty);
+    expect(await upgraded.readVerificationDetail('v1'), isNull);
+    expect(await upgraded.readCards(), hasLength(1));
+    expect(upgraded.schemaVersion, 2);
+  });
 }

@@ -1,3 +1,4 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/l10n/strings.dart';
@@ -36,8 +37,13 @@ class TransactionTile extends StatelessWidget {
     final color = counted ? status.success : status.danger;
     final bg = counted ? status.successContainer : status.dangerContainer;
     final label = counted ? S.countedLabel : S.uncountedLabel;
-    final amountText = formatMoney(tx.signedAmount, currency: currency);
-    final rate = formatRate(tx.appliedRatePercent);
+    final amountText = formatMoney(
+      tx.signedAmount,
+      currency: tx.currency.isEmpty ? currency : tx.currency,
+    );
+    final rate = tx.appliedRatePercent == null
+        ? '—'
+        : formatRate(tx.appliedRatePercent!);
 
     return MergeSemantics(
       child: Container(
@@ -89,7 +95,7 @@ class TransactionTile extends StatelessWidget {
                               tx.categoryName!,
                               style: theme.textTheme.labelMedium,
                             ),
-                          if (tx.matchSource == MatchSource.ai)
+                          if (tx.matchSource.isAi)
                             Tooltip(
                               message: S.aiChipTooltip,
                               child: Container(
@@ -145,7 +151,11 @@ class TransactionTile extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      formatReward(tx.expectedReward, unit, currency: currency),
+                      formatReward(
+                        tx.expectedReward ?? Decimal.zero,
+                        unit,
+                        currency: currency,
+                      ),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

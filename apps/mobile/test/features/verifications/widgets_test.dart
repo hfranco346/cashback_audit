@@ -293,7 +293,6 @@ void main() {
       UploadPhase phase = UploadPhase.idle,
       PickedPdf? file,
       bool canSubmit = false,
-      bool needsOverride = false,
       List<CreditCard>? list,
       VoidCallback? onSubmit,
       ValueChanged<String>? onSelect,
@@ -308,8 +307,6 @@ void main() {
       canSubmit: canSubmit,
       onSubmit: onSubmit ?? () {},
       onAddCard: () {},
-      needsOverride: needsOverride,
-      overrideController: TextEditingController(),
     );
 
     testWidgets('verify is disabled until a file is picked', (tester) async {
@@ -372,13 +369,7 @@ void main() {
       );
     });
 
-    testWidgets('override field appears when needed; empty cards CTA', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: upload(needsOverride: true)),
-      );
-      expect(find.byKey(const Key('override-field')), findsOneWidget);
+    testWidgets('empty cards show the add-card CTA', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,

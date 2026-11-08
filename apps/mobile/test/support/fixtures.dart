@@ -3,6 +3,7 @@ Map<String, dynamic> cardJson({
   String alias = 'Daily',
   List<Map<String, dynamic>>? rules,
   String unit = 'CASHBACK_CURRENCY',
+  String? rewardProgramName,
 }) => {
   'id': id,
   'alias': alias,
@@ -13,6 +14,7 @@ Map<String, dynamic> cardJson({
   'pointsPerCurrencyUnit': '1',
   'baseRatePercent': '1.5',
   'currency': 'MXN',
+  'rewardProgramName': rewardProgramName,
   'rules':
       rules ??
       [
@@ -56,6 +58,7 @@ Map<String, dynamic> verificationJson({
 }) => {
   'id': id,
   'cardId': 'c1',
+  'status': 'COMPLETED',
   'statement': {
     'bank': 'BBVA',
     'cardLast4': '4321',
@@ -65,6 +68,7 @@ Map<String, dynamic> verificationJson({
     'totalSpent': '1400',
     'totalToPay': '1400',
   },
+  'primaryCurrency': 'MXN',
   'reported': {
     'amount': '40',
     'unit': 'CASHBACK_CURRENCY',
@@ -75,6 +79,50 @@ Map<String, dynamic> verificationJson({
   'difference': '-18',
   'tolerance': '1',
   'verdict': verdict,
+  'explanation': 'El banco te pago 18 menos de lo esperado.',
+  'detectedRates': <Map<String, dynamic>>[],
+  'rateProposal': [
+    proposalJson(null, null, '1', 'CARD_RULE'),
+    proposalJson('cat1', 'Super', '5', 'STATEMENT', evidence: '5% en super'),
+  ],
+  'appliedRates': {
+    'baseRatePercent': '1',
+    'baseSource': 'CARD_RULE_CONFIRMED',
+    'savedToCard': false,
+    'categoryRates': [
+      {
+        'categoryId': 'cat1',
+        'categoryName': 'Super',
+        'ratePercent': '5',
+        'monthlyCap': null,
+        'source': 'STATEMENT_CONFIRMED',
+      },
+    ],
+  },
+  'conversion': {
+    'primaryCurrency': 'MXN',
+    'requestedRate': null,
+    'statementRate': null,
+  },
+  'currencies': [
+    {
+      'currency': 'MXN',
+      'isPrimary': true,
+      'spent': '1400',
+      'eligibleSpent': '1400',
+      'convertedEligibleSpent': '1400',
+      'exchangeRate': null,
+      'exchangeRateSource': null,
+      'expectedReward': '58',
+      'excludedCount': 0,
+    },
+  ],
+  'loyalty': {
+    'selectedBy': 'ONLY_PROGRAM',
+    'requestedProgramName': null,
+    'selectedProgram': programJson('Bonificacion', '40'),
+    'programs': [programJson('Bonificacion', '40')],
+  },
   'breakdown': [
     {
       'categoryId': 'cat1',
@@ -109,6 +157,142 @@ Map<String, dynamic> verificationJson({
     {'code': 'AI_MATCHING_UNAVAILABLE', 'message': 'AI matching failed'},
   ],
   'model': 'claude-sonnet-5-5',
+  'models': {
+    'extraction': 'claude-sonnet-5-5',
+    'classification': 'claude-haiku-5-5',
+    'explanation': 'claude-haiku-5-5',
+  },
+  'createdAt': '2026-02-01T10:00:00.000Z',
+};
+
+Map<String, dynamic> programJson(String name, String accumulated) => {
+  'name': name,
+  'unit': 'CURRENCY',
+  'accumulated': accumulated,
+  'available': null,
+  'redeemedInPeriod': null,
+  'expiring': null,
+  'forfeited': null,
+};
+
+Map<String, dynamic> proposalJson(
+  String? categoryId,
+  String? name,
+  String? rate,
+  String source, {
+  String? evidence,
+  String? cap,
+}) => {
+  'categoryId': categoryId,
+  'categoryName': name,
+  'ratePercent': rate,
+  'monthlyCap': cap,
+  'source': source,
+  'evidence': evidence,
+  'unitNote': null,
+  'required': source == 'NONE',
+};
+
+/// Step-1 result: nothing computed yet, the user must confirm the rates.
+Map<String, dynamic> awaitingVerificationJson({
+  String id = 'v1',
+  List<Map<String, dynamic>>? rateProposal,
+  List<Map<String, dynamic>>? transactions,
+  List<Map<String, dynamic>>? programs,
+  Map<String, dynamic>? selectedProgram,
+}) => {
+  'id': id,
+  'cardId': 'c1',
+  'status': 'AWAITING_RATES',
+  'statement': {
+    'bank': 'BAC',
+    'cardLast4': '4321',
+    'periodStart': '2026-01-01',
+    'periodEnd': '2026-01-31',
+    'currency': 'HNL',
+    'totalSpent': '1400',
+    'totalToPay': '1400',
+  },
+  'primaryCurrency': 'HNL',
+  'reported': null,
+  'expected': null,
+  'difference': null,
+  'tolerance': null,
+  'verdict': null,
+  'explanation': null,
+  'detectedRates': <Map<String, dynamic>>[],
+  'rateProposal':
+      rateProposal ??
+      [
+        proposalJson(null, null, null, 'NONE'),
+        proposalJson('cat1', 'Supermercados', null, 'NONE'),
+      ],
+  'appliedRates': null,
+  'conversion': {
+    'primaryCurrency': 'HNL',
+    'requestedRate': null,
+    'statementRate': null,
+  },
+  'currencies': <Map<String, dynamic>>[],
+  'loyalty': {
+    'selectedBy': null,
+    'requestedProgramName': null,
+    'selectedProgram': selectedProgram,
+    'programs': programs ?? <Map<String, dynamic>>[],
+  },
+  'breakdown': <Map<String, dynamic>>[],
+  'transactions':
+      transactions ??
+      [
+        txJson(
+          0,
+          'SUPER LA COLONIA',
+          '1000',
+          source: 'AI_CATEGORY',
+          currency: 'HNL',
+          awaiting: true,
+        ),
+      ],
+  'warnings': <Map<String, dynamic>>[],
+  'models': {'extraction': 'claude-sonnet-5-5', 'classification': null},
+  'createdAt': '2026-02-01T10:00:00.000Z',
+};
+
+/// A verification as stored before the two-step / multi-currency contract.
+Map<String, dynamic> legacyVerificationJson({String id = 'old'}) => {
+  'id': id,
+  'cardId': 'c1',
+  'statement': {'bank': 'BBVA', 'currency': 'MXN', 'totalSpent': '1400'},
+  'reported': {
+    'amount': '40',
+    'unit': 'CASHBACK_CURRENCY',
+    'source': 'STATEMENT',
+  },
+  'expected': {'amount': '58', 'unit': 'CASHBACK_CURRENCY'},
+  'difference': '-18',
+  'tolerance': '1',
+  'verdict': 'UNDERPAID',
+  'breakdown': <Map<String, dynamic>>[],
+  'transactions': [
+    {
+      'index': 0,
+      'date': '2026-01-02',
+      'merchant': 'WAL MART',
+      'amount': '1000',
+      'isCredit': false,
+      'matchedMerchantId': 'm1',
+      'matchedMerchantName': 'Walmart',
+      'categoryId': 'cat1',
+      'categoryName': 'Super',
+      'matchSource': 'AI',
+      'matchConfidence': 0.8,
+      'appliedRatePercent': '5',
+      'ruleApplied': true,
+      'expectedReward': '50',
+    },
+  ],
+  'warnings': <Map<String, dynamic>>[],
+  'model': 'claude-sonnet-5-5',
   'createdAt': '2026-02-01T10:00:00.000Z',
 };
 
@@ -119,21 +303,40 @@ Map<String, dynamic> txJson(
   String source = 'KEYWORD',
   String rate = '5',
   bool credit = false,
+  String currency = 'MXN',
+  String kind = 'PURCHASE',
+  String? excludedReason,
+  String? reason,
+  bool awaiting = false,
 }) => {
   'index': index,
   'date': '2026-01-02',
+  'reference': null,
   'merchant': merchant,
   'amount': amount,
+  'currency': currency,
   'isCredit': credit,
-  'matchedMerchantId': source == 'NONE' ? null : 'm1',
-  'matchedMerchantName': source == 'NONE' ? null : 'Walmart',
+  'kind': kind,
+  'convertedAmount': awaiting || excludedReason != null ? null : amount,
+  'exchangeRate': null,
+  'exchangeRateSource': null,
+  'excludedReason':
+      excludedReason ??
+      (kind == 'PURCHASE' || kind == 'REFUND' ? null : 'NON_PURCHASE_KIND'),
+  'matchedMerchantId': source == 'NONE' || source == 'AI_CATEGORY'
+      ? null
+      : 'm1',
+  'matchedMerchantName': source == 'NONE' || source == 'AI_CATEGORY'
+      ? null
+      : 'Walmart',
   'categoryId': source == 'NONE' ? null : 'cat1',
   'categoryName': source == 'NONE' ? null : 'Super',
   'matchSource': source,
-  'matchConfidence': source == 'AI' ? 0.8 : null,
-  'appliedRatePercent': rate,
-  'ruleApplied': source != 'NONE',
-  'expectedReward': '50',
+  'matchConfidence': source.startsWith('AI') ? 0.8 : null,
+  'matchReason': reason,
+  'appliedRatePercent': awaiting ? null : rate,
+  'ruleApplied': !awaiting && source != 'NONE',
+  'expectedReward': awaiting ? null : '50',
 };
 
 Map<String, dynamic> summaryJson(String id, {String cardId = 'c1'}) => {
@@ -146,6 +349,8 @@ Map<String, dynamic> summaryJson(String id, {String cardId = 'c1'}) => {
     'periodEnd': '2026-01-31',
     'currency': 'MXN',
   },
+  'status': 'COMPLETED',
+  'primaryCurrency': 'MXN',
   'rewardUnit': 'CASHBACK_CURRENCY',
   'reportedAmount': '40',
   'expectedAmount': '58',

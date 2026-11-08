@@ -42,6 +42,7 @@ class CardDraft extends Equatable {
     required this.currency,
     this.network,
     this.pointsPerCurrencyUnit,
+    this.rewardProgramName,
     this.rules = const [],
   });
 
@@ -53,6 +54,9 @@ class CardDraft extends Equatable {
   final Decimal? pointsPerCurrencyUnit;
   final Decimal baseRatePercent;
   final String currency;
+
+  /// Loyalty program to audit when the statement lists several.
+  final String? rewardProgramName;
   final List<RewardRule> rules;
 
   @override
@@ -65,6 +69,7 @@ class CardDraft extends Equatable {
     pointsPerCurrencyUnit,
     baseRatePercent,
     currency,
+    rewardProgramName,
     rules,
   ];
 }
@@ -80,6 +85,7 @@ class CreditCard extends Equatable {
     required this.baseRatePercent,
     required this.currency,
     this.network,
+    this.rewardProgramName,
     this.rules = const [],
   });
 
@@ -92,6 +98,7 @@ class CreditCard extends Equatable {
   final Decimal pointsPerCurrencyUnit;
   final Decimal baseRatePercent;
   final String currency;
+  final String? rewardProgramName;
   final List<RewardRule> rules;
 
   bool get isPoints => rewardUnit == RewardUnit.points;
@@ -105,6 +112,7 @@ class CreditCard extends Equatable {
     pointsPerCurrencyUnit: pointsPerCurrencyUnit,
     baseRatePercent: baseRatePercent,
     currency: currency,
+    rewardProgramName: rewardProgramName,
     rules: rules,
   );
 
@@ -119,6 +127,7 @@ class CreditCard extends Equatable {
     pointsPerCurrencyUnit,
     baseRatePercent,
     currency,
+    rewardProgramName,
     rules,
   ];
 }

@@ -49,6 +49,7 @@ class CardFormController extends GetxController {
   final bank = TextEditingController();
   final last4 = TextEditingController();
   final network = TextEditingController();
+  final rewardProgram = TextEditingController();
   final currency = TextEditingController(text: 'MXN');
   final pointsFactor = TextEditingController(text: '1');
   final baseRate = TextEditingController();
@@ -72,6 +73,7 @@ class CardFormController extends GetxController {
       bank.text = c.bank;
       last4.text = c.last4;
       network.text = c.network ?? '';
+      rewardProgram.text = c.rewardProgramName ?? '';
       currency.text = c.currency;
       pointsFactor.text = decimalToApi(c.pointsPerCurrencyUnit);
       baseRate.text = decimalToApi(c.baseRatePercent);
@@ -148,6 +150,9 @@ class CardFormController extends GetxController {
       bank: bank.text,
       last4: last4.text,
       network: network.text.trim().isEmpty ? null : network.text,
+      rewardProgramName: rewardProgram.text.trim().isEmpty
+          ? null
+          : rewardProgram.text.trim(),
       rewardUnit: rewardUnit.value,
       pointsPerCurrencyUnit: isPoints
           ? CardValidator.parse(pointsFactor.text)
@@ -195,6 +200,7 @@ class CardFormController extends GetxController {
       bank,
       last4,
       network,
+      rewardProgram,
       currency,
       pointsFactor,
       baseRate,
