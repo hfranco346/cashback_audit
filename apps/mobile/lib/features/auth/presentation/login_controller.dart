@@ -7,7 +7,7 @@ import '../domain/auth_entities.dart';
 import '../domain/auth_repository.dart';
 import 'session_controller.dart';
 
-enum LoginProvider { google, apple }
+enum LoginProvider { google, apple, dev }
 
 class LoginController extends GetxController {
   LoginController({
@@ -15,12 +15,17 @@ class LoginController extends GetxController {
     required this._session,
     required this._navigator,
     required this.showApple,
+    this._devSignIn,
   });
 
   final AuthRepository _repository;
   final SessionController _session;
   final AppNavigator _navigator;
   final bool showApple;
+  final Future<AppUser> Function()? _devSignIn;
+
+  /// Debug-only shortcut that signs in with a pre-issued token.
+  bool get showDevSignIn => _devSignIn != null;
 
   final loading = Rxn<LoginProvider>();
   final errorMessage = RxnString();
@@ -32,6 +37,12 @@ class LoginController extends GetxController {
 
   Future<void> signInWithApple() =>
       _run(LoginProvider.apple, _repository.signInWithApple);
+
+  Future<void> signInForDevelopment() {
+    final devSignIn = _devSignIn;
+    if (devSignIn == null) return Future.value();
+    return _run(LoginProvider.dev, devSignIn);
+  }
 
   Future<void> _run(
     LoginProvider provider,

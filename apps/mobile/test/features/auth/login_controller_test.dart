@@ -71,6 +71,35 @@ void main() {
     expect(nav.routes, ['/home']);
   });
 
+  test('development sign-in is off unless a callback is given', () async {
+    final (login, session, _) = build(_Repo(googleResult: user));
+    expect(login.showDevSignIn, isFalse);
+    await login.signInForDevelopment();
+    expect(session.user.value, isNull);
+    expect(nav.routes, isEmpty);
+  });
+
+  test('development sign-in signs in and goes home', () async {
+    final repo = _Repo(googleResult: user);
+    final session = SessionController(
+      repository: repo,
+      events: SessionEvents(),
+      clearLocalData: () async {},
+      navigator: nav,
+    );
+    final login = LoginController(
+      repository: repo,
+      session: session,
+      navigator: nav,
+      showApple: false,
+      devSignIn: () async => user,
+    );
+    expect(login.showDevSignIn, isTrue);
+    await login.signInForDevelopment();
+    expect(session.user.value, user);
+    expect(nav.routes, ['/home']);
+  });
+
   test('cancellation is silent', () async {
     final (login, session, _) = build(
       _Repo(googleError: const SignInCancelled()),

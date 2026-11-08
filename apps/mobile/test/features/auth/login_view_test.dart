@@ -55,4 +55,31 @@ void main() {
     expect(taps, 0);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
+
+  testWidgets('development sign-in button only shows with a callback', (
+    tester,
+  ) async {
+    var dev = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LoginView(onGoogle: () {}, onApple: () {}, showApple: false),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('dev-sign-in')), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LoginView(
+          onGoogle: () {},
+          onApple: () {},
+          showApple: false,
+          onDevSignIn: () => dev++,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dev-sign-in')));
+    expect(dev, 1);
+  });
 }

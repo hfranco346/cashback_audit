@@ -1,3 +1,6 @@
+import '../../features/auth/domain/auth_entities.dart';
+import '../config/app_config.dart';
+
 import 'package:get/get.dart';
 
 import '../../features/auth/domain/auth_repository.dart';
@@ -81,6 +84,7 @@ abstract final class AppPages {
             session: Get.find<SessionController>(),
             navigator: Get.find<AppNavigator>(),
             showApple: Get.find<AppleIdentityProvider>().isSupported,
+            devSignIn: AppConfig.devLoginEnabled ? _devSignIn : null,
           ),
         );
       }),
@@ -214,4 +218,20 @@ abstract final class AppPages {
     GetPage(name: Routes.catalog, page: () => const CatalogPage()),
     GetPage(name: Routes.settings, page: () => const SettingsPage()),
   ];
+}
+
+/// Debug-only: stores the build-time dev token and loads the user it belongs
+/// to from `/me`. Never reachable in release builds (see AppConfig).
+Future<AppUser> _devSignIn() async {
+  await Get.find<TokenStorage>().save(
+    const AuthTokens(
+      accessToken: AppConfig.devAccessToken,
+      refreshToken: 'dev-session',
+    ),
+  );
+  final user = await Get.find<AuthRepository>().loadUser();
+  if (user == null) {
+    throw StateError('The development token was rejected by the backend.');
+  }
+  return user;
 }

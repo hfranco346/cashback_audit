@@ -13,6 +13,7 @@ abstract final class S {
   static const edit = 'Editar';
   static const continueLabel = 'Continuar';
   static const skip = 'Omitir';
+  static const devSignIn = 'Entrar como usuario de prueba (desarrollo)';
   static const back = 'Atrás';
   static const loading = 'Cargando…';
   static const offlineBanner = 'Sin conexión. Mostrando datos guardados.';

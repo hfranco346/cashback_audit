@@ -14,6 +14,9 @@ class LoginPage extends GetView<LoginController> {
         onGoogle: controller.signInWithGoogle,
         onApple: controller.signInWithApple,
         showApple: controller.showApple,
+        onDevSignIn: controller.showDevSignIn
+            ? controller.signInForDevelopment
+            : null,
         loading: controller.loading.value,
         errorMessage: controller.errorMessage.value,
       ),

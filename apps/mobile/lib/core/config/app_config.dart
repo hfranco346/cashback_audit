@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'credit_packs.dart';
 
 /// Build-time configuration injected with `--dart-define`.
@@ -5,6 +7,16 @@ import 'credit_packs.dart';
 /// Example:
 /// `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1`
 abstract final class AppConfig {
+  /// Development-only access token for the local backend (e.g. a token signed
+  /// for a seeded test user). Ignored outside debug builds.
+  static const String devAccessToken = String.fromEnvironment(
+    'DEV_ACCESS_TOKEN',
+  );
+
+  /// True only in debug builds that were given [devAccessToken]; release
+  /// builds compile this to `false`, so the dev sign-in never ships.
+  static bool get devLoginEnabled => kDebugMode && devAccessToken.isNotEmpty;
+
   /// Backend base URL. Android emulators reach the host machine at 10.0.2.2.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',

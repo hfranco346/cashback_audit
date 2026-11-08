@@ -14,6 +14,7 @@ class LoginView extends StatelessWidget {
     required this.onGoogle,
     required this.onApple,
     required this.showApple,
+    this.onDevSignIn,
     this.loading,
     this.errorMessage,
   });
@@ -21,6 +22,9 @@ class LoginView extends StatelessWidget {
   final VoidCallback onGoogle;
   final VoidCallback onApple;
   final bool showApple;
+
+  /// Debug builds only: signs in as the local test user.
+  final VoidCallback? onDevSignIn;
   final LoginProvider? loading;
   final String? errorMessage;
 
@@ -76,6 +80,15 @@ class LoginView extends StatelessWidget {
                     busy: loading == LoginProvider.apple,
                     onPressed: busy ? null : onApple,
                   ),
+                ),
+              ],
+              if (onDevSignIn != null) ...[
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  key: const Key('dev-sign-in'),
+                  onPressed: busy ? null : onDevSignIn,
+                  icon: const Icon(Icons.developer_mode_rounded),
+                  label: const Text(S.devSignIn),
                 ),
               ],
               const SizedBox(height: 20),

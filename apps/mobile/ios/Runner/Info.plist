@@ -4,6 +4,9 @@
 <dict>
 	<!-- TODO: replace with the REVERSED iOS client id from Google Cloud
 	     (e.g. com.googleusercontent.apps.1234-abcd). See apps/mobile/README.md. -->
+	<!-- Development only: reaching the local backend over Wi-Fi. Remove for release. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Se usa durante el desarrollo para conectarse al servidor local.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<!-- Allows http://localhost during development. Remove for release. -->
