@@ -411,6 +411,8 @@ describe('CreateVerificationUseCase (step 1)', () => {
               currency: 'USD',
               previousBalance: null,
               purchasesAndCharges: d(5000),
+              purchases: null,
+              chargesAndInterest: null,
               totalBalance: null,
             },
           ],

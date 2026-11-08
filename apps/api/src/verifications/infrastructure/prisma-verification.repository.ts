@@ -72,12 +72,16 @@ const serializeSummary = (s: CurrencySummary) => ({
   currency: s.currency,
   previousBalance: decStr(s.previousBalance),
   purchasesAndCharges: decStr(s.purchasesAndCharges),
+  purchases: decStr(s.purchases),
+  chargesAndInterest: decStr(s.chargesAndInterest),
   totalBalance: decStr(s.totalBalance),
 });
 const deserializeSummary = (j: Json): CurrencySummary => ({
   currency: j.currency as string,
   previousBalance: parseDec(j.previousBalance),
   purchasesAndCharges: parseDec(j.purchasesAndCharges),
+  purchases: parseDec(j.purchases),
+  chargesAndInterest: parseDec(j.chargesAndInterest),
   totalBalance: parseDec(j.totalBalance),
 });
 

@@ -99,6 +99,36 @@ describe('parseExtraction', () => {
   });
 });
 
+describe('summary subtotals', () => {
+  it('reads purchases and chargesAndInterest, "" meaning unknown', () => {
+    const result = parseExtraction(
+      baseOutput({
+        summaries: [
+          {
+            currency: 'HNL',
+            previousBalance: '',
+            purchasesAndCharges: '',
+            purchases: '22,242.56',
+            chargesAndInterest: '725.16',
+            totalBalance: '',
+          },
+          {
+            currency: 'USD',
+            previousBalance: '',
+            purchasesAndCharges: '10',
+            purchases: '',
+            chargesAndInterest: '',
+            totalBalance: '',
+          },
+        ],
+      }),
+    )!;
+    expect(result.summaries[0]!.purchases!.toString()).toBe('22242.56');
+    expect(result.summaries[0]!.chargesAndInterest!.toString()).toBe('725.16');
+    expect(result.summaries[1]!.purchases).toBeNull();
+  });
+});
+
 describe('requested output schema size', () => {
   it('stays free of nullable fields and anyOf (the API grammar limit)', async () => {
     const { zodOutputFormat } = await import('@anthropic-ai/sdk/helpers/zod');

@@ -651,7 +651,7 @@ rules and classification, so it also prefills a recalculation.
   "id": "e5f6...",
   "cardId": "c3d4...",
   "status": "AWAITING_RATES",
-  "statement": { "bank": "Example Bank", "cardLast4": "4321", "periodStart": "2026-01-01", "periodEnd": "2026-01-31", "currency": "MXN", "totalSpent": "1400", "totalToPay": "1400", "summaries": [ { "currency": "MXN", "previousBalance": "0", "purchasesAndCharges": "1400", "totalBalance": "1400" } ] },
+  "statement": { "bank": "Example Bank", "cardLast4": "4321", "periodStart": "2026-01-01", "periodEnd": "2026-01-31", "currency": "MXN", "totalSpent": "1400", "totalToPay": "1400", "summaries": [ { "currency": "MXN", "previousBalance": "0", "purchasesAndCharges": "1400", "purchases": "1400", "chargesAndInterest": null, "totalBalance": "1400" } ] },
   "primaryCurrency": "MXN",
   "reported": null,
   "expected": null,
@@ -972,9 +972,15 @@ on the statement in the opposite direction are inverted by the server.
   Codes (step 1 unless noted):
   - `CARD_LAST4_MISMATCH`: statement belongs to a different card than selected.
   - `CURRENCY_MISMATCH`: none of the statement currencies is the card currency.
-  - `TOTAL_SPENT_MISMATCH`: for a currency, extracted transactions add up
-    neither to the statement's "purchases + other charges" nor to the
-    purchases-only figure (some may be missing; the result may be unreliable).
+  - `TOTAL_SPENT_MISMATCH`: for a currency, the extracted lines do not match
+    the statement subtotals (some transactions may be missing; the result may be
+    unreliable). When the statement prints a purchases subtotal
+    (`summaries[].purchases`), purchases minus refunds are compared against it
+    only (fees, interest and insurance are not part of that figure); otherwise
+    against "purchases + other charges" (`purchasesAndCharges`), accepting
+    either the purchases alone or the lines including fees/interest/insurance.
+    Tolerance: `max(1, 0.5%)` of the statement figure. The message states which
+    figures were compared.
   - `NO_TRANSACTIONS`: no transactions found.
   - `AI_MATCHING_UNAVAILABLE`: classification failed for all or some lines;
     those lines keep keyword matches only.
@@ -1291,6 +1297,14 @@ consumable products in RevenueCat/the stores.
 ---
 
 ## 12. Changelog (breaking changes)
+
+### Totals check
+
+`statement.summaries[]` gains `purchases` (purchases/withdrawals subtotal only)
+and `chargesAndInterest` (both nullable). `TOTAL_SPENT_MISMATCH` no longer
+fires falsely when the statement's "purchases + charges" figure includes fees
+and interest: it compares purchases and refunds against `purchases` when
+present (tolerance `max(1, 0.5%)`, previously 1%) and its message is accurate.
 
 ### Statement categories, Spanish reasons and explanation wording
 

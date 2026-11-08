@@ -12,6 +12,7 @@ import {
   HINT_ID_PREFIX,
   statementCategoryHints,
 } from '../domain/statement-hints.js';
+import { checkStatementTotals } from '../domain/totals-check.js';
 import { selectLoyaltyProgram } from '../domain/loyalty-program-selector.js';
 import {
   MerchantMatcher,
@@ -51,8 +52,6 @@ export interface CreateVerificationInput {
 }
 
 const PDF_MAGIC = Buffer.from('%PDF-');
-const TOTALS_TOLERANCE = (reference: Decimal) =>
-  Decimal.max(1, reference.abs().mul('0.01'));
 
 /**
  * Step 1 of a verification: read the statement (Claude), classify its lines
@@ -147,37 +146,8 @@ export class CreateVerificationUseCase {
 
     // Statement totals per currency vs the extracted lines (warn only).
     for (const summary of statement.summaries) {
-      const target = summary.purchasesAndCharges;
-      if (!target) continue;
-      const lines = statement.transactions.filter(
-        (t) => t.currency === summary.currency,
-      );
-      const signed = (kinds: readonly string[]) =>
-        lines
-          .filter((t) => kinds.includes(t.kind))
-          .reduce(
-            (sum, t) => (t.isCredit ? sum.minus(t.amount) : sum.plus(t.amount)),
-            new Decimal(0),
-          );
-      const purchasesOnly = signed(['PURCHASE', 'REFUND']);
-      const withCharges = signed([
-        'PURCHASE',
-        'REFUND',
-        'FEE',
-        'INTEREST',
-        'INSURANCE',
-        'OTHER',
-      ]);
-      const tolerance = TOTALS_TOLERANCE(target);
-      if (
-        purchasesOnly.minus(target).abs().gt(tolerance) &&
-        withCharges.minus(target).abs().gt(tolerance)
-      ) {
-        warnings.push({
-          code: 'TOTAL_SPENT_MISMATCH',
-          message: `The extracted ${summary.currency} lines add up to ${purchasesOnly.toFixed(2)} (${withCharges.toFixed(2)} with charges) but the statement reports ${target.toFixed(2)}. Some transactions may be missing.`,
-        });
-      }
+      const warning = checkStatementTotals(summary, statement.transactions);
+      if (warning) warnings.push(warning);
     }
 
     // --- line matching: keywords first, then one classification pass ------

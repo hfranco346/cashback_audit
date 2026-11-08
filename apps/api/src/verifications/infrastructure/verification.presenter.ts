@@ -92,6 +92,8 @@ export function presentVerification(v: Verification, proposal: RateProposal) {
         currency: s.currency,
         previousBalance: str(s.previousBalance),
         purchasesAndCharges: str(s.purchasesAndCharges),
+        purchases: str(s.purchases),
+        chargesAndInterest: str(s.chargesAndInterest),
         totalBalance: str(s.totalBalance),
       })),
     },

@@ -43,6 +43,10 @@ export interface CurrencySummary {
   previousBalance: Decimal | null;
   /** "Compras + otros cargos". */
   purchasesAndCharges: Decimal | null;
+  /** Purchases / withdrawals subtotal only (no fees, interest, insurance). */
+  purchases: Decimal | null;
+  /** Fees, interest and other charges subtotal. */
+  chargesAndInterest: Decimal | null;
   /** "Saldo total" / total to pay. */
   totalBalance: Decimal | null;
 }

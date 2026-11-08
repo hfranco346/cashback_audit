@@ -44,6 +44,14 @@ export const extractionOutputSchema = z.object({
         purchasesAndCharges: z
           .string()
           .describe('Purchases plus other charges of the period'),
+        purchases: z
+          .string()
+          .describe(
+            'Purchases / withdrawals subtotal only, WITHOUT fees, interest or insurance',
+          ),
+        chargesAndInterest: z
+          .string()
+          .describe('Fees, interest and other charges subtotal'),
         totalBalance: z.string().describe('Total balance owed / total to pay'),
       }),
     )
@@ -201,6 +209,8 @@ const strictSchema = extractionOutputSchema.extend({
         currency: optionalCurrency,
         previousBalance: optionalDecimal,
         purchasesAndCharges: optionalDecimal,
+        purchases: optionalDecimal.optional().catch(null),
+        chargesAndInterest: optionalDecimal.optional().catch(null),
         totalBalance: optionalDecimal,
       }),
     )
@@ -308,6 +318,8 @@ export function parseExtraction(
             currency: s.currency,
             previousBalance: s.previousBalance,
             purchasesAndCharges: s.purchasesAndCharges,
+            purchases: s.purchases ?? null,
+            chargesAndInterest: s.chargesAndInterest ?? null,
             totalBalance: s.totalBalance,
           },
         ]
