@@ -11,6 +11,7 @@ export interface NewCard {
   pointsPerCurrencyUnit: Decimal;
   baseRatePercent: Decimal;
   currency: string;
+  rewardProgramName: string | null;
   rules: CardRule[];
 }
 

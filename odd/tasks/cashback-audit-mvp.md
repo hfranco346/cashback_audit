@@ -38,10 +38,17 @@ Out (for now): web client, multi-currency conversion, push notifications, produc
 - [x] T8 Mobile cards + categories screens
 - [x] T9 Mobile statement upload, result, history
 - [x] T10 Mobile paywall (RevenueCat)
+- [ ] T11 API multi-currency + loyalty programs (per-currency transactions, exchange rates, program selection, cumulative warning)
+- [ ] T12 API model routing per task (`ANTHROPIC_EXTRACTION_MODEL` / `ANTHROPIC_CLASSIFICATION_MODEL`, models stored per verification)
+- [ ] T13 API category-level classification (Haiku, categories without merchants, transaction kinds, `AI_CATEGORY` / `AI_MERCHANT`)
+
+## Accepted change (post-T10, user-requested after the first real statement)
+The first real statement (BAC Credomatic Honduras) is multi-currency (Lempiras and Dolares columns), lists several loyalty programs ("PUNTOS BAC CREDOMATIC", "CASH BAC CREDOMATIC") and includes non-purchase lines (insurance, interest). The user's categories ("Supermercados", "Farmacia") must count everything that is a supermarket or pharmacy even with no registered merchant. This supersedes the earlier "Out: multi-currency conversion" scope item and the T4 rule "reward = period figure from the statement" (the audited value is now the chosen program's `accumulated` column, with a cumulative-balance warning). Breaking API changes are tracked in `docs/api-contract.md` section 12. Mobile (Flutter) follows in a later task from the updated contract; `apps/mobile` is untouched by T11-T13.
 
 ## Route declaration
 - T1–T5: delegated direct (writer trigger: 2+ non-trivial files) — one backend writer agent.
 - T6–T10: delegated direct (writer trigger) — one mobile writer agent, after backend contract exists (`docs/api-contract.md`).
+- T11–T13: delegated direct (writer trigger) — one backend writer agent (single writer, sequential commits).
 
 ## Acceptance criteria
 - `pnpm build`, `pnpm lint`, `pnpm test` pass in `apps/api`; e2e pass against docker Postgres with Claude adapter mocked.

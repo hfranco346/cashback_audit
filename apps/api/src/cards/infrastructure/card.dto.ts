@@ -107,10 +107,26 @@ export class CreateCardDto {
   @DecimalField(RATE)
   baseRatePercent!: string;
 
-  @ApiProperty({ example: 'MXN', description: 'ISO 4217 code' })
+  @ApiProperty({
+    example: 'HNL',
+    description:
+      'ISO 4217 code of the card primary currency; rewards, rates and caps are expressed in it',
+  })
   @Transform(upper)
   @IsISO4217CurrencyCode()
   currency!: string;
+
+  @ApiPropertyOptional({
+    example: 'CASH BAC CREDOMATIC',
+    nullable: true,
+    description:
+      'Loyalty program to audit when the statement lists several (case/accent-insensitive "contains" match)',
+  })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(80)
+  rewardProgramName?: string | null;
 
   @ApiPropertyOptional({ type: [CardRuleDto] })
   @IsOptional()
@@ -170,6 +186,13 @@ export class UpdateCardDto {
   @Transform(upper)
   @IsISO4217CurrencyCode()
   currency?: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(80)
+  rewardProgramName?: string | null;
 
   @ApiPropertyOptional({
     type: [CardRuleDto],

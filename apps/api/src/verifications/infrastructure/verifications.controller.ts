@@ -41,7 +41,7 @@ export const MAX_PDF_BYTES = 10 * 1024 * 1024;
 /** Multer options: the PDF lives in memory only and is never written to disk. */
 export const pdfUploadOptions = {
   storage: memoryStorage(),
-  limits: { fileSize: MAX_PDF_BYTES, files: 1, fields: 5 },
+  limits: { fileSize: MAX_PDF_BYTES, files: 1, fields: 8 },
   fileFilter: (
     _req: unknown,
     file: { mimetype: string },
@@ -89,6 +89,8 @@ export class VerificationsController {
         },
         cardId: { type: 'string', format: 'uuid' },
         reportedRewardOverride: { type: 'string', example: '125.40' },
+        exchangeRate: { type: 'string', example: '24.65' },
+        rewardProgramName: { type: 'string', example: 'CASH BAC CREDOMATIC' },
       },
     },
   })
@@ -108,6 +110,8 @@ export class VerificationsController {
       cardId: dto.cardId,
       pdf: file.buffer,
       reportedRewardOverride: dto.reportedRewardOverride,
+      exchangeRate: dto.exchangeRate,
+      rewardProgramName: dto.rewardProgramName,
     });
     return presentVerification(verification);
   }

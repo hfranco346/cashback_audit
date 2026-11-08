@@ -28,6 +28,7 @@ export function toDomainCard(row: Row): Card {
     pointsPerCurrencyUnit: dec(row.pointsPerCurrencyUnit),
     baseRatePercent: dec(row.baseRatePercent),
     currency: row.currency,
+    rewardProgramName: row.rewardProgramName,
     rules: row.rules.map((r) => ({
       categoryId: r.categoryId,
       ratePercent: dec(r.ratePercent),

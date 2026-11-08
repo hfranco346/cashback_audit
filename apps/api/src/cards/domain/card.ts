@@ -25,8 +25,13 @@ export interface Card {
   /** Points granted per currency unit of reward; only used for POINTS. */
   pointsPerCurrencyUnit: Decimal;
   baseRatePercent: Decimal;
-  /** ISO 4217 code. */
+  /** ISO 4217 code of the card's primary currency (rewards are expressed in it). */
   currency: string;
+  /**
+   * Loyalty program to audit when the statement lists several (e.g.
+   * "CASH BAC CREDOMATIC"); matched case/accent-insensitively by "contains".
+   */
+  rewardProgramName: string | null;
   rules: CardRule[];
   createdAt: Date;
   updatedAt: Date;

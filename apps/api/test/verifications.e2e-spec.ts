@@ -5,7 +5,11 @@ import {
   MerchantClassifier,
   StatementExtractor,
 } from '../src/verifications/domain/statement-extractor.js';
-import type { ExtractedStatement } from '../src/verifications/domain/statement.js';
+import type {
+  ExtractedStatement,
+  ExtractedTransaction,
+  LoyaltyProgram,
+} from '../src/verifications/domain/statement.js';
 import {
   createTestApp,
   resetDatabase,
@@ -17,6 +21,36 @@ import {
 const d = (v: string | number) => new Decimal(v);
 const PDF = Buffer.from('%PDF-1.7\n%fake statement\n');
 
+const program = (
+  name: string,
+  accumulated: string,
+  over: Partial<LoyaltyProgram> = {},
+): LoyaltyProgram => ({
+  name,
+  accumulated: d(accumulated),
+  available: null,
+  redeemedInPeriod: null,
+  expiring: null,
+  forfeited: null,
+  unit: 'CURRENCY',
+  ...over,
+});
+
+const line = (
+  merchant: string,
+  amount: number,
+  over: Partial<ExtractedTransaction> = {},
+): ExtractedTransaction => ({
+  date: '2026-01-02',
+  reference: null,
+  merchant,
+  amount: d(amount),
+  currency: 'MXN',
+  isCredit: false,
+  kind: 'PURCHASE',
+  ...over,
+});
+
 const sampleStatement = (
   over: Partial<ExtractedStatement> = {},
 ): ExtractedStatement => ({
@@ -25,38 +59,21 @@ const sampleStatement = (
   periodStart: '2026-01-01',
   periodEnd: '2026-01-31',
   currency: 'MXN',
-  totalSpent: d(1400),
-  totalToPay: d(1400),
-  reportedReward: {
-    amount: d(58),
-    unit: 'CURRENCY',
-    label: 'Bonificación del periodo',
-  },
+  summaries: [
+    {
+      currency: 'MXN',
+      previousBalance: d(0),
+      purchasesAndCharges: d(1400),
+      totalBalance: d(1400),
+    },
+  ],
+  exchangeRate: null,
+  loyaltyPrograms: [program('Bonificación del periodo', '58')],
   transactions: [
-    {
-      date: '2026-01-02',
-      merchant: 'WAL MART SUC 123',
-      amount: d(1000),
-      isCredit: false,
-    },
-    {
-      date: '2026-01-03',
-      merchant: 'WM SUPERCENTER',
-      amount: d(200),
-      isCredit: false,
-    },
-    {
-      date: '2026-01-04',
-      merchant: 'PEMEX 4455',
-      amount: d(300),
-      isCredit: false,
-    },
-    {
-      date: '2026-01-06',
-      merchant: 'WAL MART SUC 123',
-      amount: d(100),
-      isCredit: true,
-    },
+    line('WAL MART SUC 123', 1000, { reference: '0001' }),
+    line('WM SUPERCENTER', 200),
+    line('PEMEX 4455', 300),
+    line('WAL MART SUC 123', 100, { isCredit: true, kind: 'REFUND' }),
   ],
   ...over,
 });
@@ -170,12 +187,38 @@ describe('Verifications (e2e)', () => {
         periodStart: '2026-01-01',
         periodEnd: '2026-01-31',
         currency: 'MXN',
+        totalSpent: '1400',
+        totalToPay: '1400',
       },
+      primaryCurrency: 'MXN',
       reported: {
         amount: '58',
         unit: 'CASHBACK_CURRENCY',
         source: 'STATEMENT',
         label: 'Bonificación del periodo',
+      },
+      conversion: {
+        primaryCurrency: 'MXN',
+        requestedRate: null,
+        statementRate: null,
+      },
+      currencies: [
+        {
+          currency: 'MXN',
+          isPrimary: true,
+          spent: '1400',
+          eligibleSpent: '1400',
+          convertedEligibleSpent: '1400',
+          exchangeRate: null,
+          exchangeRateSource: null,
+          expectedReward: '58',
+          excludedCount: 0,
+        },
+      ],
+      loyalty: {
+        selectedBy: 'ONLY_PROGRAM',
+        selectedProgram: { name: 'Bonificación del periodo', unit: 'CURRENCY' },
+        programs: [{ name: 'Bonificación del periodo', accumulated: '58' }],
       },
       expected: { amount: '58', unit: 'CASHBACK_CURRENCY' },
       difference: '0',
@@ -223,14 +266,14 @@ describe('Verifications (e2e)', () => {
 
   it('flags an underpaid statement', async () => {
     extraction.statement = sampleStatement({
-      reportedReward: { amount: d(30), unit: 'CURRENCY', label: 'x' },
+      loyaltyPrograms: [program('x', '30')],
     });
     const res = await upload(alice).expect(201);
     expect(res.body).toMatchObject({ verdict: 'UNDERPAID', difference: '-28' });
   });
 
   it('accepts reportedRewardOverride and uses it', async () => {
-    extraction.statement = sampleStatement({ reportedReward: null });
+    extraction.statement = sampleStatement({ loyaltyPrograms: [] });
     await upload(alice)
       .expect(422)
       .expect((r) => expect(r.body.code).toBe('REPORTED_REWARD_NOT_FOUND'));
@@ -241,6 +284,167 @@ describe('Verifications (e2e)', () => {
       verdict: 'OVERPAID',
       reported: { amount: '70.5', source: 'OVERRIDE' },
       difference: '12.5',
+    });
+  });
+
+  describe('multi-currency and loyalty programs', () => {
+    const usdLine = line('AMAZON WAL MART', 10, { currency: 'USD' });
+
+    it('excludes foreign lines with a warning when there is no rate', async () => {
+      extraction.statement = sampleStatement({
+        transactions: [line('WAL MART SUC 123', 1000), usdLine],
+      });
+      const res = await upload(alice).expect(201);
+      expect(res.body.expected.amount).toBe('50');
+      expect(res.body.transactions[1]).toMatchObject({
+        currency: 'USD',
+        excludedReason: 'NO_EXCHANGE_RATE',
+        convertedAmount: null,
+        expectedReward: '0',
+      });
+      expect(res.body.currencies.map((c: any) => c.currency)).toEqual([
+        'MXN',
+        'USD',
+      ]);
+      expect(res.body.currencies[1]).toMatchObject({
+        eligibleSpent: '0',
+        excludedCount: 1,
+        exchangeRate: null,
+      });
+      expect(res.body.warnings.map((w: any) => w.code)).toContain(
+        'NO_EXCHANGE_RATE',
+      );
+    });
+
+    it('converts with the exchangeRate form field and stores the conversion', async () => {
+      extraction.statement = sampleStatement({
+        transactions: [line('WAL MART SUC 123', 1000), usdLine],
+      });
+      const res = await upload(alice, { exchangeRate: '20' }).expect(201);
+      // (1000 + 10 * 20) * 5%
+      expect(res.body.expected.amount).toBe('60');
+      expect(res.body.conversion.requestedRate).toBe('20');
+      expect(res.body.transactions[1]).toMatchObject({
+        convertedAmount: '200',
+        exchangeRate: '20',
+        exchangeRateSource: 'REQUEST',
+        excludedReason: null,
+      });
+      expect(res.body.currencies[1]).toMatchObject({
+        currency: 'USD',
+        spent: '10',
+        convertedEligibleSpent: '200',
+        exchangeRateSource: 'REQUEST',
+        expectedReward: '10',
+      });
+      const stored = await http()
+        .get(`/api/v1/verifications/${res.body.id}`)
+        .set(alice.auth)
+        .expect(200);
+      expect(stored.body).toEqual(res.body);
+    });
+
+    it('uses the statement rate and lets the request rate win', async () => {
+      extraction.statement = sampleStatement({
+        transactions: [line('WAL MART SUC 123', 1000), usdLine],
+        exchangeRate: {
+          from: 'USD',
+          to: 'MXN',
+          rate: d(18),
+          source: 'STATEMENT',
+        },
+      });
+      const fromStatement = await upload(alice).expect(201);
+      expect(fromStatement.body.conversion.statementRate).toEqual({
+        from: 'USD',
+        to: 'MXN',
+        rate: '18',
+        source: 'STATEMENT',
+      });
+      expect(fromStatement.body.expected.amount).toBe('59');
+      const fromRequest = await upload(alice, { exchangeRate: '20' }).expect(
+        201,
+      );
+      expect(fromRequest.body.expected.amount).toBe('60');
+    });
+
+    it('excludes fees, insurance and payments from the reward', async () => {
+      extraction.statement = sampleStatement({
+        transactions: [
+          line('WAL MART SUC 123', 1000),
+          line('SEGURO DE SALDO DE DEUDA', 80, { kind: 'INSURANCE' }),
+          line('PAGO', 500, { kind: 'PAYMENT', isCredit: true }),
+        ],
+      });
+      const res = await upload(alice).expect(201);
+      expect(res.body.expected.amount).toBe('50');
+      expect(
+        res.body.transactions.map((t: any) => [t.kind, t.excludedReason]),
+      ).toEqual([
+        ['PURCHASE', null],
+        ['INSURANCE', 'NON_PURCHASE_KIND'],
+        ['PAYMENT', 'NON_PURCHASE_KIND'],
+      ]);
+    });
+
+    const twoPrograms = () =>
+      sampleStatement({
+        loyaltyPrograms: [
+          program('PUNTOS BAC CREDOMATIC', '1500', {
+            unit: 'POINTS',
+            available: d(1400),
+            redeemedInPeriod: d(100),
+          }),
+          program('CASH BAC CREDOMATIC', '58'),
+        ],
+      });
+
+    it('answers 422 REWARD_PROGRAM_AMBIGUOUS with the program names', async () => {
+      extraction.statement = twoPrograms();
+      const res = await upload(alice).expect(422);
+      expect(res.body).toMatchObject({
+        code: 'REWARD_PROGRAM_AMBIGUOUS',
+        details: {
+          programs: ['PUNTOS BAC CREDOMATIC', 'CASH BAC CREDOMATIC'],
+        },
+      });
+    });
+
+    it('resolves the ambiguity with the rewardProgramName form field', async () => {
+      extraction.statement = twoPrograms();
+      const res = await upload(alice, {
+        rewardProgramName: 'cash bac',
+      }).expect(201);
+      expect(res.body).toMatchObject({
+        verdict: 'MATCH',
+        reported: { amount: '58', label: 'CASH BAC CREDOMATIC' },
+        loyalty: { selectedBy: 'REQUEST' },
+      });
+      expect(res.body.loyalty.programs).toHaveLength(2);
+      expect(res.body.loyalty.programs[0]).toMatchObject({
+        name: 'PUNTOS BAC CREDOMATIC',
+        accumulated: '1500',
+        available: '1400',
+        redeemedInPeriod: '100',
+        expiring: null,
+      });
+    });
+
+    it('uses the card rewardProgramName when set', async () => {
+      extraction.statement = twoPrograms();
+      await http()
+        .patch(`/api/v1/cards/${cardId}`)
+        .set(alice.auth)
+        .send({ rewardProgramName: 'CASH BAC CREDOMATIC' })
+        .expect(200);
+      const res = await upload(alice).expect(201);
+      expect(res.body.loyalty.selectedBy).toBe('CARD');
+    });
+
+    it('validates exchangeRate', async () => {
+      await upload(alice, { exchangeRate: '0' }).expect(400);
+      await upload(alice, { exchangeRate: '-2' }).expect(400);
+      await upload(alice, { exchangeRate: 'abc' }).expect(400);
     });
   });
 

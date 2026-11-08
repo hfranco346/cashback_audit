@@ -67,7 +67,10 @@ model Card {
   /// Points earned per currency unit of reward (used when rewardUnit = POINTS).
   pointsPerCurrencyUnit Decimal    @default(1) @db.Decimal(12, 4)
   baseRatePercent       Decimal    @db.Decimal(7, 4)
+  /// Primary currency: rewards, rates and caps are expressed in it.
   currency              String     @db.Char(3)
+  /// Loyalty program to audit when a statement lists several.
+  rewardProgramName     String?
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 
@@ -147,7 +150,10 @@ model Verification {
   statementLast4 String?
   periodStart    DateTime?      @db.Date
   periodEnd      DateTime?      @db.Date
+  /// Currency declared by the statement (may be null).
   currency       String?        @db.Char(3)
+  /// Card currency at verification time.
+  primaryCurrency String        @db.Char(3)
   totalSpent     Decimal?       @db.Decimal(16, 2)
   totalToPay     Decimal?       @db.Decimal(16, 2)
   reportedAmount Decimal        @db.Decimal(16, 2)
@@ -158,6 +164,12 @@ model Verification {
   difference     Decimal        @db.Decimal(16, 2)
   tolerance      Decimal        @db.Decimal(16, 2)
   verdict        Verdict
+  /// Statement summary per currency column.
+  summaries      Json           @default("[]")
+  /// Rates used and per-currency subtotals.
+  conversion     Json           @default("{}")
+  /// Chosen loyalty program and all programs found.
+  loyalty        Json           @default("{}")
   breakdown      Json
   transactions   Json
   warnings       Json

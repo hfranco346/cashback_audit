@@ -47,3 +47,16 @@ export class ExtractionFailedError extends DomainError {
     );
   }
 }
+
+export class RewardProgramAmbiguousError extends DomainError {
+  constructor(programNames: string[], requestedName: string | null) {
+    super(
+      'UNPROCESSABLE',
+      'REWARD_PROGRAM_AMBIGUOUS',
+      requestedName
+        ? `No single loyalty program matches "${requestedName}". Choose one and retry with rewardProgramName.`
+        : 'The statement lists several loyalty programs. Choose one and retry with rewardProgramName.',
+      { programs: programNames },
+    );
+  }
+}

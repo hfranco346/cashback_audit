@@ -24,6 +24,7 @@ export interface CardInput {
   pointsPerCurrencyUnit?: string;
   baseRatePercent: string;
   currency: string;
+  rewardProgramName?: string | null;
   rules?: RuleInput[];
 }
 
@@ -67,6 +68,7 @@ export class CreateCardUseCase {
       pointsPerCurrencyUnit: new Decimal(input.pointsPerCurrencyUnit ?? '1'),
       baseRatePercent: new Decimal(input.baseRatePercent),
       currency: input.currency,
+      rewardProgramName: input.rewardProgramName || null,
       rules: await this.rules.toRules(userId, input.rules ?? []),
     });
   }
@@ -111,6 +113,9 @@ export class UpdateCardUseCase {
     if (input.network !== undefined) patch.network = input.network;
     if (input.rewardUnit !== undefined) patch.rewardUnit = input.rewardUnit;
     if (input.currency !== undefined) patch.currency = input.currency;
+    if (input.rewardProgramName !== undefined) {
+      patch.rewardProgramName = input.rewardProgramName || null;
+    }
     if (input.pointsPerCurrencyUnit !== undefined) {
       patch.pointsPerCurrencyUnit = new Decimal(input.pointsPerCurrencyUnit);
     }

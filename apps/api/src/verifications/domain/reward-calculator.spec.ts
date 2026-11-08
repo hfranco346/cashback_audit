@@ -2,6 +2,7 @@ import { Decimal } from 'decimal.js';
 import {
   calculateExpectedReward,
   compareReward,
+  type ConversionRate,
   type RewardCardConfig,
   type RewardTransactionInput,
 } from './reward-calculator.js';
@@ -11,6 +12,7 @@ const SUPER = 'cat-super';
 const GAS = 'cat-gas';
 
 const card = (over: Partial<RewardCardConfig> = {}): RewardCardConfig => ({
+  currency: 'HNL',
   rewardUnit: 'CASHBACK_CURRENCY',
   pointsPerCurrencyUnit: d(1),
   baseRatePercent: d(1),
@@ -29,8 +31,30 @@ const tx = (
 ): RewardTransactionInput => ({
   index: counter++,
   amount: d(amount),
+  currency: 'HNL',
+  kind: isCredit ? 'REFUND' : 'PURCHASE',
   isCredit,
   categoryId,
+});
+
+const usd = (
+  amount: string | number,
+  categoryId: string | null = null,
+  isCredit = false,
+): RewardTransactionInput => ({
+  ...tx(amount, categoryId, isCredit),
+  currency: 'USD',
+});
+
+const requestRate = (rate: string): ConversionRate => ({
+  from: null,
+  rate: d(rate),
+  source: 'REQUEST',
+});
+const statementRate = (from: string, rate: string): ConversionRate => ({
+  from,
+  rate: d(rate),
+  source: 'STATEMENT',
 });
 
 describe('calculateExpectedReward', () => {
@@ -188,6 +212,168 @@ describe('calculateExpectedReward', () => {
       [0, SUPER, true],
       [1, null, false],
     ]);
+  });
+});
+
+describe('calculateExpectedReward - multi-currency and kinds', () => {
+  beforeEach(() => {
+    counter = 0;
+  });
+
+  it('converts foreign lines into the card currency before applying rates', () => {
+    const result = calculateExpectedReward(
+      card(),
+      [tx(1000, SUPER), usd(10, SUPER), usd(20)],
+      [statementRate('USD', '25')],
+    );
+    // super: 1000 + 10*25 = 1250 * 5% = 62.5 ; base: 20*25 = 500 * 1% = 5
+    expect(result.expectedTotal.toString()).toBe('67.5');
+    expect(result.transactions[1]).toMatchObject({
+      excludedReason: null,
+      rateSource: 'STATEMENT',
+      ruleApplied: true,
+    });
+    expect(result.transactions[1]!.convertedAmount!.toString()).toBe('250');
+    expect(result.transactions[1]!.exchangeRate!.toString()).toBe('25');
+    expect(result.transactions[0]!.rateSource).toBeNull();
+    expect(result.breakdown[0]!.spend.toString()).toBe('1250');
+  });
+
+  it('reports per-currency subtotals with the rate used', () => {
+    const result = calculateExpectedReward(
+      card(),
+      [tx(1000, SUPER), usd(10, SUPER), usd(4, null, true)],
+      [requestRate('25')],
+    );
+    const [hnl, us] = result.currencies;
+    expect(hnl).toMatchObject({ currency: 'HNL', isPrimary: true });
+    expect(hnl!.spent.toString()).toBe('1000');
+    expect(hnl!.expectedReward.toString()).toBe('50');
+    expect(us).toMatchObject({
+      currency: 'USD',
+      isPrimary: false,
+      rateSource: 'REQUEST',
+    });
+    expect(us!.spent.toString()).toBe('6');
+    expect(us!.convertedEligibleSpent.toString()).toBe('150');
+    expect(us!.exchangeRate!.toString()).toBe('25');
+    // 10*25*5% = 12.5 ; refund 4*25*1% = -1
+    expect(us!.expectedReward.toString()).toBe('11.5');
+  });
+
+  it('prefers the first matching rate (request before statement)', () => {
+    const result = calculateExpectedReward(
+      card(),
+      [usd(10)],
+      [requestRate('30'), statementRate('USD', '25')],
+    );
+    expect(result.transactions[0]!.exchangeRate!.toString()).toBe('30');
+    expect(result.transactions[0]!.rateSource).toBe('REQUEST');
+  });
+
+  it('matches a statement rate only to its own currency', () => {
+    const eur: RewardTransactionInput = { ...tx(10), currency: 'EUR' };
+    const result = calculateExpectedReward(
+      card(),
+      [usd(10), eur],
+      [statementRate('USD', '25')],
+    );
+    expect(result.transactions[0]!.excludedReason).toBeNull();
+    expect(result.transactions[1]!.excludedReason).toBe('NO_EXCHANGE_RATE');
+  });
+
+  it('excludes foreign lines without a rate instead of failing', () => {
+    const result = calculateExpectedReward(card(), [
+      tx(1000, SUPER),
+      usd(10, SUPER),
+    ]);
+    expect(result.expectedTotal.toString()).toBe('50');
+    expect(result.transactions[1]).toMatchObject({
+      excludedReason: 'NO_EXCHANGE_RATE',
+      convertedAmount: null,
+      exchangeRate: null,
+      expectedReward: d(0),
+    });
+    const us = result.currencies.find((c) => c.currency === 'USD')!;
+    expect(us.excludedCount).toBe(1);
+    expect(us.spent.toString()).toBe('10');
+    expect(us.eligibleSpent.toString()).toBe('0');
+    expect(us.exchangeRate).toBeNull();
+    expect(result.breakdown.reduce((n, b) => n + b.transactionCount, 0)).toBe(
+      1,
+    );
+  });
+
+  it.each(['FEE', 'INTEREST', 'INSURANCE', 'PAYMENT', 'OTHER'] as const)(
+    'excludes %s lines from the reward and the subtotals',
+    (kind) => {
+      const line: RewardTransactionInput = {
+        ...tx(500, SUPER),
+        kind,
+        isCredit: kind === 'PAYMENT',
+      };
+      const result = calculateExpectedReward(card(), [tx(100), line]);
+      expect(result.expectedTotal.toString()).toBe('1');
+      expect(result.transactions[1]).toMatchObject({
+        excludedReason: 'NON_PURCHASE_KIND',
+        categoryId: null,
+        ruleApplied: false,
+      });
+      expect(result.currencies[0]!.spent.toString()).toBe('100');
+    },
+  );
+
+  it('does not create a subtotal for currencies that only have excluded kinds', () => {
+    const fee: RewardTransactionInput = { ...usd(5), kind: 'FEE' };
+    const result = calculateExpectedReward(card(), [tx(100), fee]);
+    expect(result.currencies.map((c) => c.currency)).toEqual(['HNL']);
+  });
+
+  it('applies the monthly cap to the converted reward, across currencies', () => {
+    const c = card({
+      rules: [{ categoryId: SUPER, ratePercent: d(5), monthlyCap: d(60) }],
+    });
+    // 400 + 10 USD * 25 = 650 -> 32.5 ; + 20 USD * 25 = 500 -> 25 => 57.5 < 60
+    const under = calculateExpectedReward(
+      c,
+      [tx(400, SUPER), usd(10, SUPER), usd(20, SUPER)],
+      [requestRate('25')],
+    );
+    expect(under.breakdown[0]).toMatchObject({ capped: false });
+    expect(under.expectedTotal.toString()).toBe('57.5');
+
+    // 400 + 30 USD * 25 = 1150 -> 57.5 ; + 5 USD * 25 more = 1275 -> 63.75 > 60
+    const over = calculateExpectedReward(
+      c,
+      [tx(400, SUPER), usd(30, SUPER), usd(5, SUPER)],
+      [requestRate('25')],
+    );
+    expect(over.breakdown[0]).toMatchObject({ capped: true });
+    expect(over.breakdown[0]!.uncappedReward.toString()).toBe('63.75');
+    expect(over.expectedTotal.toString()).toBe('60');
+    // per-currency subtotals stay uncapped
+    expect(
+      over.currencies
+        .reduce((sum, x) => sum.plus(x.expectedReward), d(0))
+        .toString(),
+    ).toBe('63.75');
+  });
+
+  it('applies POINTS multiplier after conversion', () => {
+    const c = card({ rewardUnit: 'POINTS', pointsPerCurrencyUnit: d(10) });
+    const result = calculateExpectedReward(c, [usd(10)], [requestRate('25')]);
+    // 250 * 1% * 10
+    expect(result.expectedTotal.toString()).toBe('25');
+  });
+
+  it('subtracts converted refunds', () => {
+    const result = calculateExpectedReward(
+      card(),
+      [usd(10, SUPER), usd(4, SUPER, true)],
+      [requestRate('25')],
+    );
+    expect(result.expectedTotal.toString()).toBe('7.5'); // 6*25*5%
+    expect(result.transactions[1]!.convertedAmount!.toString()).toBe('-100');
   });
 });
 

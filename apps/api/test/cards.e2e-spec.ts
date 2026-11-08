@@ -74,6 +74,32 @@ describe('Cards (e2e)', () => {
     });
   });
 
+  it('stores rewardProgramName (null by default, clearable, trimmed)', async () => {
+    const created = await http()
+      .post('/api/v1/cards')
+      .set(alice.auth)
+      .send(validCard())
+      .expect(201);
+    expect(created.body.rewardProgramName).toBeNull();
+    const set = await http()
+      .patch(`/api/v1/cards/${created.body.id}`)
+      .set(alice.auth)
+      .send({ rewardProgramName: '  CASH BAC CREDOMATIC ' })
+      .expect(200);
+    expect(set.body.rewardProgramName).toBe('CASH BAC CREDOMATIC');
+    const cleared = await http()
+      .patch(`/api/v1/cards/${created.body.id}`)
+      .set(alice.auth)
+      .send({ rewardProgramName: null })
+      .expect(200);
+    expect(cleared.body.rewardProgramName).toBeNull();
+    await http()
+      .post('/api/v1/cards')
+      .set(alice.auth)
+      .send(validCard({ rewardProgramName: 'x'.repeat(81) }))
+      .expect(400);
+  });
+
   it.each([
     ['5 digits', { last4: '12345' }],
     ['a full PAN', { last4: '4111111111111111' }],

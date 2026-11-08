@@ -23,6 +23,7 @@ source of truth for behaviour, error codes and conventions.
 9. [Subscriptions and the paywall](#9-subscriptions-and-the-paywall)
 10. [Health](#10-health)
 11. [Error reference](#11-error-reference)
+12. [Changelog (breaking changes)](#12-changelog-breaking-changes)
 
 ---
 
@@ -416,6 +417,7 @@ Card object:
   "pointsPerCurrencyUnit": "1",
   "baseRatePercent": "1.5",
   "currency": "MXN",
+  "rewardProgramName": null,
   "rules": [
     { "categoryId": "6f1c...", "ratePercent": "5", "monthlyCap": "500" }
   ],
@@ -435,7 +437,8 @@ Field rules:
 | `rewardUnit` | enum | required: `CASHBACK_CURRENCY` (reward is money in the card currency) or `POINTS` |
 | `pointsPerCurrencyUnit` | decimal | optional, default `"1"`, `> 0` and `<= 1000`, max 4 decimals. Only used for `POINTS`: points earned per 1 unit of reward value |
 | `baseRatePercent` | decimal | required, `0-100`, max 4 decimals. Rate for any spend with no matching rule |
-| `currency` | string | required, ISO 4217 code (`MXN`, `USD`...). Uppercased by the server |
+| `currency` | string | required, ISO 4217 code (`HNL`, `USD`...). Uppercased by the server. The card's **primary currency**: rates, caps, rewards and totals are expressed in it. Statement lines in other currencies are converted into it (see section 8) |
+| `rewardProgramName` | string or null | optional, max 80 chars, trimmed, `null`/`""` clears it. Name of the loyalty program to audit when the statement lists several (e.g. `"CASH BAC CREDOMATIC"`). Matched case/accent-insensitively with "contains" against the program names printed on the statement |
 | `rules` | array | optional, max 50, **one rule per category** |
 
 Rule (`rules[]`):
@@ -448,7 +451,8 @@ Rule (`rules[]`):
 
 How the expected reward is computed (so the UI can explain it): for each
 transaction the rate is the card rule of the transaction's category if the
-card has one, otherwise `baseRatePercent`. Refunds/credits subtract. For
+card has one, otherwise `baseRatePercent`. Refunds/credits subtract. Lines in a
+foreign currency are first converted into the card currency. For
 `POINTS` cards the reward is multiplied by `pointsPerCurrencyUnit`. Each rule's
 total for the statement is then limited to its `monthlyCap`. The final amount is
 rounded to 2 decimals (half up).
@@ -507,7 +511,9 @@ stored.**
 | --- | --- | --- |
 | `file` | yes | The statement PDF. `application/pdf` only, max **10 MB** (10 485 760 bytes). The content must really be a PDF |
 | `cardId` | yes | UUID of one of your cards |
-| `reportedRewardOverride` | no | Decimal string (>= 0, max 2 decimals), e.g. `"125.40"`. The reward the bank reported, in the card's reward unit. Overrides what was read from the statement. Use it when the statement shows no reward figure (`REPORTED_REWARD_NOT_FOUND`) or the user says it was read wrong |
+| `reportedRewardOverride` | no | Decimal string (>= 0, max 2 decimals), e.g. `"125.40"`. The reward the bank reported, in the card's reward unit. Overrides what was read from the statement. Use it when the statement shows no reward figure (`REPORTED_REWARD_NOT_FOUND`), the user says it was read wrong, or the "Acumulados" column is a running balance (`REPORTED_VALUE_MAY_BE_CUMULATIVE`) |
+| `exchangeRate` | no | Decimal string `> 0`, max 6 decimals, e.g. `"26.35"`: how many units of the **card currency** one unit of the foreign currency is worth (foreign -> primary). Wins over a rate printed on the statement. Applied to every foreign currency on the statement |
+| `rewardProgramName` | no | 1-80 chars. Loyalty program to audit (same matching as the card field); overrides the card's `rewardProgramName`. Send it to resolve `422 REWARD_PROGRAM_AMBIGUOUS`. An empty value is ignored |
 
 Dart/Dio sketch:
 
@@ -530,6 +536,34 @@ the user (each call consumes quota); check `GET /verifications` first.
 subscription (`402`) -> upload type/size (`415`/`413`) -> field validation
 (`400`) -> PDF signature (`400 INVALID_PDF`) -> card ownership (`404`) ->
 analysis (`422`/`502`/`503`).
+
+**Multi-currency.** Statements can have one amount column per currency (e.g.
+Lempiras and Dolares). Every transaction carries its own `currency` (ISO 4217).
+Lines in the card's primary currency are used as is. Foreign lines are converted
+into it with, in this order: (1) the request `exchangeRate`, (2) the rate printed
+on the statement (`conversion.statementRate`; a rate printed in the opposite
+direction is inverted), (3) none. With no rate the request still **succeeds**:
+the expected reward is computed on the primary-currency lines only, the foreign
+lines come back with `excludedReason: "NO_EXCHANGE_RATE"` and the warning
+`NO_EXCHANGE_RATE` is added; the client can offer the user to retry with
+`exchangeRate`.
+
+**Line kinds.** Every extracted line has a `kind`: `PURCHASE`, `REFUND`, `FEE`,
+`INTEREST`, `INSURANCE`, `PAYMENT`, `OTHER`. Only `PURCHASE` and `REFUND` earn
+rewards; other kinds are returned with `excludedReason: "NON_PURCHASE_KIND"`, are
+never matched to a merchant/category and add 0.
+
+**Loyalty programs.** The statement may list several programs (e.g. "PUNTOS BAC
+CREDOMATIC" and "CASH BAC CREDOMATIC"). The audited program is chosen as: the
+request `rewardProgramName`, else the card's `rewardProgramName` (both:
+case/accent-insensitive "contains"; an exact name wins over a partial match),
+else the only program if there is exactly one. If it cannot be determined (several
+programs and no/unmatched name) the response is `422 REWARD_PROGRAM_AMBIGUOUS`
+with `details.programs` (array of names): let the user pick and retry with the
+`rewardProgramName` form field. If `reportedRewardOverride` is sent the
+ambiguity does not block the request (`loyalty.selectedProgram` is then `null`).
+The value audited is the program's **`accumulated`** ("Acumulados") column unless
+overridden; the other columns are exposed in `loyalty.programs`.
 
 How merchants are matched to your categories:
 
@@ -555,20 +589,86 @@ and carries the warning `AI_MATCHING_UNAVAILABLE`.
     "cardLast4": "4321",
     "periodStart": "2026-01-01",
     "periodEnd": "2026-01-31",
-    "currency": "MXN",
+    "currency": "HNL",
     "totalSpent": "1400",
-    "totalToPay": "1400"
+    "totalToPay": "1400",
+    "summaries": [
+      { "currency": "HNL", "previousBalance": "0", "purchasesAndCharges": "1400", "totalBalance": "1400" },
+      { "currency": "USD", "previousBalance": "0", "purchasesAndCharges": "10", "totalBalance": "10" }
+    ]
   },
+  "primaryCurrency": "HNL",
   "reported": {
     "amount": "58",
     "unit": "CASHBACK_CURRENCY",
-    "label": "Bonificacion del periodo",
+    "label": "CASH BAC CREDOMATIC",
     "source": "STATEMENT"
   },
   "expected": { "amount": "58", "unit": "CASHBACK_CURRENCY" },
   "difference": "0",
   "tolerance": "1",
   "verdict": "MATCH",
+  "conversion": {
+    "primaryCurrency": "HNL",
+    "requestedRate": "26.35",
+    "statementRate": null
+  },
+  "currencies": [
+    {
+      "currency": "HNL",
+      "isPrimary": true,
+      "spent": "1400",
+      "eligibleSpent": "1400",
+      "convertedEligibleSpent": "1400",
+      "exchangeRate": null,
+      "exchangeRateSource": null,
+      "expectedReward": "56",
+      "excludedCount": 0
+    },
+    {
+      "currency": "USD",
+      "isPrimary": false,
+      "spent": "10",
+      "eligibleSpent": "10",
+      "convertedEligibleSpent": "263.5",
+      "exchangeRate": "26.35",
+      "exchangeRateSource": "REQUEST",
+      "expectedReward": "2.64",
+      "excludedCount": 0
+    }
+  ],
+  "loyalty": {
+    "selectedBy": "CARD",
+    "selectedProgram": {
+      "name": "CASH BAC CREDOMATIC",
+      "unit": "CURRENCY",
+      "accumulated": "58",
+      "available": "58",
+      "redeemedInPeriod": null,
+      "expiring": null,
+      "forfeited": null
+    },
+    "programs": [
+      {
+        "name": "PUNTOS BAC CREDOMATIC",
+        "unit": "POINTS",
+        "accumulated": "1500",
+        "available": "1400",
+        "redeemedInPeriod": "100",
+        "expiring": null,
+        "forfeited": "0"
+      },
+      {
+        "name": "CASH BAC CREDOMATIC",
+        "unit": "CURRENCY",
+        "accumulated": "58",
+        "available": "58",
+        "redeemedInPeriod": null,
+        "expiring": null,
+        "forfeited": null
+      }
+    ]
+  },
   "breakdown": [
     {
       "categoryId": "6f1c...",
@@ -597,9 +697,16 @@ and carries the warning `AI_MATCHING_UNAVAILABLE`.
     {
       "index": 0,
       "date": "2026-01-02",
+      "reference": "000123",
       "merchant": "WAL MART SUC 123",
       "amount": "1000",
+      "currency": "HNL",
       "isCredit": false,
+      "kind": "PURCHASE",
+      "convertedAmount": "1000",
+      "exchangeRate": "1",
+      "exchangeRateSource": null,
+      "excludedReason": null,
       "matchedMerchantId": "a2b9...",
       "matchedMerchantName": "Walmart",
       "categoryId": "6f1c...",
@@ -620,12 +727,32 @@ and carries the warning `AI_MATCHING_UNAVAILABLE`.
 Field semantics:
 
 - `statement.*`: what was read from the PDF; any of them can be `null`.
-  `currency` falls back to the card currency when the PDF has none.
+  `currency` is the statement's main currency (null if unclear). `summaries[]`
+  has one entry per currency column ("Saldo anterior", "Compras + otros cargos",
+  "Saldo total"; any figure can be `null`). `totalSpent` / `totalToPay` are the
+  summary figures of the **card's primary currency** (`null` when absent).
+- `primaryCurrency`: the card currency used for the computation.
 - `reported.amount`: reward the bank says it granted this period.
-  `reported.source` is `STATEMENT` (read from the PDF) or `OVERRIDE`
-  (`reportedRewardOverride`). `reported.label` is the name printed on the
-  statement (`null` for overrides). `unit`/`expected.unit` is always the card's
+  `reported.source` is `STATEMENT` (the chosen program's `accumulated` column) or
+  `OVERRIDE` (`reportedRewardOverride`). `reported.label` is the chosen program
+  name (`null` when none was chosen). `unit`/`expected.unit` is always the card's
   `rewardUnit` (`CASHBACK_CURRENCY` or `POINTS`).
+- `conversion`: `requestedRate` (the `exchangeRate` you sent, or `null`) and
+  `statementRate` (`{ from, to, rate, source: "STATEMENT" }` or `null`).
+- `currencies[]`: one entry per statement currency that has purchases/refunds;
+  primary first. `spent` = net purchases minus refunds in that currency;
+  `eligibleSpent` = the part used in the calculation (0 when the rate is
+  missing); `convertedEligibleSpent` = that part in the primary currency;
+  `exchangeRate`/`exchangeRateSource` (`REQUEST`|`STATEMENT`) are `null` for the
+  primary currency or when no rate was available; `expectedReward` = sum of the
+  line rewards of this currency **before monthly caps** (caps apply per category
+  across currencies, so these may add up to more than `expected.amount`);
+  `excludedCount` = purchase/refund lines left out for lack of a rate.
+- `loyalty`: `programs[]` lists every program row of the statement (all values
+  decimal strings or `null`; `unit` is `POINTS`, `CURRENCY`, `MILES` or
+  `UNKNOWN`). `selectedProgram` is the audited one (or `null`); `selectedBy` is
+  `REQUEST`, `CARD`, `ONLY_PROGRAM` or `null`. `accumulated` may be a running
+  balance rather than earned this period; see `REPORTED_VALUE_MAY_BE_CUMULATIVE`.
 - `expected.amount`: deterministic expected reward (after caps), 2 decimals.
 - `difference` = `reported - expected` (2 decimals). **Negative means the bank
   paid less than it should have.**
@@ -640,7 +767,16 @@ Field semantics:
   `spend` is net of refunds; `uncappedReward` is before the cap; `capped` is
   true when `monthlyCap` reduced the reward.
 - `transactions[]`: in statement order (`index` is 0-based). `amount` is always
-  positive; `isCredit: true` means refund/credit (it subtracts).
+  positive and expressed in the line's own `currency`; `isCredit: true` means
+  refund/credit (it subtracts). `reference` is the bank reference number or
+  `null`. `kind` is `PURCHASE|REFUND|FEE|INTEREST|INSURANCE|PAYMENT|OTHER`.
+  `convertedAmount` is the **signed** amount in the primary currency (negative
+  for credits; `null` when it could not be converted or the line is not a
+  purchase/refund); `exchangeRate`/`exchangeRateSource` as in `currencies[]`
+  (`"1"` for primary-currency lines, `null` source). `excludedReason` is `null`
+  for lines that counted, `NO_EXCHANGE_RATE` or `NON_PURCHASE_KIND` otherwise
+  (excluded lines have `expectedReward: "0"`, `appliedRatePercent: "0"` and no
+  category).
   `expectedReward` is per transaction **before caps**, rounded to 2 decimals and
   negative for credits, so the sum of lines can differ from `expected.amount`
   when a cap applied or because of rounding. `ruleApplied` is true when a card
@@ -650,11 +786,21 @@ Field semantics:
 - `warnings[]`: `{ "code": string, "message": string }`. Show them to the user.
   Codes:
   - `CARD_LAST4_MISMATCH`: statement belongs to a different card than selected.
-  - `CURRENCY_MISMATCH`: statement currency differs from the card currency.
+  - `CURRENCY_MISMATCH`: none of the statement currencies is the card currency.
+  - `NO_EXCHANGE_RATE`: foreign lines were left out because no rate was
+    available; retry with `exchangeRate`.
+  - `EXCHANGE_RATE_APPLIED_TO_MULTIPLE_CURRENCIES`: the request `exchangeRate`
+    was applied to more than one foreign currency.
+  - `REPORTED_VALUE_MAY_BE_CUMULATIVE`: the audited program's `accumulated`
+    equals (about) `available + redeemedInPeriod + forfeited` and is more than
+    3x the expected reward, so it is probably a running balance. The verdict used
+    it anyway; ask the user for the amount earned this period and retry with
+    `reportedRewardOverride`.
   - `REPORTED_UNIT_DIFFERS_FROM_CARD`: the statement's reward unit
     (points vs money) differs from the card configuration; the card config won.
-  - `TOTAL_SPENT_MISMATCH`: extracted transactions do not add up to the
-    statement's total purchases (some may be missing; the result may be unreliable).
+  - `TOTAL_SPENT_MISMATCH`: for a currency, extracted transactions add up
+    neither to the statement's "Compras + otros cargos" nor to the purchases-only
+    figure (some may be missing; the result may be unreliable).
   - `NO_TRANSACTIONS`: no transactions found.
   - `AI_MATCHING_UNAVAILABLE`: fuzzy matching failed; keyword matches only.
 - `model`: the Claude model used for the extraction.
@@ -665,13 +811,14 @@ Errors specific to this endpoint:
 | --- | --- | --- |
 | 400 | `FILE_REQUIRED` | No `file` part |
 | 400 | `INVALID_PDF` | Bytes are not a PDF |
-| 400 | `VALIDATION_ERROR` | Bad `cardId` / `reportedRewardOverride` |
+| 400 | `VALIDATION_ERROR` | Bad `cardId` / `reportedRewardOverride` / `exchangeRate` / `rewardProgramName` |
 | 402 | `SUBSCRIPTION_REQUIRED` | Show the paywall (see section 9). `details.entitlementId` |
 | 404 | `CARD_NOT_FOUND` | Card missing or not yours |
 | 413 | `PAYLOAD_TOO_LARGE` | File over 10 MB |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Not `application/pdf` |
 | 422 | `UNREADABLE_STATEMENT` | Not a readable credit card statement (scanned, password protected, wrong document). Ask for the original PDF from the bank |
-| 422 | `REPORTED_REWARD_NOT_FOUND` | The statement shows no reward figure. Ask the user to type it and retry with `reportedRewardOverride` |
+| 422 | `REPORTED_REWARD_NOT_FOUND` | The statement shows no usable reward figure for the chosen program. Ask the user to type it and retry with `reportedRewardOverride` |
+| 422 | `REWARD_PROGRAM_AMBIGUOUS` | Several loyalty programs and none chosen/matched. `details.programs` is the list of names; let the user pick one and retry with the `rewardProgramName` form field |
 | 429 | `TOO_MANY_REQUESTS` | Slow down |
 | 502 | `EXTRACTION_FAILED` | The analysis returned an unusable result; retrying usually works |
 | 503 | `EXTRACTION_UNAVAILABLE` | Analysis service busy or down; try again later |
@@ -694,6 +841,7 @@ Query: `cardId` (optional uuid; `404` if not yours), `page` (default 1, >= 1),
         "periodEnd": "2026-01-31",
         "currency": "MXN"
       },
+      "primaryCurrency": "HNL",
       "rewardUnit": "CASHBACK_CURRENCY",
       "reportedAmount": "58",
       "expectedAmount": "58",
@@ -708,7 +856,8 @@ Query: `cardId` (optional uuid; `404` if not yours), `page` (default 1, >= 1),
 }
 ```
 
-Items are summaries (no `breakdown`, `transactions` or `warnings`); fetch the
+Items are summaries (no `breakdown`, `transactions`, `warnings`, `conversion`,
+`currencies` or `loyalty`); fetch the
 detail for those. This endpoint is **not** paywalled: users keep access to their
 history after a subscription lapses.
 
@@ -838,10 +987,45 @@ Response `200`: `{ "status": "applied" | "duplicate" | "stale" | "ignored" }`.
 | 409 | `CATEGORY_IN_USE` | Delete a category that still has merchants/card rules (`details.merchants`, `details.cardRules`) |
 | 413 | `PAYLOAD_TOO_LARGE` | PDF over 10 MB |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Upload is not a PDF |
-| 422 | `UNREADABLE_STATEMENT`, `REPORTED_REWARD_NOT_FOUND` | See verifications |
+| 422 | `UNREADABLE_STATEMENT`, `REPORTED_REWARD_NOT_FOUND`, `REWARD_PROGRAM_AMBIGUOUS` | See verifications |
 | 429 | `TOO_MANY_REQUESTS` | Rate limit |
 | 500 | `INTERNAL_ERROR` | Unexpected; generic message, nothing leaked |
 | 502 | `EXTRACTION_FAILED` | Analysis returned an unusable response |
 | 503 | `IDENTITY_PROVIDER_UNAVAILABLE` | Google/Apple sign-in not configured |
 | 503 | `EXTRACTION_UNAVAILABLE` | Analysis service busy/unavailable |
 | 503 | (health) | Database down |
+
+---
+
+## 12. Changelog (breaking changes)
+
+### Multi-currency and loyalty programs
+
+Clients built against the previous contract must change:
+
+- **`POST /verifications` response**
+  - `transactions[]` gained `reference`, `currency`, `kind`, `convertedAmount`,
+    `exchangeRate`, `exchangeRateSource`, `excludedReason`. `amount` is now in the
+    line's own `currency` (not necessarily the card currency): do not sum
+    `amount` across lines, use `convertedAmount`.
+  - `statement.currency` is the statement's main currency and may be `null` (it
+    no longer falls back to the card currency); use `primaryCurrency`.
+    `statement.totalSpent` / `totalToPay` now come from the primary-currency
+    summary column. New `statement.summaries[]`.
+  - New top-level `primaryCurrency`, `conversion`, `currencies[]`, `loyalty`.
+  - `reported.label` is the chosen loyalty program name; the value audited is the
+    program's `accumulated` column (it was "reward earned this period").
+  - New warning codes `NO_EXCHANGE_RATE`, `EXCHANGE_RATE_APPLIED_TO_MULTIPLE_CURRENCIES`,
+    `REPORTED_VALUE_MAY_BE_CUMULATIVE`; `CURRENCY_MISMATCH` and
+    `TOTAL_SPENT_MISMATCH` semantics changed (see section 8).
+  - Fee, interest, insurance and payment lines are now **included** in
+    `transactions[]` (with `kind` and `excludedReason: "NON_PURCHASE_KIND"`); they
+    were previously dropped.
+- **New request parts** `exchangeRate`, `rewardProgramName` (both optional).
+- **New error** `422 REWARD_PROGRAM_AMBIGUOUS` with `details.programs`.
+- **`GET /verifications` items** gained `primaryCurrency`.
+- **Cards**: `currency` is now documented as the primary currency; new optional
+  `rewardProgramName`.
+- **Existing data**: stored verifications were migrated (every old transaction
+  got `currency` = card currency, `kind` `PURCHASE`/`REFUND`, no reference;
+  `loyalty.programs` is empty and `conversion.currencies` is empty for them).
