@@ -22,19 +22,53 @@ Decimal roundDecimal(Decimal value, {int scale = 2}) =>
 
 const _locale = 'es_MX';
 
-/// Formats a monetary amount, e.g. `$1,234.50`.
-String formatMoney(Decimal value, {String currency = 'MXN'}) {
-  final symbol = switch (currency) {
-    'MXN' || 'USD' || 'ARS' || 'COP' || 'CLP' => r'$',
-    'EUR' => '€',
-    _ => '$currency ',
-  };
-  final fmt = NumberFormat.currency(
+/// ISO 4217 minor units for the currencies that do not use 2 decimals. Every
+/// other code (including unknown ones) defaults to 2.
+const _minorUnits = <String, int>{
+  'BIF': 0,
+  'CLP': 0,
+  'DJF': 0,
+  'GNF': 0,
+  'ISK': 0,
+  'JPY': 0,
+  'KMF': 0,
+  'KRW': 0,
+  'PYG': 0,
+  'RWF': 0,
+  'UGX': 0,
+  'UYI': 0,
+  'VND': 0,
+  'VUV': 0,
+  'XAF': 0,
+  'XOF': 0,
+  'XPF': 0,
+  'BHD': 3,
+  'IQD': 3,
+  'JOD': 3,
+  'KWD': 3,
+  'LYD': 3,
+  'OMR': 3,
+  'TND': 3,
+  'CLF': 4,
+  'UYW': 4,
+};
+
+/// Decimal digits of [currency] per ISO 4217 (JPY 0, KWD 3, default 2).
+int minorUnitsOf(String currency) =>
+    _minorUnits[currency.trim().toUpperCase()] ?? 2;
+
+/// Formats a monetary amount with its ISO code and the currency's minor
+/// units, e.g. `USD 22.68`, `HNL 589.61`, `JPY 1,500`, `KWD 1.250`. No
+/// symbols: `$` would be ambiguous between USD, MXN, HNL...
+String formatMoney(Decimal value, {required String currency}) {
+  final code = currency.trim().toUpperCase();
+  final fmt = NumberFormat.decimalPatternDigits(
     locale: _locale,
-    symbol: symbol,
-    decimalDigits: 2,
+    decimalDigits: minorUnitsOf(code),
   );
-  return DecimalFormatter(fmt).format(value);
+  final body = DecimalFormatter(fmt).format(value.abs());
+  final negative = value < Decimal.zero;
+  return '${negative ? '-' : ''}$code $body';
 }
 
 /// Formats a points amount, e.g. `12,500 pts`.

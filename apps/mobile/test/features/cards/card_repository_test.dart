@@ -48,6 +48,28 @@ void main() {
     expect(card.isPoints, isFalse);
   });
 
+  test('reward currency round-trips and clears on update', () {
+    final withReward = CardMapper.fromJson(cardJson(rewardCurrency: 'usd'));
+    expect(withReward.rewardCurrency, 'USD');
+    expect(
+      CardMapper.toRequest(
+        withReward.toDraft(),
+        forUpdate: false,
+      )['rewardCurrency'],
+      'USD',
+    );
+    final none = CardMapper.fromJson(cardJson());
+    expect(none.rewardCurrency, isNull);
+    final create = CardMapper.toRequest(none.toDraft(), forUpdate: false);
+    expect(create.containsKey('rewardCurrency'), isFalse);
+    final update = CardMapper.toRequest(none.toDraft(), forUpdate: true);
+    expect(update['rewardCurrency'], isNull);
+    expect(update.containsKey('rewardCurrency'), isTrue);
+    // Cards cached before the field existed still parse.
+    final legacy = cardJson()..remove('rewardCurrency');
+    expect(CardMapper.fromJson(legacy).rewardCurrency, isNull);
+  });
+
   test('request body: strings for decimals, no points factor for cashback', () {
     final draft = CardMapper.fromJson(cardJson()).toDraft();
     final body = CardMapper.toRequest(draft, forUpdate: false);

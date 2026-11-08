@@ -4,6 +4,7 @@ Map<String, dynamic> cardJson({
   List<Map<String, dynamic>>? rules,
   String unit = 'CASHBACK_CURRENCY',
   String? rewardProgramName,
+  String? rewardCurrency,
 }) => {
   'id': id,
   'alias': alias,
@@ -15,6 +16,7 @@ Map<String, dynamic> cardJson({
   'baseRatePercent': '1.5',
   'currency': 'MXN',
   'rewardProgramName': rewardProgramName,
+  'rewardCurrency': rewardCurrency,
   'rules':
       rules ??
       [
@@ -308,6 +310,8 @@ Map<String, dynamic> txJson(
   String? excludedReason,
   String? reason,
   bool awaiting = false,
+  String? creditType,
+  String? suggestedHint,
 }) => {
   'index': index,
   'date': '2026-01-02',
@@ -334,6 +338,8 @@ Map<String, dynamic> txJson(
   'matchSource': source,
   'matchConfidence': source.startsWith('AI') ? 0.8 : null,
   'matchReason': reason,
+  'creditType': creditType,
+  'suggestedHint': suggestedHint,
   'appliedRatePercent': awaiting ? null : rate,
   'ruleApplied': !awaiting && source != 'NONE',
   'expectedReward': awaiting ? null : '50',
@@ -358,3 +364,232 @@ Map<String, dynamic> summaryJson(String id, {String cardId = 'c1'}) => {
   'verdict': 'UNDERPAID',
   'createdAt': '2026-02-01T10:00:00.000Z',
 };
+
+/// Step-1 result of a live Ficohsa (Honduras) run: spend in HNL, the
+/// "Cash Back del mes: \$42" reward in USD, statement categories the user
+/// lacks and a foreign (EUR) spend currency without a rate.
+Map<String, dynamic> ficohsaAwaitingJson({String id = 'fico'}) =>
+    awaitingVerificationJson(
+      id: id,
+      rateProposal: [
+        proposalJson(null, null, '1', 'CARD_RULE'),
+        proposalJson(
+          'cat1',
+          'Supermercados',
+          '7',
+          'STATEMENT',
+          evidence: '7% en supermercados',
+        ),
+      ],
+      transactions: [
+        txJson(
+          0,
+          'SUPER LA COLONIA',
+          '1000',
+          source: 'AI_CATEGORY',
+          currency: 'HNL',
+          awaiting: true,
+        ),
+        txJson(
+          1,
+          'PIZZA HUT TGU',
+          '300',
+          source: 'NONE',
+          currency: 'HNL',
+          awaiting: true,
+          suggestedHint: 'Restaurantes y Comida rápida',
+        ),
+        txJson(
+          2,
+          'HOTEL MADRID',
+          '100',
+          source: 'NONE',
+          currency: 'EUR',
+          awaiting: true,
+        ),
+      ],
+    )..addAll({
+      'rewardCurrency': null,
+      'rewardConversion': {
+        'fromCurrency': 'HNL',
+        'toCurrency': 'USD',
+        'rate': null,
+        'source': 'NONE',
+        'required': true,
+        'note': null,
+      },
+      'exchangeRateProposal': [
+        {'currency': 'EUR', 'rate': null, 'source': 'NONE', 'required': false},
+      ],
+      'suggestedCategories': [
+        {
+          'name': 'Tiendas por Departamento',
+          'ratePercent': '7',
+          'evidence': '7% Tiendas por Departamento',
+          'matchingTransactionCount': 0,
+        },
+        {
+          'name': 'Restaurantes y Comida rápida',
+          'ratePercent': '7',
+          'evidence': '7% Restaurantes y Comida rápida',
+          'matchingTransactionCount': 7,
+        },
+        {
+          'name': 'Débitos automáticos en educación',
+          'ratePercent': '7',
+          'evidence': null,
+          'matchingTransactionCount': 0,
+        },
+      ],
+      'conversion': {
+        'primaryCurrency': 'HNL',
+        'requestedRate': null,
+        'requestedRates': <String, dynamic>{},
+        'requestedRewardRate': null,
+        'statementRates': <Map<String, dynamic>>[],
+        'statementRate': null,
+      },
+    });
+
+/// The same statement after confirm: reward USD, expected USD 22.68
+/// (HNL 589.61), reported USD 42, applied reward rate, creditType lines and a
+/// still-uncategorized line carrying the bank's hint.
+Map<String, dynamic> ficohsaCompletedJson({String id = 'fico'}) =>
+    verificationJson(
+      id: id,
+      verdict: 'OVERPAID',
+      transactions: [
+        txJson(
+          0,
+          'SUPER LA COLONIA',
+          '1000',
+          currency: 'HNL',
+          source: 'AI_CATEGORY',
+          reason: 'Supermercado de la zona',
+        ),
+        txJson(
+          1,
+          'PIZZA HUT TGU',
+          '300',
+          currency: 'HNL',
+          source: 'NONE',
+          rate: '1',
+          suggestedHint: 'Restaurantes y Comida rápida',
+        ),
+        txJson(
+          2,
+          'PAGO RECIBIDO GRACIAS',
+          '5000',
+          currency: 'HNL',
+          credit: true,
+          kind: 'PAYMENT',
+          creditType: 'PAYMENT',
+        ),
+        txJson(
+          3,
+          'DEVOLUCION AMAZON',
+          '200',
+          currency: 'HNL',
+          credit: true,
+          kind: 'REFUND',
+          creditType: 'REFUND',
+        ),
+        txJson(
+          4,
+          'BONO POR MEMBRESIA',
+          '50',
+          currency: 'HNL',
+          credit: true,
+          kind: 'OTHER',
+          creditType: 'OTHER_CREDIT',
+        ),
+      ],
+    )..addAll({
+      'primaryCurrency': 'HNL',
+      'rewardCurrency': 'USD',
+      'statement': {
+        'bank': 'Ficohsa',
+        'cardLast4': '4321',
+        'periodStart': '2026-01-01',
+        'periodEnd': '2026-01-31',
+        'currency': 'HNL',
+        'totalSpent': '22242.56',
+        'totalToPay': '22967.72',
+        'summaries': [
+          {
+            'currency': 'HNL',
+            'previousBalance': '0',
+            'purchasesAndCharges': '22967.72',
+            'purchases': '22242.56',
+            'chargesAndInterest': '725.16',
+            'totalBalance': '22967.72',
+          },
+        ],
+      },
+      'reported': {
+        'amount': '42',
+        'unit': 'CASHBACK_CURRENCY',
+        'currency': 'USD',
+        'label': 'Cash Back',
+        'source': 'STATEMENT',
+      },
+      'expected': {
+        'amount': '22.68',
+        'unit': 'CASHBACK_CURRENCY',
+        'currency': 'USD',
+      },
+      'expectedInPrimaryCurrency': '589.61',
+      'difference': '19.32',
+      'tolerance': '1',
+      'rewardConversion': {
+        'fromCurrency': 'HNL',
+        'toCurrency': 'USD',
+        'rate': '25.9969',
+        'source': 'NONE',
+        'required': false,
+        'note': null,
+      },
+      'exchangeRateProposal': <Map<String, dynamic>>[],
+      'suggestedCategories': <Map<String, dynamic>>[],
+      'appliedRates': {
+        'baseRatePercent': '1',
+        'baseSource': 'CARD_RULE_CONFIRMED',
+        'savedToCard': false,
+        'rewardExchangeRate': {
+          'fromCurrency': 'HNL',
+          'toCurrency': 'USD',
+          'rate': '25.9969',
+          'source': 'USER_ENTERED',
+        },
+        'categoryRates': [
+          {
+            'categoryId': 'cat1',
+            'categoryName': 'Super',
+            'ratePercent': '7',
+            'monthlyCap': null,
+            'source': 'STATEMENT_CONFIRMED',
+          },
+        ],
+      },
+      'conversion': {
+        'primaryCurrency': 'HNL',
+        'requestedRate': null,
+        'requestedRates': <String, dynamic>{},
+        'requestedRewardRate': '25.9969',
+        'statementRates': [
+          {'from': 'HNL', 'to': 'USD', 'rate': '26.1', 'source': 'STATEMENT'},
+        ],
+        'statementRate': {'from': 'HNL', 'to': 'USD', 'rate': '26.1'},
+      },
+      'loyalty': {
+        'selectedBy': 'ONLY_PROGRAM',
+        'requestedProgramName': null,
+        'selectedProgram': {
+          ...programJson('Cash Back', '42'),
+          'currency': 'USD',
+        },
+        'programs': [
+          {...programJson('Cash Back', '42'), 'currency': 'USD'},
+        ],
+      },
+    });

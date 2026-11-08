@@ -25,6 +25,13 @@ abstract final class CardValidator {
     return null;
   }
 
+  /// Optional ISO 4217 code: empty is valid (detect automatically).
+  static String? optionalCurrency(String? v) {
+    final t = v?.trim() ?? '';
+    if (t.isEmpty) return null;
+    return currency(t);
+  }
+
   /// Parses user input (accepts `,` as decimal separator).
   static Decimal? parse(String? v) {
     final t = v?.trim().replaceAll(',', '.') ?? '';

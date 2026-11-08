@@ -2,6 +2,11 @@ import '../../../core/utils/decimal_utils.dart';
 import '../domain/card_entities.dart';
 
 abstract final class CardMapper {
+  static String? _code(Object? v) {
+    final s = v is String ? v.trim().toUpperCase() : '';
+    return s.isEmpty ? null : s;
+  }
+
   static CreditCard fromJson(Map<String, dynamic> json) => CreditCard(
     id: json['id'] as String,
     alias: json['alias'] as String,
@@ -13,6 +18,7 @@ abstract final class CardMapper {
     baseRatePercent: parseDecimal(json['baseRatePercent']),
     currency: json['currency'] as String,
     rewardProgramName: json['rewardProgramName'] as String?,
+    rewardCurrency: _code(json['rewardCurrency']),
     rules: [
       for (final r in (json['rules'] as List<dynamic>? ?? const []))
         RewardRule(
@@ -31,6 +37,7 @@ abstract final class CardMapper {
   }) {
     final network = d.network?.trim();
     final program = d.rewardProgramName?.trim();
+    final rewardCurrency = _code(d.rewardCurrency);
     return {
       'alias': d.alias.trim(),
       'bank': d.bank.trim(),
@@ -43,6 +50,10 @@ abstract final class CardMapper {
         'rewardProgramName': program
       else if (forUpdate)
         'rewardProgramName': null,
+      if (rewardCurrency != null)
+        'rewardCurrency': rewardCurrency
+      else if (forUpdate)
+        'rewardCurrency': null,
       'rewardUnit': d.rewardUnit.apiValue,
       if (d.rewardUnit == RewardUnit.points && d.pointsPerCurrencyUnit != null)
         'pointsPerCurrencyUnit': decimalToApi(d.pointsPerCurrencyUnit!),

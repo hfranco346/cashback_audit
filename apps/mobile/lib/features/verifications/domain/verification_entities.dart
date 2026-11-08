@@ -85,6 +85,20 @@ enum ExcludedReason {
   };
 }
 
+/// How to label a credit line. A payment made to the card is never a refund.
+enum CreditType {
+  payment,
+  refund,
+  otherCredit;
+
+  static CreditType? fromApi(String? v) => switch (v) {
+    'PAYMENT' => CreditType.payment,
+    'REFUND' => CreditType.refund,
+    'OTHER_CREDIT' => CreditType.otherCredit,
+    _ => null,
+  };
+}
+
 enum RateSource {
   statement,
   cardRule,
@@ -97,6 +111,37 @@ enum RateSource {
   };
 }
 
+/// One currency column of the statement's balance summary.
+class StatementSummary extends Equatable {
+  const StatementSummary({
+    required this.currency,
+    this.previousBalance,
+    this.purchasesAndCharges,
+    this.purchases,
+    this.chargesAndInterest,
+    this.totalBalance,
+  });
+
+  final String currency;
+  final Decimal? previousBalance;
+  final Decimal? purchasesAndCharges;
+
+  /// Purchases/withdrawals subtotal only (no fees or interest).
+  final Decimal? purchases;
+  final Decimal? chargesAndInterest;
+  final Decimal? totalBalance;
+
+  @override
+  List<Object?> get props => [
+    currency,
+    previousBalance,
+    purchasesAndCharges,
+    purchases,
+    chargesAndInterest,
+    totalBalance,
+  ];
+}
+
 class StatementInfo extends Equatable {
   const StatementInfo({
     this.bank,
@@ -106,6 +151,7 @@ class StatementInfo extends Equatable {
     this.currency,
     this.totalSpent,
     this.totalToPay,
+    this.summaries = const [],
   });
 
   final String? bank;
@@ -115,6 +161,7 @@ class StatementInfo extends Equatable {
   final String? currency;
   final Decimal? totalSpent;
   final Decimal? totalToPay;
+  final List<StatementSummary> summaries;
 
   @override
   List<Object?> get props => [
@@ -125,6 +172,7 @@ class StatementInfo extends Equatable {
     currency,
     totalSpent,
     totalToPay,
+    summaries,
   ];
 }
 
@@ -134,17 +182,21 @@ class ReportedReward extends Equatable {
     required this.unit,
     required this.fromOverride,
     this.label,
+    this.currency,
   });
 
   final Decimal amount;
   final RewardUnit unit;
+
+  /// Currency the bank reported the reward in (reward currency).
+  final String? currency;
   final bool fromOverride;
 
   /// Name of the audited loyalty program, when one was chosen.
   final String? label;
 
   @override
-  List<Object?> get props => [amount, unit, fromOverride, label];
+  List<Object?> get props => [amount, unit, fromOverride, label, currency];
 }
 
 class BreakdownLine extends Equatable {
@@ -202,6 +254,8 @@ class VerificationTransaction extends Equatable {
     this.convertedAmount,
     this.exchangeRate,
     this.excludedReason,
+    this.creditType,
+    this.suggestedHint,
     this.matchedMerchantId,
     this.matchedMerchantName,
     this.categoryId,
@@ -229,6 +283,13 @@ class VerificationTransaction extends Equatable {
   final Decimal? convertedAmount;
   final Decimal? exchangeRate;
   final ExcludedReason? excludedReason;
+
+  /// How to label a credit line; null for charges.
+  final CreditType? creditType;
+
+  /// Statement wording the classifier tagged this uncategorized line with
+  /// (e.g. "Restaurantes y Comida rápida").
+  final String? suggestedHint;
   final String? matchedMerchantId;
   final String? matchedMerchantName;
   final String? categoryId;
@@ -268,6 +329,8 @@ class VerificationTransaction extends Equatable {
     convertedAmount,
     exchangeRate,
     excludedReason,
+    creditType,
+    suggestedHint,
     matchedMerchantId,
     matchedMerchantName,
     categoryId,
@@ -385,6 +448,27 @@ class AppliedCategoryRate extends Equatable {
   ];
 }
 
+/// Rate used to convert the reward from the card currency to the reward
+/// currency: primary-currency units per 1 unit of [toCurrency].
+class AppliedRewardRate extends Equatable {
+  const AppliedRewardRate({
+    required this.fromCurrency,
+    required this.toCurrency,
+    required this.rate,
+    this.source,
+  });
+
+  final String fromCurrency;
+  final String toCurrency;
+  final Decimal rate;
+
+  /// `STATEMENT_CONFIRMED` or `USER_ENTERED`.
+  final String? source;
+
+  @override
+  List<Object?> get props => [fromCurrency, toCurrency, rate, source];
+}
+
 /// Exactly the rates a completed verification was audited with.
 class AppliedRates extends Equatable {
   const AppliedRates({
@@ -392,7 +476,10 @@ class AppliedRates extends Equatable {
     required this.categoryRates,
     this.baseSource,
     this.savedToCard = false,
+    this.rewardExchangeRate,
   });
+
+  final AppliedRewardRate? rewardExchangeRate;
 
   final Decimal baseRatePercent;
   final String? baseSource;
@@ -405,6 +492,7 @@ class AppliedRates extends Equatable {
     baseSource,
     savedToCard,
     categoryRates,
+    rewardExchangeRate,
   ];
 }
 
@@ -413,29 +501,125 @@ class StatementRate extends Equatable {
     required this.from,
     required this.to,
     required this.rate,
+    this.source,
   });
 
   final String from;
   final String to;
   final Decimal rate;
+  final String? source;
 
   @override
-  List<Object?> get props => [from, to, rate];
+  List<Object?> get props => [from, to, rate, source];
 }
 
 class ConversionInfo extends Equatable {
   const ConversionInfo({
     this.primaryCurrency,
     this.requestedRate,
-    this.statementRate,
+    this.requestedRates = const {},
+    this.requestedRewardRate,
+    this.statementRates = const [],
   });
 
   final String? primaryCurrency;
+
+  /// Legacy single rate applied to any foreign currency.
   final Decimal? requestedRate;
-  final StatementRate? statementRate;
+
+  /// Rates sent earlier, per foreign currency.
+  final Map<String, Decimal> requestedRates;
+  final Decimal? requestedRewardRate;
+
+  /// Every rate printed on the statement.
+  final List<StatementRate> statementRates;
+
+  /// First statement rate (the old single `statementRate`).
+  StatementRate? get statementRate => statementRates.firstOrNull;
 
   @override
-  List<Object?> get props => [primaryCurrency, requestedRate, statementRate];
+  List<Object?> get props => [
+    primaryCurrency,
+    requestedRate,
+    requestedRates,
+    requestedRewardRate,
+    statementRates,
+  ];
+}
+
+/// The reward is paid in another currency than the card's: the user must
+/// say how many card-currency units one reward-currency unit is worth.
+class RewardConversion extends Equatable {
+  const RewardConversion({
+    required this.fromCurrency,
+    required this.toCurrency,
+    required this.required,
+    required this.fromStatement,
+    this.rate,
+    this.note,
+  });
+
+  /// Primary (card) currency.
+  final String fromCurrency;
+
+  /// Reward currency.
+  final String toCurrency;
+
+  /// Prefilled when the statement prints it.
+  final Decimal? rate;
+  final bool fromStatement;
+  final bool required;
+  final String? note;
+
+  @override
+  List<Object?> get props => [
+    fromCurrency,
+    toCurrency,
+    rate,
+    fromStatement,
+    required,
+    note,
+  ];
+}
+
+/// Optional rate for one foreign spend currency (leaving it empty leaves
+/// that currency's purchases out of the audit).
+class ExchangeRateEntry extends Equatable {
+  const ExchangeRateEntry({
+    required this.currency,
+    required this.fromStatement,
+    this.rate,
+  });
+
+  final String currency;
+  final Decimal? rate;
+  final bool fromStatement;
+
+  @override
+  List<Object?> get props => [currency, rate, fromStatement];
+}
+
+/// A spending kind the statement mentions that the user has no category for.
+class SuggestedCategory extends Equatable {
+  const SuggestedCategory({
+    required this.name,
+    required this.matchingTransactionCount,
+    this.ratePercent,
+    this.evidence,
+  });
+
+  final String name;
+  final Decimal? ratePercent;
+  final String? evidence;
+  final int matchingTransactionCount;
+
+  @override
+  List<Object?> get props => [
+    name,
+    ratePercent,
+    evidence,
+    matchingTransactionCount,
+  ];
 }
 
 /// Per-currency subtotal of a completed verification.
@@ -485,9 +669,13 @@ class LoyaltyProgram extends Equatable {
     this.redeemedInPeriod,
     this.expiring,
     this.forfeited,
+    this.currency,
   });
 
   final String name;
+
+  /// Currency of the program's amounts when it is money (may be null).
+  final String? currency;
 
   /// `POINTS`, `CURRENCY`, `MILES` or `UNKNOWN`.
   final String? unit;
@@ -506,6 +694,7 @@ class LoyaltyProgram extends Equatable {
     redeemedInPeriod,
     expiring,
     forfeited,
+    currency,
   ];
 }
 
@@ -550,14 +739,19 @@ class Verification extends Equatable {
     required this.warnings,
     required this.createdAt,
     this.primaryCurrency,
+    this.rewardCurrency,
     this.reported,
     this.expectedAmount,
+    this.expectedInPrimaryCurrency,
     this.difference,
     this.tolerance,
     this.verdict,
     this.explanation,
     this.detectedRates = const [],
     this.rateProposal = const [],
+    this.rewardConversion,
+    this.exchangeRateProposal = const [],
+    this.suggestedCategories = const [],
     this.appliedRates,
     this.conversion = const ConversionInfo(),
     this.currencies = const [],
@@ -573,10 +767,19 @@ class Verification extends Equatable {
   /// Card currency: every reward figure is expressed in it.
   final String? primaryCurrency;
 
+  /// Currency of [reported], [expectedAmount], [difference] and [tolerance].
+  /// Null for points, while unconfirmed and for legacy rows (= primary).
+  final String? rewardCurrency;
+
   /// Reward unit of the card (falls back to cashback when unknown).
   final RewardUnit unit;
   final ReportedReward? reported;
+
+  /// Expected reward, in [rewardCurrency].
   final Decimal? expectedAmount;
+
+  /// The same figure before the reward conversion (card currency).
+  final Decimal? expectedInPrimaryCurrency;
 
   /// `reported - expected`; negative means the bank paid less.
   final Decimal? difference;
@@ -587,6 +790,11 @@ class Verification extends Equatable {
   final String? explanation;
   final List<DetectedRate> detectedRates;
   final List<RateProposalEntry> rateProposal;
+
+  /// Non-null when the reward currency differs from the card currency.
+  final RewardConversion? rewardConversion;
+  final List<ExchangeRateEntry> exchangeRateProposal;
+  final List<SuggestedCategory> suggestedCategories;
   final AppliedRates? appliedRates;
   final ConversionInfo conversion;
   final List<CurrencySubtotal> currencies;
@@ -600,8 +808,15 @@ class Verification extends Equatable {
   bool get isCompleted => status == VerificationStatus.completed;
   bool get isAwaitingRates => status == VerificationStatus.awaitingRates;
 
-  /// Currency used to format rewards and totals.
+  /// Card currency: spend, breakdown, caps and per-line rewards use it.
   String get currency => primaryCurrency ?? statement.currency ?? 'MXN';
+
+  /// Currency of the audited reward figures (reported / expected /
+  /// difference). Equals [currency] when no conversion applies.
+  String get resolvedRewardCurrency => rewardCurrency ?? currency;
+
+  /// The reward is expressed in another currency than the card's.
+  bool get rewardCurrencyDiffers => resolvedRewardCurrency != currency;
 
   int get countedTransactions => transactions.where((t) => t.inCategory).length;
   int get uncountedTransactions =>
@@ -623,15 +838,20 @@ class Verification extends Equatable {
     status,
     statement,
     primaryCurrency,
+    rewardCurrency,
     unit,
     reported,
     expectedAmount,
+    expectedInPrimaryCurrency,
     difference,
     tolerance,
     verdict,
     explanation,
     detectedRates,
     rateProposal,
+    rewardConversion,
+    exchangeRateProposal,
+    suggestedCategories,
     appliedRates,
     conversion,
     currencies,
@@ -653,6 +873,7 @@ class VerificationSummary extends Equatable {
     required this.unit,
     required this.createdAt,
     this.primaryCurrency,
+    this.rewardCurrency,
     this.reportedAmount,
     this.expectedAmount,
     this.difference,
@@ -664,6 +885,9 @@ class VerificationSummary extends Equatable {
   final VerificationStatus status;
   final StatementInfo statement;
   final String? primaryCurrency;
+
+  /// Currency of the reward figures; null = [primaryCurrency].
+  final String? rewardCurrency;
   final RewardUnit unit;
 
   /// Null while the rates are not confirmed.
@@ -675,6 +899,7 @@ class VerificationSummary extends Equatable {
 
   bool get isAwaitingRates => status == VerificationStatus.awaitingRates;
   String get currency => primaryCurrency ?? statement.currency ?? 'MXN';
+  String get resolvedRewardCurrency => rewardCurrency ?? currency;
 
   @override
   List<Object?> get props => [
@@ -683,6 +908,7 @@ class VerificationSummary extends Equatable {
     status,
     statement,
     primaryCurrency,
+    rewardCurrency,
     unit,
     reportedAmount,
     expectedAmount,
@@ -735,6 +961,8 @@ class ConfirmRequest extends Equatable {
     this.saveToCard = false,
     this.reportedRewardOverride,
     this.exchangeRate,
+    this.exchangeRates = const {},
+    this.rewardExchangeRate,
     this.rewardProgramName,
   });
 
@@ -743,6 +971,12 @@ class ConfirmRequest extends Equatable {
   final bool saveToCard;
   final Decimal? reportedRewardOverride;
   final Decimal? exchangeRate;
+
+  /// Rate per foreign spend currency: primary units per 1 unit of the key.
+  final Map<String, Decimal> exchangeRates;
+
+  /// Primary units per 1 unit of the reward currency.
+  final Decimal? rewardExchangeRate;
   final String? rewardProgramName;
 
   /// The same rates a completed verification was audited with, for a free
@@ -757,6 +991,7 @@ class ConfirmRequest extends Equatable {
           monthlyCap: r.monthlyCap,
         ),
     ],
+    rewardExchangeRate: applied.rewardExchangeRate?.rate,
   );
 
   @override
@@ -766,6 +1001,8 @@ class ConfirmRequest extends Equatable {
     saveToCard,
     reportedRewardOverride,
     exchangeRate,
+    exchangeRates,
+    rewardExchangeRate,
     rewardProgramName,
   ];
 }

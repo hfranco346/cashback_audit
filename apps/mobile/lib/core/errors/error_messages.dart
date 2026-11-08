@@ -32,6 +32,10 @@ String userMessageFor(Object error) {
       return S.errRatesRequired;
     case 'REWARD_PROGRAM_AMBIGUOUS':
       return S.errProgramAmbiguous;
+    case 'REWARD_EXCHANGE_RATE_REQUIRED':
+      return S.errRewardRateRequired;
+    case 'INVALID_EXCHANGE_RATE':
+      return S.errInvalidExchangeRate;
     case 'TRANSACTION_NOT_FOUND':
       return S.errTransactionNotFound;
     case 'TRANSACTION_NOT_CLASSIFIABLE':

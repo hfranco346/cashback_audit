@@ -7,6 +7,7 @@ import '../../../categories/domain/catalog_entities.dart';
 import '../../domain/card_entities.dart';
 import '../../domain/card_validator.dart';
 import '../card_form_controller.dart';
+import 'reward_currency_field.dart';
 import 'rule_editor.dart';
 
 /// Pure presentational card form. All state lives in the controller passed
@@ -20,6 +21,7 @@ class CardFormView extends StatelessWidget {
     required this.last4,
     required this.network,
     required this.rewardProgram,
+    required this.rewardCurrency,
     required this.currency,
     required this.pointsFactor,
     required this.baseRate,
@@ -43,6 +45,7 @@ class CardFormView extends StatelessWidget {
   final TextEditingController last4;
   final TextEditingController network;
   final TextEditingController rewardProgram;
+  final TextEditingController rewardCurrency;
   final TextEditingController currency;
   final TextEditingController pointsFactor;
   final TextEditingController baseRate;
@@ -144,6 +147,10 @@ class CardFormView extends StatelessWidget {
             validator: (v) =>
                 (v ?? '').trim().length > 80 ? S.fieldTooLong(80) : null,
           ),
+          if (!isPoints) ...[
+            const SizedBox(height: 14),
+            RewardCurrencyField(controller: rewardCurrency),
+          ],
           const SizedBox(height: 22),
           Text(
             S.rewardUnitLabel,

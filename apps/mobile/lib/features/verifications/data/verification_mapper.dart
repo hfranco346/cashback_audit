@@ -1,3 +1,5 @@
+import 'package:decimal/decimal.dart';
+
 import '../../../core/db/app_database.dart';
 import '../../../core/utils/decimal_utils.dart';
 import '../../cards/domain/card_entities.dart';
@@ -30,6 +32,17 @@ abstract final class VerificationMapper {
           currency: j['currency'] as String?,
           totalSpent: tryParseDecimal(j['totalSpent']),
           totalToPay: tryParseDecimal(j['totalToPay']),
+          summaries: [
+            for (final m in _maps(j['summaries']))
+              StatementSummary(
+                currency: m['currency'] as String? ?? '',
+                previousBalance: tryParseDecimal(m['previousBalance']),
+                purchasesAndCharges: tryParseDecimal(m['purchasesAndCharges']),
+                purchases: tryParseDecimal(m['purchases']),
+                chargesAndInterest: tryParseDecimal(m['chargesAndInterest']),
+                totalBalance: tryParseDecimal(m['totalBalance']),
+              ),
+          ],
         );
 
   static Verification detail(JsonMap j) {
@@ -46,6 +59,7 @@ abstract final class VerificationMapper {
       status: VerificationStatus.fromApi(j['status'] as String?),
       statement: statement(statementJson),
       primaryCurrency: primary,
+      rewardCurrency: _currencyCode(j['rewardCurrency']),
       unit: unitRaw == null
           ? RewardUnit.cashbackCurrency
           : RewardUnit.fromApi(unitRaw),
@@ -58,14 +72,39 @@ abstract final class VerificationMapper {
               ),
               fromOverride: reported['source'] == 'OVERRIDE',
               label: reported['label'] as String?,
+              currency: _currencyCode(reported['currency']),
             ),
       expectedAmount: tryParseDecimal(expected?['amount']),
+      expectedInPrimaryCurrency: tryParseDecimal(
+        j['expectedInPrimaryCurrency'],
+      ),
       difference: tryParseDecimal(j['difference']),
       tolerance: tryParseDecimal(j['tolerance']),
       verdict: Verdict.tryFromApi(j['verdict'] as String?),
       explanation: _nonEmpty(j['explanation']),
       detectedRates: [for (final d in _maps(j['detectedRates'])) _detected(d)],
       rateProposal: [for (final p in _maps(j['rateProposal'])) _proposal(p)],
+      rewardConversion: _rewardConversion(_map(j['rewardConversion'])),
+      exchangeRateProposal: [
+        for (final e in _maps(j['exchangeRateProposal']))
+          if (_currencyCode(e['currency']) != null)
+            ExchangeRateEntry(
+              currency: _currencyCode(e['currency'])!,
+              rate: _positive(e['rate']),
+              fromStatement: e['source'] == 'STATEMENT',
+            ),
+      ],
+      suggestedCategories: [
+        for (final c in _maps(j['suggestedCategories']))
+          if (_nonEmpty(c['name']) != null)
+            SuggestedCategory(
+              name: _nonEmpty(c['name'])!,
+              ratePercent: tryParseDecimal(c['ratePercent']),
+              evidence: _nonEmpty(c['evidence']),
+              matchingTransactionCount:
+                  (c['matchingTransactionCount'] as num?)?.toInt() ?? 0,
+            ),
+      ],
       appliedRates: _applied(_map(j['appliedRates'])),
       conversion: _conversion(_map(j['conversion'])),
       currencies: [for (final c in _maps(j['currencies'])) _currency(c)],
@@ -92,6 +131,31 @@ abstract final class VerificationMapper {
   static String? _nonEmpty(Object? v) {
     final s = v is String ? v.trim() : null;
     return s == null || s.isEmpty ? null : s;
+  }
+
+  /// Upper-cased ISO code, or null for missing/blank values.
+  static String? _currencyCode(Object? v) {
+    final s = v is String ? v.trim().toUpperCase() : '';
+    return s.isEmpty ? null : s;
+  }
+
+  static Decimal? _positive(Object? v) {
+    final d = tryParseDecimal(v);
+    return d != null && d > Decimal.zero ? d : null;
+  }
+
+  static RewardConversion? _rewardConversion(JsonMap? c) {
+    final from = _currencyCode(c?['fromCurrency']);
+    final to = _currencyCode(c?['toCurrency']);
+    if (c == null || from == null || to == null) return null;
+    return RewardConversion(
+      fromCurrency: from,
+      toCurrency: to,
+      rate: _positive(c['rate']),
+      fromStatement: c['source'] == 'STATEMENT',
+      required: c['required'] as bool? ?? false,
+      note: _nonEmpty(c['note']),
+    );
   }
 
   static DetectedRate _detected(JsonMap d) => DetectedRate(
@@ -121,6 +185,7 @@ abstract final class VerificationMapper {
           baseRatePercent: parseDecimal(a['baseRatePercent']),
           baseSource: a['baseSource'] as String?,
           savedToCard: a['savedToCard'] as bool? ?? false,
+          rewardExchangeRate: _appliedRewardRate(_map(a['rewardExchangeRate'])),
           categoryRates: [
             for (final r in _maps(a['categoryRates']))
               AppliedCategoryRate(
@@ -133,20 +198,46 @@ abstract final class VerificationMapper {
           ],
         );
 
+  static AppliedRewardRate? _appliedRewardRate(JsonMap? r) {
+    final rate = _positive(r?['rate']);
+    if (r == null || rate == null) return null;
+    return AppliedRewardRate(
+      fromCurrency: _currencyCode(r['fromCurrency']) ?? '',
+      toCurrency: _currencyCode(r['toCurrency']) ?? '',
+      rate: rate,
+      source: r['source'] as String?,
+    );
+  }
+
+  static StatementRate? _statementRate(JsonMap? s) {
+    final rate = _positive(s?['rate']);
+    if (s == null || rate == null) return null;
+    return StatementRate(
+      from: s['from'] as String? ?? '',
+      to: s['to'] as String? ?? '',
+      rate: rate,
+      source: s['source'] as String?,
+    );
+  }
+
   static ConversionInfo _conversion(JsonMap? c) {
     if (c == null) return const ConversionInfo();
-    final s = _map(c['statementRate']);
-    final rate = tryParseDecimal(s?['rate']);
+    // `statementRate` (single, deprecated) is only read for rows cached
+    // before `statementRates[]` existed.
+    final rates = [
+      for (final s in _maps(c['statementRates'])) ?_statementRate(s),
+    ];
+    final legacy = _statementRate(_map(c['statementRate']));
     return ConversionInfo(
       primaryCurrency: c['primaryCurrency'] as String?,
       requestedRate: tryParseDecimal(c['requestedRate']),
-      statementRate: s == null || rate == null
-          ? null
-          : StatementRate(
-              from: s['from'] as String? ?? '',
-              to: s['to'] as String? ?? '',
-              rate: rate,
-            ),
+      requestedRates: {
+        for (final e in (_map(c['requestedRates']) ?? const {}).entries)
+          if (_positive(e.value) != null)
+            e.key.toUpperCase(): _positive(e.value)!,
+      },
+      requestedRewardRate: _positive(c['requestedRewardRate']),
+      statementRates: rates.isEmpty && legacy != null ? [legacy] : rates,
     );
   }
 
@@ -170,6 +261,7 @@ abstract final class VerificationMapper {
     redeemedInPeriod: tryParseDecimal(p['redeemedInPeriod']),
     expiring: tryParseDecimal(p['expiring']),
     forfeited: tryParseDecimal(p['forfeited']),
+    currency: _currencyCode(p['currency']),
   );
 
   static LoyaltyInfo _loyalty(JsonMap? l) {
@@ -198,6 +290,9 @@ abstract final class VerificationMapper {
   static VerificationTransaction _transaction(JsonMap t, String? primary) {
     final isCredit = t['isCredit'] as bool? ?? false;
     final rawKind = t['kind'] as String?;
+    final kind = rawKind == null
+        ? (isCredit ? TransactionKind.refund : TransactionKind.purchase)
+        : TransactionKind.fromApi(rawKind);
     return VerificationTransaction(
       index: (t['index'] as num).toInt(),
       date: _date(t['date']),
@@ -208,9 +303,12 @@ abstract final class VerificationMapper {
       // the card currency.
       currency: t['currency'] as String? ?? primary ?? '',
       isCredit: isCredit,
-      kind: rawKind == null
-          ? (isCredit ? TransactionKind.refund : TransactionKind.purchase)
-          : TransactionKind.fromApi(rawKind),
+      kind: kind,
+      creditType: isCredit
+          ? (CreditType.fromApi(t['creditType'] as String?) ??
+                _legacyCreditType(kind))
+          : null,
+      suggestedHint: _nonEmpty(t['suggestedHint']),
       convertedAmount: tryParseDecimal(t['convertedAmount']),
       exchangeRate: tryParseDecimal(t['exchangeRate']),
       excludedReason: ExcludedReason.fromApi(t['excludedReason'] as String?),
@@ -227,6 +325,13 @@ abstract final class VerificationMapper {
     );
   }
 
+  /// Rows from before `creditType` existed: derive it from the line kind.
+  static CreditType _legacyCreditType(TransactionKind kind) => switch (kind) {
+    TransactionKind.payment => CreditType.payment,
+    TransactionKind.refund => CreditType.refund,
+    _ => CreditType.otherCredit,
+  };
+
   static VerificationSummary summary(JsonMap j) {
     final statementJson = _map(j['statement']);
     return VerificationSummary(
@@ -237,6 +342,7 @@ abstract final class VerificationMapper {
       primaryCurrency:
           j['primaryCurrency'] as String? ??
           (statementJson?['currency'] as String?),
+      rewardCurrency: _currencyCode(j['rewardCurrency']),
       unit: RewardUnit.fromApi(
         (j['rewardUnit'] as String?) ?? 'CASHBACK_CURRENCY',
       ),
@@ -259,6 +365,7 @@ abstract final class VerificationMapper {
       'status': d['status'] ?? 'COMPLETED',
       'statement': d['statement'],
       'primaryCurrency': d['primaryCurrency'],
+      'rewardCurrency': d['rewardCurrency'],
       'rewardUnit': expected?['unit'] ?? reported?['unit'],
       'reportedAmount': reported?['amount'],
       'expectedAmount': expected?['amount'],
@@ -285,6 +392,13 @@ abstract final class VerificationMapper {
     if (r.reportedRewardOverride != null)
       'reportedRewardOverride': decimalToApi(r.reportedRewardOverride!),
     if (r.exchangeRate != null) 'exchangeRate': decimalToApi(r.exchangeRate!),
+    if (r.exchangeRates.isNotEmpty)
+      'exchangeRates': {
+        for (final e in r.exchangeRates.entries)
+          e.key.toUpperCase(): decimalToApi(e.value),
+      },
+    if (r.rewardExchangeRate != null)
+      'rewardExchangeRate': decimalToApi(r.rewardExchangeRate!),
     if (r.rewardProgramName != null && r.rewardProgramName!.trim().isNotEmpty)
       'rewardProgramName': r.rewardProgramName!.trim(),
   };

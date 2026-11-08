@@ -132,6 +132,7 @@ void main() {
               last4: controller.last4,
               network: controller.network,
               rewardProgram: controller.rewardProgram,
+              rewardCurrency: controller.rewardCurrency,
               currency: controller.currency,
               pointsFactor: controller.pointsFactor,
               baseRate: controller.baseRate,
@@ -192,6 +193,36 @@ void main() {
       controller.rewardProgram.text = '  CASH BAC CREDOMATIC ';
       expect(await controller.save(), isTrue);
       expect(repo.saved.last.rewardProgramName, 'CASH BAC CREDOMATIC');
+    });
+
+    testWidgets('reward currency is optional, validated and picked by chip', (
+      tester,
+    ) async {
+      await pumpForm(tester);
+      expect(find.byKey(const Key('field-reward-currency')), findsOneWidget);
+      expect(find.text(S.cardRewardCurrencyHelper), findsOneWidget);
+      controller.alias.text = 'Daily';
+      controller.bank.text = 'Ficohsa';
+      controller.last4.text = '4321';
+      controller.baseRate.text = '1';
+      // Empty = detect automatically.
+      expect(await controller.save(), isTrue);
+      expect(repo.saved.last.rewardCurrency, isNull);
+      // Invalid free entry blocks the form.
+      controller.rewardCurrency.text = 'US';
+      expect(controller.buildDraft(), isNull);
+      await tester.pump();
+      expect(find.text(S.currencyInvalid), findsOneWidget);
+      // A common code is one tap away.
+      await tester.tap(find.byKey(const Key('reward-currency-USD')));
+      await tester.pump();
+      expect(controller.rewardCurrency.text, 'USD');
+      expect(await controller.save(), isTrue);
+      expect(repo.saved.last.rewardCurrency, 'USD');
+      // Free entry is uppercased.
+      controller.rewardCurrency.text = 'kwd';
+      expect(await controller.save(), isTrue);
+      expect(repo.saved.last.rewardCurrency, 'KWD');
     });
 
     testWidgets('rejects duplicate categories and missing rates', (

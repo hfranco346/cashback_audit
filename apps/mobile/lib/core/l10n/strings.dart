@@ -51,6 +51,10 @@ abstract final class S {
   static const errInvalidPdf = 'El archivo no es un PDF válido.';
   static const errUnreadable =
       'No pudimos leer ese estado de cuenta. Descarga el PDF original desde tu banco (no una foto ni un archivo con contraseña).';
+  static const errRewardRateRequired =
+      'Escribe cuánto vale la moneda de la recompensa para poder convertirla.';
+  static const errInvalidExchangeRate =
+      'Revisa los tipos de cambio: deben ser números mayores a 0 (máximo 6 decimales).';
   static const errRewardNotFound =
       'El estado de cuenta no muestra la recompensa que te dio el banco. Escríbela para continuar.';
   static const errExtractionFailed =
@@ -126,6 +130,10 @@ abstract final class S {
   static const cardRewardProgram = 'Programa de recompensa a auditar';
   static const cardRewardProgramHelper =
       'Opcional. Si tu estado de cuenta lista varios programas (p. ej. CASH BAC), escribe el nombre del que quieres auditar.';
+  static const cardRewardCurrency = 'Moneda en que recibes la recompensa';
+  static const cardRewardCurrencyHelper =
+      'Opcional. Si tu banco paga la recompensa en otra moneda que tus compras (p. ej. dólares), indícala. Vacío = detectar automáticamente.';
+  static const cardRewardCurrencyAuto = 'Detectar automáticamente';
   static const rewardUnitLabel = 'Tipo de recompensa';
   static const unitCashback = 'Cashback';
   static const unitPoints = 'Puntos';

@@ -179,7 +179,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text(r'$10.00'), findsOneWidget);
+      expect(find.text('USD 10.00'), findsOneWidget);
       expect(find.byKey(const Key('tx-converted-0')), findsOneWidget);
     });
 
@@ -280,8 +280,8 @@ void main() {
           ),
         ),
       );
-      expect(find.text('-\$58.00'), findsOneWidget);
-      expect(find.text('-\$20.00'), findsOneWidget);
+      expect(find.text('-MXN 58.00'), findsOneWidget);
+      expect(find.text('-MXN 20.00'), findsOneWidget);
       expect(find.byKey(const Key('tx-icon-counted')), findsOneWidget);
       expect(find.byKey(const Key('tx-icon-uncounted')), findsOneWidget);
       expect(find.text(S.refund), findsNWidgets(2));
