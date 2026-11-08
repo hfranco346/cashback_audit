@@ -174,6 +174,7 @@ describe('CreateVerificationUseCase (step 1)', () => {
     expect(v.models).toEqual({
       extraction: 'test-model',
       classification: 'test-classifier',
+      explanation: null,
     });
   });
 

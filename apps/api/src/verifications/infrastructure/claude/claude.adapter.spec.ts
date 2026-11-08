@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { validateEnv } from '../../../config/env.js';
 import { ClaudeJsonClient } from './claude-json.client.js';
 import { ClaudeLineClassifier } from './claude-line-classifier.js';
+import { ClaudeResultExplainer } from './claude-result-explainer.js';
 import { ClaudeStatementExtractor } from './claude-statement-extractor.js';
 import { parseExtraction } from './extraction-schema.js';
 
@@ -542,5 +543,66 @@ describe('ClaudeLineClassifier', () => {
     expect(
       (await make(down.client).classify(['A'], categories)).model,
     ).toBeNull();
+  });
+});
+
+describe('ClaudeResultExplainer', () => {
+  const facts = {
+    verdict: 'UNDERPAID',
+    rewardUnit: 'CASHBACK_CURRENCY',
+    primaryCurrency: 'HNL',
+    reported: '30',
+    expected: '58',
+    difference: '-28',
+    tolerance: '1',
+    programName: 'CASH',
+    reportedSource: 'STATEMENT',
+    breakdown: [
+      {
+        category: 'Supermercados',
+        ratePercent: '5',
+        spend: '1100',
+        expectedReward: '55',
+        capped: false,
+        monthlyCap: null,
+      },
+    ],
+    excludedForeignLines: 0,
+    warningCodes: [],
+  } as const;
+
+  it('asks the cheap model for plain text in Spanish with the computed facts only', async () => {
+    const { client, calls } = fakeClient({
+      stop_reason: 'end_turn',
+      content: [{ type: 'text', text: '  El banco pagó de menos.  ' }],
+    });
+    const out = await new ClaudeResultExplainer(
+      new ClaudeJsonClient(client, config()),
+    ).explain(facts as never);
+    expect(out).toEqual({
+      text: 'El banco pagó de menos.',
+      model: 'claude-haiku-5-5',
+    });
+    expect(calls[0].model).toBe('claude-haiku-5-5');
+    expect(calls[0].output_config).toBeUndefined();
+    expect(calls[0].system).toContain('NUNCA calcules');
+    expect(calls[0].system).toContain('no confiables');
+    expect(JSON.parse(calls[0].messages[0].content[0].text)).toEqual(facts);
+  });
+
+  it.each([
+    [
+      'empty text',
+      { stop_reason: 'end_turn', content: [{ type: 'text', text: ' ' }] },
+    ],
+    ['max_tokens', { stop_reason: 'max_tokens', content: [] }],
+    ['refusal', { stop_reason: 'refusal', content: [] }],
+  ])('fails cleanly on %s', async (_l, message) => {
+    const { client } = fakeClient(message);
+    await expect(
+      new ClaudeResultExplainer(new ClaudeJsonClient(client, config())).explain(
+        facts as never,
+      ),
+    ).rejects.toMatchObject({ code: 'EXTRACTION_FAILED' });
   });
 });

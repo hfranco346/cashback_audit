@@ -19,9 +19,11 @@ import type {
  * KEYWORD: a registered merchant's name/keyword matched.
  * AI_MERCHANT: the classifier matched a registered merchant.
  * AI_CATEGORY: the classifier chose a category only.
+ * USER: the user assigned the category by hand.
  * (Stored rows written before this change say `AI`; they are read as AI_MERCHANT.)
  */
-export type MatchSource = 'KEYWORD' | 'AI_MERCHANT' | 'AI_CATEGORY' | 'NONE';
+export type MatchSource =
+  'KEYWORD' | 'AI_MERCHANT' | 'AI_CATEGORY' | 'USER' | 'NONE';
 
 export interface VerificationTransaction {
   index: number;
@@ -117,6 +119,8 @@ export interface VerificationLoyalty {
 export interface VerificationModels {
   extraction: string;
   classification: string | null;
+  /** Model that wrote the narrative explanation; null when there is none. */
+  explanation: string | null;
 }
 
 export interface Verification {

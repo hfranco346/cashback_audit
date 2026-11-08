@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Query,
   UnsupportedMediaTypeException,
@@ -21,6 +22,7 @@ import { CurrentUser } from '../../auth/infrastructure/current-user.decorator.js
 import { IdParam } from '../../shared/http/id.param.js';
 import { StrictThrottle } from '../../shared/http/throttling.js';
 import { SubscriptionGuard } from '../../subscriptions/infrastructure/subscription.guard.js';
+import { UpdateTransactionCategoryUseCase } from '../application/update-transaction.use-case.js';
 import { ConfirmVerificationUseCase } from '../application/confirm-verification.use-case.js';
 import { RateProposalService } from '../application/rate-proposal.service.js';
 import { CreateVerificationUseCase } from '../application/create-verification.use-case.js';
@@ -33,6 +35,8 @@ import {
   ConfirmVerificationDto,
   CreateVerificationDto,
   ListVerificationsQuery,
+  TransactionIndexParam,
+  UpdateTransactionDto,
 } from './verification.dto.js';
 import {
   presentSummary,
@@ -72,6 +76,7 @@ export class VerificationsController {
     private readonly createVerification: CreateVerificationUseCase,
     private readonly confirmVerification: ConfirmVerificationUseCase,
     private readonly proposals: RateProposalService,
+    private readonly updateTransaction: UpdateTransactionCategoryUseCase,
     private readonly listVerifications: ListVerificationsUseCase,
     private readonly getVerification: GetVerificationUseCase,
     private readonly deleteVerification: DeleteVerificationUseCase,
@@ -138,6 +143,24 @@ export class VerificationsController {
       reportedRewardOverride: dto.reportedRewardOverride,
       exchangeRate: dto.exchangeRate,
       rewardProgramName: dto.rewardProgramName,
+    });
+    return presentVerification(
+      verification,
+      await this.proposals.forVerification(user.id, verification),
+    );
+  }
+
+  @Patch(':id/transactions/:index')
+  async setTransactionCategory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() { id, index }: TransactionIndexParam,
+    @Body() dto: UpdateTransactionDto,
+  ) {
+    const verification = await this.updateTransaction.execute({
+      userId: user.id,
+      verificationId: id,
+      index,
+      categoryId: dto.categoryId,
     });
     return presentVerification(
       verification,

@@ -30,4 +30,6 @@ export abstract class VerificationRepository {
     },
   ): Promise<VerificationPage>;
   abstract delete(userId: string, id: string): Promise<boolean>;
+  /** Deletes AWAITING_RATES verifications created before `cutoff`. */
+  abstract deleteAwaitingCreatedBefore(cutoff: Date): Promise<number>;
 }

@@ -343,7 +343,11 @@ export class CreateVerificationUseCase {
       transactions,
       warnings,
       model,
-      models: { extraction: model, classification: classificationModel },
+      models: {
+        extraction: model,
+        classification: classificationModel,
+        explanation: null,
+      },
     });
   }
 }

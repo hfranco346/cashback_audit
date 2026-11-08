@@ -608,6 +608,8 @@ part; categories do **not** need registered merchants):
      the category a descriptive `description`.
    `matchConfidence` is the 0-1 confidence and `matchReason` the short
    explanation (both `null` for keyword/none).
+   A line the user re-categorized through `PATCH .../transactions/:index` has
+   `matchSource: "USER"`.
 3. **No match** (`matchSource: "NONE"`): the line earns the card's base rate.
 
 Lines that are not purchases (`kind` other than `PURCHASE`/`REFUND`) are never
@@ -785,6 +787,18 @@ keep the ones stored earlier. The response is the full verification with
 
 A failed confirm leaves the verification untouched.
 
+### PATCH /verifications/:id/transactions/:index
+
+Body `{ "categoryId": "<uuid>" | null }`. Corrects the category of one line (for
+example a wrong AI guess); `null` clears it. Only `PURCHASE`/`REFUND` lines can
+be categorized (`422 TRANSACTION_NOT_CLASSIFIABLE`). The line becomes
+`matchSource: "USER"` with no merchant/confidence. Returns the full verification
+(with the refreshed `rateProposal`: a newly used category may now be `required`).
+**It does not recompute the result**: for a `COMPLETED` verification the stored
+figures stay as they were until the client calls `POST /verifications/:id/confirm`
+again. Errors: `400` (bad body / negative index), `404 VERIFICATION_NOT_FOUND`,
+`404 TRANSACTION_NOT_FOUND`, `404 CATEGORY_NOT_FOUND`.
+
 ### Field semantics (both steps)
 
 - `statement.*`: what was read from the PDF; any of them can be `null`.
@@ -821,6 +835,12 @@ A failed confirm leaves the verification untouched.
   `REQUEST`, `CARD`, `ONLY_PROGRAM` or `null`; `requestedProgramName` is the
   name asked for. `accumulated` may be a running balance rather than earned this
   period; see `REPORTED_VALUE_MAY_BE_CUMULATIVE`.
+- `explanation`: one short paragraph in Spanish written by a cheap model after
+  confirm, summarizing why the verdict is `MATCH`/`UNDERPAID`/`OVERPAID`. It is
+  only a narrative of numbers already computed by the server (the model never
+  calculates). `null` while `AWAITING_RATES` or if it could not be generated
+  (then the warning `EXPLANATION_UNAVAILABLE` is present); it is regenerated on
+  every confirm.
 - `expected.amount`: deterministic expected reward (after caps), 2 decimals.
 - `difference` = `reported - expected` (2 decimals). **Negative means the bank
   paid less than it should have.**
@@ -869,11 +889,14 @@ A failed confirm leaves the verification untouched.
     is more than 3x the expected reward, so it is probably a running balance. The
     verdict used it anyway; ask the user for the amount earned this period and
     confirm again with `reportedRewardOverride`.
+  - (confirm) `EXPLANATION_UNAVAILABLE`: the written explanation failed; the
+    result itself is unaffected.
   - (confirm) `REPORTED_UNIT_DIFFERS_FROM_CARD`: the program's unit (points vs
     money) differs from the card configuration; the card config won.
-- `models`: `{ "extraction": string, "classification": string | null }` - the
-  model that performed each step; `classification` is `null` when no
-  classification call was made or it failed. `model` is deprecated and equals
+- `models`: `{ "extraction": string, "classification": string | null,
+  "explanation": string | null }` - the model that performed each step;
+  `classification` is `null` when no classification call was made or it failed,
+  `explanation` is `null` until confirm or when it failed. `model` is deprecated and equals
   `models.extraction`.
 
 ### GET /verifications
@@ -925,6 +948,11 @@ Full verification object (as in the `POST` responses, with the current
 ### DELETE /verifications/:id
 
 `204`. `404 VERIFICATION_NOT_FOUND`.
+
+**Abandoned uploads.** `AWAITING_RATES` verifications that are not confirmed
+within 7 days (server setting `AWAITING_RATES_TTL_DAYS`) are deleted by a
+periodic server job; `COMPLETED` ones are never deleted automatically. Clients
+should treat a `404` on an old awaiting verification as expected.
 
 ---
 
@@ -1097,7 +1125,7 @@ Clients built against the previous contract must change:
 
 ### Category-level classification
 
-- `transactions[].matchSource` is now `KEYWORD | AI_MERCHANT | AI_CATEGORY | NONE`.
+- `transactions[].matchSource` is now `KEYWORD | AI_MERCHANT | AI_CATEGORY | USER | NONE`.
   **`AI` no longer exists**: it was split. Old stored rows are migrated to
   `AI_MERCHANT`; clients must handle the two new values (an `AI_CATEGORY` line
   has `matchedMerchantId: null` but a `categoryId`).
@@ -1133,3 +1161,13 @@ Clients built against the previous contract must change:
   normalized, currencies are mapped to ISO 4217 from context. `transactions[].
   merchant` is the line text exactly as printed.
 - Existing data: old verifications are `COMPLETED` with `appliedRates: null`.
+
+### Explanation, transaction correction and cleanup
+
+- New `explanation` (string or null) in the verification and `models.explanation`
+  (additive: previously `models` had two keys). New warning
+  `EXPLANATION_UNAVAILABLE`.
+- New endpoint `PATCH /verifications/:id/transactions/:index` and new
+  `matchSource` value `USER`; new errors `404 TRANSACTION_NOT_FOUND`,
+  `422 TRANSACTION_NOT_CLASSIFIABLE`.
+- Abandoned `AWAITING_RATES` verifications are deleted after 7 days.

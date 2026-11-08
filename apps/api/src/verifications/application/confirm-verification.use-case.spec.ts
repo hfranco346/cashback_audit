@@ -15,7 +15,9 @@ import {
 import type { ExtractedStatement } from '../domain/statement.js';
 import {
   LineClassifier,
+  ResultExplainer,
   StatementExtractor,
+  type AuditFacts,
 } from '../domain/statement-extractor.js';
 import type {
   NewVerification,
@@ -34,6 +36,12 @@ function world(
   statement: ExtractedStatement,
   cardOver: Partial<Card> = {},
   classify: Record<string, { categoryId: string | null }> = {},
+  explain: (
+    facts: AuditFacts,
+  ) => Promise<{ text: string; model: string }> = async () => ({
+    text: 'explicación',
+    model: 'e-model',
+  }),
 ) {
   const card: Card = {
     id: 'card-1',
@@ -138,6 +146,7 @@ function world(
     cardsRepo,
     categoriesRepo,
     new RateProposalService(cardsRepo, categoriesRepo),
+    { explain } as unknown as ResultExplainer,
   );
   return {
     card,
@@ -429,6 +438,69 @@ describe('ConfirmVerificationUseCase (step 2)', () => {
     expect(ok.appliedRates!.baseSource).toBe('USER_ENTERED');
     expect(ok.reportedAmount!.toString()).toBe('2400');
     expect(ok.verdict).toBe('OVERPAID');
+  });
+
+  describe('explanation', () => {
+    it('stores the narrative and the model, and feeds it only computed numbers', async () => {
+      const seen: AuditFacts[] = [];
+      const w = world(
+        mxnCashbackStatement(),
+        {},
+        {
+          'WM SUPERCENTER': { categoryId: CAT_SUPER },
+        },
+        async (facts) => {
+          seen.push(facts);
+          return { text: 'El banco pagó lo esperado.', model: 'haiku-x' };
+        },
+      );
+      await w.start();
+      const v = await w.confirm();
+      expect(v.explanation).toBe('El banco pagó lo esperado.');
+      expect(v.models).toMatchObject({
+        extraction: 'm',
+        classification: 'c',
+        explanation: 'haiku-x',
+      });
+      expect(seen[0]).toMatchObject({
+        verdict: 'MATCH',
+        reported: '58',
+        expected: '58',
+        difference: '0',
+        tolerance: '1',
+        rewardUnit: 'CASHBACK_CURRENCY',
+        primaryCurrency: 'MXN',
+        programName: 'Bonificación del periodo',
+        excludedForeignLines: 0,
+      });
+      expect(seen[0]!.breakdown[0]).toMatchObject({
+        category: 'Supermarkets',
+        ratePercent: '5',
+        expectedReward: '55',
+      });
+    });
+
+    it('degrades to a warning when the explainer fails and recovers on re-confirm', async () => {
+      let fail = true;
+      const w = world(mxnCashbackStatement(), {}, {}, async () => {
+        if (fail) throw new Error('down');
+        return { text: 'ok', model: 'm2' };
+      });
+      await w.start();
+      const first = await w.confirm();
+      expect(first.status).toBe('COMPLETED');
+      expect(first.explanation).toBeNull();
+      expect(first.models.explanation).toBeNull();
+      expect(first.warnings.map((x) => x.code)).toContain(
+        'EXPLANATION_UNAVAILABLE',
+      );
+      fail = false;
+      const second = await w.confirm();
+      expect(second.explanation).toBe('ok');
+      expect(second.warnings.map((x) => x.code)).not.toContain(
+        'EXPLANATION_UNAVAILABLE',
+      );
+    });
   });
 
   it('is 404 for an unknown verification', async () => {

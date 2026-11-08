@@ -25,3 +25,36 @@ export abstract class LineClassifier {
     categories: CategoryCandidate[],
   ): Promise<ClassificationResult>;
 }
+
+/** Facts about a finished audit; the explainer only narrates them. */
+export interface AuditFacts {
+  verdict: 'MATCH' | 'UNDERPAID' | 'OVERPAID';
+  rewardUnit: 'CASHBACK_CURRENCY' | 'POINTS';
+  primaryCurrency: string;
+  reported: string;
+  expected: string;
+  /** reported - expected */
+  difference: string;
+  tolerance: string;
+  programName: string | null;
+  reportedSource: 'STATEMENT' | 'OVERRIDE';
+  /** Rates used and what they earned, by category (null = base). */
+  breakdown: {
+    category: string | null;
+    ratePercent: string;
+    spend: string;
+    expectedReward: string;
+    capped: boolean;
+    monthlyCap: string | null;
+  }[];
+  excludedForeignLines: number;
+  warningCodes: string[];
+}
+
+/**
+ * Port: one short narrative of an audit result. It receives the already
+ * computed numbers and must not compute anything.
+ */
+export abstract class ResultExplainer {
+  abstract explain(facts: AuditFacts): Promise<{ text: string; model: string }>;
+}

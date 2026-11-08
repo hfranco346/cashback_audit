@@ -8,6 +8,7 @@ import {
   IsBoolean,
   IsEnum,
   ValidateNested,
+  ValidateIf,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -101,6 +102,28 @@ export class ConfirmVerificationDto {
   @IsNotEmpty()
   @MaxLength(80)
   rewardProgramName?: string;
+}
+
+export class UpdateTransactionDto {
+  @ApiProperty({
+    nullable: true,
+    description: 'Category of the line, or null to clear it',
+  })
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID()
+  categoryId!: string | null;
+}
+
+export class TransactionIndexParam {
+  @ApiProperty({ description: 'Verification id' })
+  @IsUUID()
+  id!: string;
+
+  @ApiProperty({ minimum: 0 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  index!: number;
 }
 
 export class ListVerificationsQuery {

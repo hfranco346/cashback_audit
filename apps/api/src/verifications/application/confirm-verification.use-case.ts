@@ -7,11 +7,16 @@ import {
 } from '../../cards/domain/card-errors.js';
 import { CategoryNotFoundError } from '../../categories/domain/category-errors.js';
 import { CategoryRepository } from '../../categories/domain/category.repository.js';
-import { AUDIT_WARNING_CODES, computeAudit } from '../domain/audit.js';
+import {
+  AUDIT_WARNING_CODES,
+  buildAuditFacts,
+  computeAudit,
+} from '../domain/audit.js';
 import {
   appliedRateSource,
   findMissingRates,
 } from '../domain/rate-proposal.js';
+import { ResultExplainer } from '../domain/statement-extractor.js';
 import {
   RatesRequiredError,
   VerificationNotFoundError,
@@ -47,6 +52,7 @@ export class ConfirmVerificationUseCase {
     private readonly cards: CardRepository,
     private readonly categories: CategoryRepository,
     private readonly proposals: RateProposalService,
+    private readonly explainer: ResultExplainer,
   ) {}
 
   async execute(input: ConfirmVerificationInput): Promise<Verification> {
@@ -128,6 +134,32 @@ export class ConfirmVerificationUseCase {
       statementRate: verification.conversion.statementRate,
     });
 
+    // One short narrative; optional and failure-tolerant. It only receives the
+    // numbers computed above and never feeds anything back into them.
+    const warnings = [
+      ...verification.warnings.filter(
+        (w) => !AUDIT_WARNING_CODES.includes(w.code),
+      ),
+      ...audit.warnings,
+    ];
+    let explanation: string | null = null;
+    let explanationModel: string | null = null;
+    try {
+      const explained = await this.explainer.explain(
+        buildAuditFacts(audit, {
+          rewardUnit: card.rewardUnit,
+          primaryCurrency: card.currency,
+        }),
+      );
+      explanation = explained.text;
+      explanationModel = explained.model;
+    } catch {
+      warnings.push({
+        code: 'EXPLANATION_UNAVAILABLE',
+        message: 'The written explanation could not be generated.',
+      });
+    }
+
     if (input.saveToCard) {
       await this.cards.update(input.userId, card.id, {
         baseRatePercent: base,
@@ -156,12 +188,9 @@ export class ConfirmVerificationUseCase {
         conversion: audit.conversion,
         loyalty: audit.loyalty,
         appliedRates,
-        warnings: [
-          ...verification.warnings.filter(
-            (w) => !AUDIT_WARNING_CODES.includes(w.code),
-          ),
-          ...audit.warnings,
-        ],
+        warnings,
+        explanation,
+        models: { ...verification.models, explanation: explanationModel },
       },
     );
     if (!updated) throw new VerificationNotFoundError();

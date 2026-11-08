@@ -5,6 +5,8 @@ import { CardsModule } from '../cards/cards.module.js';
 import { CategoriesModule } from '../categories/categories.module.js';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
 import type { Env } from '../config/env.js';
+import { CleanupAwaitingRatesService } from './application/cleanup-awaiting-rates.service.js';
+import { UpdateTransactionCategoryUseCase } from './application/update-transaction.use-case.js';
 import { ConfirmVerificationUseCase } from './application/confirm-verification.use-case.js';
 import { RateProposalService } from './application/rate-proposal.service.js';
 import {
@@ -18,6 +20,7 @@ import {
 } from './application/verification.use-cases.js';
 import {
   LineClassifier,
+  ResultExplainer,
   StatementExtractor,
 } from './domain/statement-extractor.js';
 import { VerificationRepository } from './domain/verification.repository.js';
@@ -25,6 +28,7 @@ import {
   ANTHROPIC_CLIENT,
   ClaudeJsonClient,
 } from './infrastructure/claude/claude-json.client.js';
+import { ClaudeResultExplainer } from './infrastructure/claude/claude-result-explainer.js';
 import { ClaudeLineClassifier } from './infrastructure/claude/claude-line-classifier.js';
 import { ClaudeStatementExtractor } from './infrastructure/claude/claude-statement-extractor.js';
 import { PrismaVerificationRepository } from './infrastructure/prisma-verification.repository.js';
@@ -37,6 +41,8 @@ import { VerificationsController } from './infrastructure/verifications.controll
     CreateVerificationUseCase,
     ConfirmVerificationUseCase,
     RateProposalService,
+    UpdateTransactionCategoryUseCase,
+    CleanupAwaitingRatesService,
     ListVerificationsUseCase,
     GetVerificationUseCase,
     DeleteVerificationUseCase,
@@ -56,6 +62,7 @@ import { VerificationsController } from './infrastructure/verifications.controll
     },
     { provide: StatementExtractor, useClass: ClaudeStatementExtractor },
     { provide: LineClassifier, useClass: ClaudeLineClassifier },
+    { provide: ResultExplainer, useClass: ClaudeResultExplainer },
     {
       provide: CLASSIFICATION_MIN_CONFIDENCE,
       inject: [ConfigService],

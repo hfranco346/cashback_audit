@@ -49,6 +49,8 @@ const baseSchema = z.object({
   /** @deprecated Fallback for ANTHROPIC_EXTRACTION_MODEL only. */
   ANTHROPIC_MODEL: modelId,
 
+  /** Abandoned AWAITING_RATES verifications older than this are deleted. */
+  AWAITING_RATES_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(7),
   /** Classifier results below this confidence (0-1) are ignored. */
   CLASSIFICATION_MIN_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.7),
 

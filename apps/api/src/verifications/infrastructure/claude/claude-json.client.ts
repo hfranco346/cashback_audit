@@ -94,6 +94,43 @@ export class ClaudeJsonClient {
     return parsed.data;
   }
 
+  /** Plain-text answer (no structured output); same error mapping. */
+  async requestText(request: {
+    task: ClaudeTask;
+    system: string;
+    content: Anthropic.MessageParam['content'];
+    maxTokens: number;
+  }): Promise<string> {
+    if (!this.hasKey) {
+      this.logger.error('ANTHROPIC_API_KEY is not configured');
+      throw new ExtractionUnavailableError();
+    }
+    let message: Anthropic.Message;
+    try {
+      message = await this.client.messages
+        .stream({
+          model: this.models[request.task],
+          max_tokens: request.maxTokens,
+          system: request.system,
+          messages: [{ role: 'user', content: request.content }],
+        })
+        .finalMessage();
+    } catch (error) {
+      throw this.mapError(error);
+    }
+    if (
+      message.stop_reason === 'refusal' ||
+      message.stop_reason === 'max_tokens'
+    ) {
+      throw new ExtractionFailedError();
+    }
+    const text = message.content.find((block) => block.type === 'text');
+    if (!text || text.type !== 'text' || !text.text.trim()) {
+      throw new ExtractionFailedError();
+    }
+    return text.text.trim();
+  }
+
   private mapError(error: unknown): DomainError {
     if (error instanceof DomainError) return error;
     if (error instanceof Anthropic.APIError) {

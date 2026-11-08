@@ -1,7 +1,9 @@
 import request from 'supertest';
+import { CleanupAwaitingRatesService } from '../src/verifications/application/cleanup-awaiting-rates.service.js';
 import { ExtractionUnavailableError } from '../src/verifications/domain/verification-errors.js';
 import {
   LineClassifier,
+  ResultExplainer,
   StatementExtractor,
 } from '../src/verifications/domain/statement-extractor.js';
 import type { ExtractedStatement } from '../src/verifications/domain/statement.js';
@@ -85,16 +87,29 @@ describe('Verifications (e2e)', () => {
     }),
   };
 
+  let explainFacts: unknown[] = [];
+  let explainFails = false;
+  const explainerStub = {
+    explain: async (facts: unknown) => {
+      explainFacts.push(facts);
+      if (explainFails) throw new Error('down');
+      return { text: 'Explicación breve.', model: 'stub-haiku' };
+    },
+  };
+
   beforeAll(async () => {
     ctx = await createTestApp([
       { token: StatementExtractor, useValue: extractorStub },
       { token: LineClassifier, useValue: classifierStub },
+      { token: ResultExplainer, useValue: explainerStub },
     ]);
   });
   afterAll(() => ctx.close());
 
   beforeEach(async () => {
     extraction = { calls: 0, contexts: [] };
+    explainFacts = [];
+    explainFails = false;
     await resetDatabase(ctx.prisma);
     alice = await signInAs(ctx.app, 'alice');
     bob = await signInAs(ctx.app, 'bob');
@@ -342,6 +357,12 @@ describe('Verifications (e2e)', () => {
       expect(res.body).toMatchObject({
         id: started.id,
         status: 'COMPLETED',
+        explanation: 'Explicación breve.',
+        models: {
+          extraction: 'stub-model',
+          classification: 'stub-classifier',
+          explanation: 'stub-haiku',
+        },
         reported: {
           amount: '58',
           unit: 'CASHBACK_CURRENCY',
@@ -526,6 +547,134 @@ describe('Verifications (e2e)', () => {
       await confirm(alice, none.id, { reportedRewardOverride: '-3' }).expect(
         400,
       );
+    });
+  });
+
+  describe('explanation', () => {
+    it('is generated from the computed numbers and refreshed on recalculation', async () => {
+      const started = (await upload(alice).expect(201)).body;
+      await confirm(alice, started.id).expect(200);
+      expect(explainFacts[0]).toMatchObject({
+        verdict: 'MATCH',
+        reported: '58',
+        expected: '58',
+      });
+      await confirm(alice, started.id, { baseRatePercent: '2' }).expect(200);
+      expect(explainFacts).toHaveLength(2);
+    });
+
+    it('degrades to a warning when it fails', async () => {
+      explainFails = true;
+      const started = (await upload(alice).expect(201)).body;
+      const res = await confirm(alice, started.id).expect(200);
+      expect(res.body.status).toBe('COMPLETED');
+      expect(res.body.explanation).toBeNull();
+      expect(res.body.models.explanation).toBeNull();
+      expect(res.body.warnings.map((w: any) => w.code)).toContain(
+        'EXPLANATION_UNAVAILABLE',
+      );
+    });
+  });
+
+  describe('PATCH /verifications/:id/transactions/:index', () => {
+    const patch = (
+      user: TestUser,
+      id: string,
+      index: number | string,
+      body: unknown,
+    ) =>
+      http()
+        .patch(`/api/v1/verifications/${id}/transactions/${index}`)
+        .set(user.auth)
+        .send(body as object);
+
+    it('corrects a category, then a new confirm applies it (and requires its rate)', async () => {
+      const started = (await upload(alice).expect(201)).body;
+      const fixed = await patch(alice, started.id, 2, {
+        categoryId: pharmacyCategoryId,
+      }).expect(200);
+      expect(fixed.body.transactions[2]).toMatchObject({
+        categoryName: 'Pharmacies',
+        matchSource: 'USER',
+        matchConfidence: null,
+      });
+      expect(
+        fixed.body.rateProposal.find(
+          (e: any) => e.categoryId === pharmacyCategoryId,
+        ),
+      ).toMatchObject({ source: 'NONE', required: true });
+      await confirm(alice, started.id).expect(422);
+      const done = await confirm(alice, started.id, {
+        categoryRates: [
+          { categoryId: superCategoryId, ratePercent: '5' },
+          { categoryId: pharmacyCategoryId, ratePercent: '10' },
+        ],
+      }).expect(200);
+      // pharmacy 300 * 10% = 30 ; super 55 ; base 0
+      expect(done.body.expected.amount).toBe('85');
+      expect(done.body.transactions[2]).toMatchObject({
+        matchSource: 'USER',
+        appliedRatePercent: '10',
+      });
+      expect(extraction.calls).toBe(1);
+    });
+
+    it('clears a category and validates input and ownership', async () => {
+      const started = (await upload(alice).expect(201)).body;
+      const cleared = await patch(alice, started.id, 0, {
+        categoryId: null,
+      }).expect(200);
+      expect(cleared.body.transactions[0]).toMatchObject({
+        categoryId: null,
+        matchSource: 'NONE',
+      });
+      await patch(alice, started.id, 0, { categoryId: 'nope' }).expect(400);
+      await patch(alice, started.id, 0, {}).expect(400);
+      await patch(alice, started.id, 99, { categoryId: null }).expect(404);
+      await patch(alice, started.id, -1, { categoryId: null }).expect(400);
+      await patch(alice, started.id, 0, {
+        categoryId: '00000000-0000-4000-8000-000000000000',
+      }).expect(404);
+      await patch(bob, started.id, 0, { categoryId: null }).expect(404);
+    });
+
+    it('refuses to categorize non-purchase lines', async () => {
+      extraction.statement = mxn({
+        transactions: [line('SEGURO', 10, { kind: 'INSURANCE' })],
+      });
+      const started = (await upload(alice).expect(201)).body;
+      const res = await patch(alice, started.id, 0, {
+        categoryId: superCategoryId,
+      }).expect(422);
+      expect(res.body.code).toBe('TRANSACTION_NOT_CLASSIFIABLE');
+    });
+  });
+
+  describe('cleanup of abandoned verifications', () => {
+    it('deletes AWAITING_RATES older than the TTL and keeps everything else', async () => {
+      const old = (await upload(alice).expect(201)).body;
+      const fresh = (await upload(alice).expect(201)).body;
+      const doneOld = (await upload(alice).expect(201)).body;
+      await confirm(alice, doneOld.id).expect(200);
+      const longAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+      await ctx.prisma.verification.updateMany({
+        where: { id: { in: [old.id, doneOld.id] } },
+        data: { createdAt: longAgo },
+      });
+      const deleted = await ctx.app.get(CleanupAwaitingRatesService).run();
+      expect(deleted).toBe(1);
+      await http()
+        .get(`/api/v1/verifications/${old.id}`)
+        .set(alice.auth)
+        .expect(404);
+      await http()
+        .get(`/api/v1/verifications/${fresh.id}`)
+        .set(alice.auth)
+        .expect(200);
+      await http()
+        .get(`/api/v1/verifications/${doneOld.id}`)
+        .set(alice.auth)
+        .expect(200);
     });
   });
 

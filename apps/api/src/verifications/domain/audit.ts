@@ -14,6 +14,7 @@ import type {
   RewardRuleConfig,
 } from './reward-calculator.js';
 import type { LoyaltyProgram, StatementExchangeRate } from './statement.js';
+import type { AuditFacts } from './statement-extractor.js';
 import {
   ReportedRewardMissingError,
   RewardProgramAmbiguousError,
@@ -33,6 +34,7 @@ export const AUDIT_WARNING_CODES: readonly string[] = [
   'EXCHANGE_RATE_APPLIED_TO_MULTIPLE_CURRENCIES',
   'REPORTED_VALUE_MAY_BE_CUMULATIVE',
   'REPORTED_UNIT_DIFFERS_FROM_CARD',
+  'EXPLANATION_UNAVAILABLE',
 ];
 
 export interface AuditInput {
@@ -244,5 +246,39 @@ export function computeAudit(input: AuditInput): AuditResult {
       programs: input.programs,
     },
     warnings,
+  };
+}
+
+/** The numbers of an audit, as strings, for the narrative explainer. */
+export function buildAuditFacts(
+  audit: AuditResult,
+  context: {
+    rewardUnit: AuditFacts['rewardUnit'];
+    primaryCurrency: string;
+  },
+): AuditFacts {
+  return {
+    verdict: audit.verdict,
+    rewardUnit: context.rewardUnit,
+    primaryCurrency: context.primaryCurrency,
+    reported: audit.reportedAmount.toString(),
+    expected: audit.expectedAmount.toString(),
+    difference: audit.difference.toString(),
+    tolerance: audit.tolerance.toString(),
+    programName: audit.reportedLabel,
+    reportedSource: audit.reportedSource,
+    breakdown: audit.breakdown.map((l) => ({
+      category: l.categoryName,
+      ratePercent: l.ratePercent.toString(),
+      spend: l.spend.toString(),
+      expectedReward: l.expectedReward.toString(),
+      capped: l.capped,
+      monthlyCap: l.monthlyCap?.toString() ?? null,
+    })),
+    excludedForeignLines: audit.conversion.currencies.reduce(
+      (n, c) => n + c.excludedCount,
+      0,
+    ),
+    warningCodes: audit.warnings.map((w) => w.code),
   };
 }

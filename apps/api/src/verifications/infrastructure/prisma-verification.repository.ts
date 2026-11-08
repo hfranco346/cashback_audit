@@ -232,6 +232,7 @@ function toSummary(row: PrismaVerification): VerificationSummary {
     models: {
       extraction: (asRecord(row.models).extraction as string) ?? row.model,
       classification: (asRecord(row.models).classification as string) ?? null,
+      explanation: (asRecord(row.models).explanation as string) ?? null,
     },
     createdAt: row.createdAt,
   };
@@ -371,6 +372,13 @@ export class PrismaVerificationRepository extends VerificationRepository {
       this.prisma.verification.count({ where }),
     ]);
     return { items: rows.map(toSummary), total };
+  }
+
+  async deleteAwaitingCreatedBefore(cutoff: Date): Promise<number> {
+    const result = await this.prisma.verification.deleteMany({
+      where: { status: 'AWAITING_RATES', createdAt: { lt: cutoff } },
+    });
+    return result.count;
   }
 
   async delete(userId: string, id: string): Promise<boolean> {
