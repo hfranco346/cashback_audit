@@ -86,27 +86,38 @@ class VerdictCard extends StatelessWidget {
             FadeInUp(
               delay: const Duration(milliseconds: 450),
               from: 14,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _Figure(label: S.expectedLabel, value: expected),
-                  ),
-                  Expanded(
-                    child: _Figure(
+              child: Container(
+                key: const Key('verdict-figures'),
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    _FigureRow(label: S.expectedLabel, value: expected),
+                    const SizedBox(height: 10),
+                    _FigureRow(
                       label: S.reportedLabel,
                       value: reported,
                       note: reportedNote ?? reportedLabel,
                     ),
-                  ),
-                  Expanded(
-                    child: _Figure(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(
+                        height: 1,
+                        color: style.color.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    _FigureRow(
                       label: S.differenceLabel,
                       value: difference,
                       color: style.color,
+                      emphasized: true,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -116,44 +127,77 @@ class VerdictCard extends StatelessWidget {
   }
 }
 
-class _Figure extends StatelessWidget {
-  const _Figure({
+/// One line of the breakdown: label (and optional note) on the left, amount
+/// right-aligned so figures line up regardless of currency or length.
+class _FigureRow extends StatelessWidget {
+  const _FigureRow({
     required this.label,
     required this.value,
     this.note,
     this.color,
+    this.emphasized = false,
   });
 
   final String label;
   final String value;
   final String? note;
   final Color? color;
+  final bool emphasized;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final valueStyle =
+        (emphasized ? theme.textTheme.titleLarge : theme.textTheme.titleMedium)
+            ?.copyWith(
+              color: color ?? theme.colorScheme.onSurface,
+              fontWeight: emphasized ? FontWeight.w700 : FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        Expanded(
+          flex: 5,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style:
+                    (emphasized
+                            ? theme.textTheme.titleSmall
+                            : theme.textTheme.bodyMedium)
+                        ?.copyWith(
+                          color: emphasized
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+              ),
+              if (note != null)
+                Text(
+                  note!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
           ),
         ),
-        const SizedBox(height: 4),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            value,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: color,
-              fontFeatures: const [FontFeature.tabularFigures()],
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 6,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(value, style: valueStyle, textAlign: TextAlign.right),
             ),
           ),
         ),
-        if (note != null) Text(note!, style: theme.textTheme.labelSmall),
       ],
     );
   }

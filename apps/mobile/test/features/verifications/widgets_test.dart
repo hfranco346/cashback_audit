@@ -374,6 +374,34 @@ void main() {
   });
 
   group('VerdictCard / result view', () {
+    testWidgets('verdict figures fit a narrow phone without overlapping', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(320, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        _wrap(
+          const VerdictCard(
+            verdict: Verdict.underpaid,
+            hint: 'hint',
+            expected: 'HNL 1,526,184.84',
+            reported: 'HNL 0.00',
+            reportedLabel: 'CASH BAC CREDOMATIC',
+            difference: '-HNL 1,526,184.84',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      final expected = tester.getRect(find.text('HNL 1,526,184.84'));
+      final reported = tester.getRect(find.text('HNL 0.00'));
+      // Stacked rows: the reported amount sits below the expected one and
+      // both are right-aligned.
+      expect(reported.top, greaterThan(expected.bottom));
+      expect((reported.right - expected.right).abs(), lessThan(1));
+      expect(find.text('CASH BAC CREDOMATIC'), findsOneWidget);
+    });
+
     testWidgets('verdict card shows label and figures', (tester) async {
       await tester.pumpWidget(
         _wrap(
