@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/l10n/strings.dart';
 import '../../../../shared/widgets/molecules/inline_message.dart';
+import '../../../../shared/widgets/atoms/staggered_entrance.dart';
 import '../../domain/verification_entities.dart';
 import '../excluded_reason_text.dart';
 import '../format_reward.dart';
@@ -70,6 +71,10 @@ class VerificationResultView extends StatelessWidget {
       for (final w in v.warnings)
         if (warningText(w) != null) (w, warningText(w)!),
     ];
+    // Sections slide in one after the other under the verdict reveal.
+    var section = 2;
+    Widget enter(Widget child) =>
+        StaggeredEntrance(index: section++, child: child);
     final showCurrencies =
         v.currencies.length > 1 || v.currencies.any((c) => c.excludedCount > 0);
     return Stack(
@@ -127,9 +132,11 @@ class VerificationResultView extends StatelessWidget {
             ],
             if (v.appliedRates != null) ...[
               const SizedBox(height: 24),
-              AppliedRatesCard(
-                applied: v.appliedRates!,
-                onRecalculate: onRecalculate,
+              enter(
+                AppliedRatesCard(
+                  applied: v.appliedRates!,
+                  onRecalculate: onRecalculate,
+                ),
               ),
             ] else if (onRecalculate != null) ...[
               const SizedBox(height: 16),
@@ -142,27 +149,33 @@ class VerificationResultView extends StatelessWidget {
             ],
             if (v.loyalty.programs.isNotEmpty) ...[
               const SizedBox(height: 24),
-              LoyaltyTable(
-                loyalty: v.loyalty,
-                currency: currency,
-                cumulativeWarning: v.hasWarning(
-                  'REPORTED_VALUE_MAY_BE_CUMULATIVE',
+              enter(
+                LoyaltyTable(
+                  loyalty: v.loyalty,
+                  currency: currency,
+                  cumulativeWarning: v.hasWarning(
+                    'REPORTED_VALUE_MAY_BE_CUMULATIVE',
+                  ),
                 ),
               ),
             ],
             if (showCurrencies) ...[
               const SizedBox(height: 24),
-              CurrencySubtotals(
-                subtotals: v.currencies,
-                primaryCurrency: currency,
-                unit: v.unit,
+              enter(
+                CurrencySubtotals(
+                  subtotals: v.currencies,
+                  primaryCurrency: currency,
+                  unit: v.unit,
+                ),
               ),
             ],
             const SizedBox(height: 24),
-            BreakdownSection(
-              lines: v.breakdown,
-              currency: currency,
-              unit: v.unit,
+            enter(
+              BreakdownSection(
+                lines: v.breakdown,
+                currency: currency,
+                unit: v.unit,
+              ),
             ),
             const SizedBox(height: 24),
             TransactionsSection(

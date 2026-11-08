@@ -36,7 +36,8 @@ lib/
 ```
 
 Features: `auth`, `onboarding`, `splash`, `home`, `cards`, `categories`
-(categories + merchants), `verifications`, `subscription`, `settings`.
+(categories + merchants), `verifications`, `credits`, `subscription`,
+`settings`.
 
 Container/presentational split: `*_page.dart` are containers that read
 controllers; `widgets/*_view.dart` are stateless and take data + callbacks.
@@ -77,7 +78,8 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1         # And
   networking (iOS `NSAllowsLocalNetworking`). Use HTTPS in production and
   remove that ATS entry for release.
 - To try verifications without a store purchase set
-  `SUBSCRIPTION_GATE_ENABLED=false` on the API.
+  `CREDITS_GATE_ENABLED=false` on the API (every new user also gets one free
+  verification).
 
 ## Dart defines
 
@@ -88,6 +90,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1         # And
 | `GOOGLE_IOS_CLIENT_ID` | iOS OAuth client id (optional if `GoogleService-Info.plist` is bundled) |
 | `REVENUECAT_IOS_KEY` | RevenueCat public SDK key for iOS |
 | `REVENUECAT_ANDROID_KEY` | RevenueCat public SDK key for Android |
+| `CREDIT_PACKS` | Consumable credit packs, `productId:credits` pairs (default `credits_3:3,credits_10:10`). **Must equal the backend `CREDIT_PACKS`**: only these product ids grant credits there, and the paywall hides any other non-subscription product |
 
 Example:
 
@@ -96,7 +99,8 @@ flutter run \
   --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1 \
   --dart-define=GOOGLE_SERVER_CLIENT_ID=1234-web.apps.googleusercontent.com \
   --dart-define=GOOGLE_IOS_CLIENT_ID=1234-ios.apps.googleusercontent.com \
-  --dart-define=REVENUECAT_ANDROID_KEY=goog_xxx
+  --dart-define=REVENUECAT_ANDROID_KEY=goog_xxx \
+  --dart-define=CREDIT_PACKS=credits_3:3,credits_10:10
 ```
 
 Without a RevenueCat key the paywall shows a development notice instead of
@@ -131,14 +135,21 @@ crashing, and purchases are disabled.
 1. Create the project, add the iOS and Android apps and copy the **public SDK
    keys** into the dart-defines above.
 2. Create an entitlement with the id the backend expects
-   (`REVENUECAT_ENTITLEMENT_ID`, default `pro`), attach your monthly product and
-   put it in the **current offering**.
-3. Configure the webhook to `POST /api/v1/webhooks/revenuecat` with the
+   (`REVENUECAT_ENTITLEMENT_ID`, default `pro`), attach your monthly
+   subscription product (US$4.99/month, 5 verifications per period, not
+   cumulative) and put it in the **current offering**.
+3. Create the **consumable** credit-pack products in App Store Connect / Google
+   Play (e.g. `credits_3`, `credits_10`), add them to RevenueCat and to the
+   **same current offering** as extra packages (type *custom*). Their product
+   ids must match the `CREDIT_PACKS` dart-define **and** the backend
+   `CREDIT_PACKS` setting. They do not need an entitlement: the backend grants
+   the credits from the `NON_RENEWING_PURCHASE` webhook event.
+4. Configure the webhook to `POST /api/v1/webhooks/revenuecat` with the
    `Authorization` value from `REVENUECAT_WEBHOOK_AUTH`.
-4. The app calls `Purchases.logIn(user.id)` right after sign-in (and at app
+5. The app calls `Purchases.logIn(user.id)` right after sign-in (and at app
    start when restoring the session) and `Purchases.logOut()` on sign-out, so
    webhook events map to our users.
-5. iOS: add the *In-App Purchase* capability in Xcode. Android: the
+6. iOS: add the *In-App Purchase* capability in Xcode. Android: the
    `com.android.vending.BILLING` permission is declared in the manifest.
 
 ## Behaviour notes
@@ -150,19 +161,53 @@ crashing, and purchases are disabled.
 - **Offline**: cards, categories, merchants, history page 1 and opened
   verification details are served from the Drift cache when the network is
   unavailable (an "offline" banner is shown). The cache is wiped on logout.
+- **Verification flow (two steps)**: 1) the user picks a card and the PDF; the
+  upload costs one credit and shows an "analyzing" state (about a minute; steps
+  *Leyendo estado de cuenta* then *Clasificando movimientos*, advanced by
+  elapsed time because the backend is a single request). 2) The **rate
+  confirmation** screen is built from `rateProposal`: one field per entry (the
+  base rate plus each category). Values found in the statement carry a
+  "Detectado en tu estado de cuenta" badge and the quoted `evidence`; values from
+  the card show "De las reglas de tu tarjeta"; entries with no value are
+  *Obligatorio* and the confirm button stays disabled until they are filled.
+  Optional per-category monthly cap, a "Guardar estos % en la tarjeta" switch
+  (`saveToCard`) and, only when the statement has foreign-currency purchases, an
+  optional exchange rate (without one those lines are excluded). If the
+  statement lists several loyalty programs a chooser appears (also on
+  `REWARD_PROGRAM_AMBIGUOUS`); `REPORTED_REWARD_NOT_FOUND` asks for the reward
+  figure. Then `POST /verifications/:id/confirm` and the result opens.
+  Statements left unconfirmed appear in the history with a
+  "Pendiente de confirmar %" chip and resume in the same screen (the server
+  deletes them after 7 days).
 - **Uploads**: PDF only, max 10 MB (checked client side), multipart with upload
-  progress, then an indeterminate "analyzing" phase (receive timeout 3 min). No
-  automatic retry on timeout (the request consumes quota); the UI tells the user
-  to check history first.
-- **Result screen**: every transaction is marked counted (green check, "Contó en
-  rubro", category + applied rate, "IA" chip for AI matches) or not counted (red
-  cross, "Sin rubro", base rate only), with an All / En rubro / Sin rubro filter.
-  Uncounted lines have an "Asignar a rubro" action that creates a merchant
-  (`POST /merchants`) with the statement descriptor as keyword; it applies to
-  **future** verifications.
-- **Paywall**: `402 SUBSCRIPTION_REQUIRED` opens the paywall. After a purchase or
-  restore the app polls `GET /subscriptions/me` with backoff (~25 s) until the
-  backend reports `active`, because the RevenueCat webhook is asynchronous.
+  progress (receive timeout 3 min). No automatic retry on timeout (the request
+  consumes a credit); the UI tells the user to check history first.
+- **Result screen**: verdict, a Spanish `explanation` card, reported vs expected,
+  the loyalty program table (all columns, the audited row highlighted, a
+  "Posible saldo acumulado" chip when the reported figure may be a running
+  balance), per-currency subtotals, localized warnings, the rates used and
+  **Recalcular con otros %** (reopens the confirmation prefilled with
+  `appliedRates`). Statement lines come in three styles: green (counted in a
+  category; "IA" chip for AI matches with `matchReason` as subtitle), red (a
+  purchase outside every category) and grey (excluded: payments, fees, interest,
+  insurance, foreign lines without a rate, with the reason in Spanish). Filter:
+  Todos / En rubro / Sin rubro / Excluidos with counts. Tapping a line changes
+  its category (`PATCH .../transactions/:index`) and the result is recalculated
+  right away with the same rates (`POST confirm`, free, no credit).
+- **Credits and paywall**: the backend is the source of truth for the balance
+  (`GET /credits/me`), shown as a chip on Home ("N verificaciones disponibles"),
+  before the upload and in Settings, with the ledger at *Historial de
+  verificaciones*. `402 NO_CREDITS` opens the paywall: the monthly subscription
+  (5 verifications per month, not cumulative) and the consumable packs of the
+  current RevenueCat offering (identified by product id through `CREDIT_PACKS`),
+  with first-verification-free messaging for users who still have the free
+  credit. After a purchase the app polls `GET /credits/me` with backoff (~25 s)
+  until the balance changes, because the RevenueCat webhook is asynchronous.
+  Restore purchases stays available. Payments only go through the store (no
+  external or web payment is mentioned, App Store guideline 3.1.1).
+- **Cache**: Drift `schemaVersion` 2 drops verification payloads cached with the
+  previous contract on upgrade; mappers also tolerate old rows (no `status`,
+  `currency`, `kind`, legacy `AI` match source).
 
 ## Tests
 
@@ -172,8 +217,10 @@ flutter test
 
 Covers the Dio refresh interceptor (single flight, logout on rejected refresh),
 error mapping, decimal handling, repositories against a fake Dio adapter,
-controllers (auth, cards, catalog, upload, result, history, subscription,
-paywall) and key presentational widgets.
+controllers (auth, cards, catalog, upload, rate confirmation, result and line
+correction, history, credits polling, paywall) and key presentational widgets
+(rate entries, transaction tiles and filter, loyalty table, paywall, credits
+chip).
 
 ## Building
 

@@ -135,6 +135,7 @@ abstract final class AppPages {
     GetPage(
       name: Routes.confirmRates,
       page: () => const ConfirmRatesPage(),
+      transition: Transition.rightToLeftWithFade,
       binding: BindingsBuilder(() {
         final args = Get.arguments;
         Get.lazyPut(
@@ -152,6 +153,7 @@ abstract final class AppPages {
     GetPage(
       name: Routes.result,
       page: () => const ResultPage(),
+      transition: Transition.fadeIn,
       binding: BindingsBuilder(() {
         final args = Get.arguments;
         Get.lazyPut(

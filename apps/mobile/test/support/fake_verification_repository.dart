@@ -16,6 +16,7 @@ class FakeVerificationRepository implements VerificationRepository {
   Object? verifyError;
   final confirmErrors = <Object>[];
   Object? correctError;
+  Object? detailError;
 
   String? lastExchangeRate;
   String? lastProgram;
@@ -82,6 +83,7 @@ class FakeVerificationRepository implements VerificationRepository {
 
   @override
   Future<Cached<Verification>> detail(String id) async {
+    if (detailError != null) throw detailError!;
     final json = Map<String, dynamic>.from(detailJson)..['id'] = id;
     return Cached(VerificationMapper.detail(json));
   }
