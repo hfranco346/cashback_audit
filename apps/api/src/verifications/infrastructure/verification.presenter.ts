@@ -1,3 +1,4 @@
+import type { RateProposalEntry } from '../domain/rate-proposal.js';
 import type { LoyaltyProgram } from '../domain/statement.js';
 import type {
   Verification,
@@ -16,11 +17,23 @@ const presentProgram = (p: LoyaltyProgram) => ({
   forfeited: str(p.forfeited),
 });
 
+const presentProposalEntry = (e: RateProposalEntry) => ({
+  categoryId: e.categoryId,
+  categoryName: e.categoryName,
+  ratePercent: str(e.ratePercent),
+  monthlyCap: str(e.monthlyCap),
+  source: e.source,
+  evidence: e.evidence,
+  unitNote: e.unitNote,
+  required: e.required,
+});
+
 /** Decimals are strings; dates `YYYY-MM-DD`; timestamps ISO 8601 UTC. */
 export function presentSummary(v: VerificationSummary) {
   return {
     id: v.id,
     cardId: v.cardId,
+    status: v.status,
     statement: {
       bank: v.statementBank,
       cardLast4: v.statementLast4,
@@ -30,18 +43,28 @@ export function presentSummary(v: VerificationSummary) {
     },
     primaryCurrency: v.primaryCurrency,
     rewardUnit: v.reportedUnit,
-    reportedAmount: v.reportedAmount.toString(),
-    expectedAmount: v.expectedAmount.toString(),
-    difference: v.difference.toString(),
+    reportedAmount: str(v.reportedAmount),
+    expectedAmount: str(v.expectedAmount),
+    difference: str(v.difference),
     verdict: v.verdict,
     createdAt: v.createdAt.toISOString(),
   };
 }
 
-export function presentVerification(v: Verification) {
+/**
+ * `rateProposal` is only meaningful (and only returned) while the verification
+ * is AWAITING_RATES; for COMPLETED ones it is the proposal that applies now,
+ * which clients can use to prefill a recalculation.
+ */
+export function presentVerification(
+  v: Verification,
+  rateProposal: RateProposalEntry[],
+) {
+  const done = v.status === 'COMPLETED';
   return {
     id: v.id,
     cardId: v.cardId,
+    status: v.status,
     statement: {
       bank: v.statementBank,
       cardLast4: v.statementLast4,
@@ -58,16 +81,45 @@ export function presentVerification(v: Verification) {
       })),
     },
     primaryCurrency: v.primaryCurrency,
-    reported: {
-      amount: v.reportedAmount.toString(),
-      unit: v.reportedUnit,
-      label: v.reportedLabel,
-      source: v.reportedSource,
-    },
-    expected: { amount: v.expectedAmount.toString(), unit: v.reportedUnit },
-    difference: v.difference.toString(),
-    tolerance: v.tolerance.toString(),
+    reported: done
+      ? {
+          amount: str(v.reportedAmount),
+          unit: v.reportedUnit,
+          label: v.reportedLabel,
+          source: v.reportedSource,
+        }
+      : null,
+    expected: done
+      ? { amount: str(v.expectedAmount), unit: v.reportedUnit }
+      : null,
+    difference: str(v.difference),
+    tolerance: str(v.tolerance),
     verdict: v.verdict,
+    explanation: v.explanation,
+    detectedRates: v.detectedRates.map((r) => ({
+      scope: r.scope,
+      categoryHint: r.categoryHint,
+      suggestedCategoryId: r.suggestedCategoryId,
+      ratePercent: str(r.ratePercent),
+      unitNote: r.unitNote,
+      evidence: r.evidence,
+      confidence: r.confidence,
+    })),
+    rateProposal: rateProposal.map(presentProposalEntry),
+    appliedRates: v.appliedRates
+      ? {
+          baseRatePercent: v.appliedRates.baseRatePercent.toString(),
+          baseSource: v.appliedRates.baseSource,
+          categoryRates: v.appliedRates.categoryRates.map((c) => ({
+            categoryId: c.categoryId,
+            categoryName: c.categoryName,
+            ratePercent: c.ratePercent.toString(),
+            monthlyCap: str(c.monthlyCap),
+            source: c.source,
+          })),
+          savedToCard: v.appliedRates.savedToCard,
+        }
+      : null,
     conversion: {
       primaryCurrency: v.primaryCurrency,
       requestedRate: str(v.conversion.requestedRate),
@@ -97,6 +149,7 @@ export function presentVerification(v: Verification) {
         ? presentProgram(v.loyalty.selected)
         : null,
       programs: v.loyalty.programs.map(presentProgram),
+      requestedProgramName: v.loyalty.requestedProgramName,
     },
     breakdown: v.breakdown.map((l) => ({
       categoryId: l.categoryId,
@@ -129,9 +182,9 @@ export function presentVerification(v: Verification) {
       matchSource: t.matchSource,
       matchConfidence: t.matchConfidence,
       matchReason: t.matchReason,
-      appliedRatePercent: t.appliedRatePercent.toString(),
+      appliedRatePercent: str(t.appliedRatePercent),
       ruleApplied: t.ruleApplied,
-      expectedReward: t.expectedReward.toString(),
+      expectedReward: str(t.expectedReward),
     })),
     warnings: v.warnings,
     model: v.models.extraction,

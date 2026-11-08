@@ -2,12 +2,14 @@ import type {
   CategoryCandidate,
   ClassificationResult,
   ExtractedStatement,
+  ExtractionContext,
 } from './statement.js';
 
 /** Port: turns a statement PDF (in memory only) into structured data. */
 export abstract class StatementExtractor {
   abstract extract(
     pdf: Buffer,
+    context: ExtractionContext,
   ): Promise<{ statement: ExtractedStatement; model: string }>;
 }
 

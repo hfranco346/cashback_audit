@@ -43,6 +43,7 @@ describe('Subscriptions (e2e, gate enabled)', () => {
               currency: 'MXN',
               summaries: [],
               exchangeRate: null,
+              detectedRates: [],
               loyaltyPrograms: [
                 {
                   name: 'x',

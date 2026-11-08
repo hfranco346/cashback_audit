@@ -5,6 +5,8 @@ import { CardsModule } from '../cards/cards.module.js';
 import { CategoriesModule } from '../categories/categories.module.js';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
 import type { Env } from '../config/env.js';
+import { ConfirmVerificationUseCase } from './application/confirm-verification.use-case.js';
+import { RateProposalService } from './application/rate-proposal.service.js';
 import {
   CLASSIFICATION_MIN_CONFIDENCE,
   CreateVerificationUseCase,
@@ -33,6 +35,8 @@ import { VerificationsController } from './infrastructure/verifications.controll
   controllers: [VerificationsController],
   providers: [
     CreateVerificationUseCase,
+    ConfirmVerificationUseCase,
+    RateProposalService,
     ListVerificationsUseCase,
     GetVerificationUseCase,
     DeleteVerificationUseCase,

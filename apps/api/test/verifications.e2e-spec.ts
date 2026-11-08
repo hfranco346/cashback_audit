@@ -1,15 +1,18 @@
 import request from 'supertest';
-import { Decimal } from 'decimal.js';
 import { ExtractionUnavailableError } from '../src/verifications/domain/verification-errors.js';
 import {
   LineClassifier,
   StatementExtractor,
 } from '../src/verifications/domain/statement-extractor.js';
-import type {
-  ExtractedStatement,
-  ExtractedTransaction,
-  LoyaltyProgram,
-} from '../src/verifications/domain/statement.js';
+import type { ExtractedStatement } from '../src/verifications/domain/statement.js';
+import {
+  d,
+  detected,
+  hnlUsdTwoProgramsStatement,
+  line,
+  mxnCashbackStatement,
+  program,
+} from './fixtures/statements.js';
 import {
   createTestApp,
   resetDatabase,
@@ -18,65 +21,7 @@ import {
   type TestUser,
 } from './test-app.js';
 
-const d = (v: string | number) => new Decimal(v);
 const PDF = Buffer.from('%PDF-1.7\n%fake statement\n');
-
-const program = (
-  name: string,
-  accumulated: string,
-  over: Partial<LoyaltyProgram> = {},
-): LoyaltyProgram => ({
-  name,
-  accumulated: d(accumulated),
-  available: null,
-  redeemedInPeriod: null,
-  expiring: null,
-  forfeited: null,
-  unit: 'CURRENCY',
-  ...over,
-});
-
-const line = (
-  merchant: string,
-  amount: number,
-  over: Partial<ExtractedTransaction> = {},
-): ExtractedTransaction => ({
-  date: '2026-01-02',
-  reference: null,
-  merchant,
-  amount: d(amount),
-  currency: 'MXN',
-  isCredit: false,
-  kind: 'PURCHASE',
-  ...over,
-});
-
-const sampleStatement = (
-  over: Partial<ExtractedStatement> = {},
-): ExtractedStatement => ({
-  bank: 'BBVA',
-  cardLast4: '4321',
-  periodStart: '2026-01-01',
-  periodEnd: '2026-01-31',
-  currency: 'MXN',
-  summaries: [
-    {
-      currency: 'MXN',
-      previousBalance: d(0),
-      purchasesAndCharges: d(1400),
-      totalBalance: d(1400),
-    },
-  ],
-  exchangeRate: null,
-  loyaltyPrograms: [program('Bonificación del periodo', '58')],
-  transactions: [
-    line('WAL MART SUC 123', 1000, { reference: '0001' }),
-    line('WM SUPERCENTER', 200),
-    line('PEMEX 4455', 300),
-    line('WAL MART SUC 123', 100, { isCredit: true, kind: 'REFUND' }),
-  ],
-  ...over,
-});
 
 describe('Verifications (e2e)', () => {
   let ctx: TestApp;
@@ -86,15 +31,36 @@ describe('Verifications (e2e)', () => {
     statement?: ExtractedStatement;
     error?: Error;
     calls: number;
+    contexts: unknown[];
   };
   const http = () => request(ctx.app.getHttpServer());
 
+  let superCategoryId: string;
+  let pharmacyCategoryId: string;
+  let aiMerchantId: string;
+  let cardId: string;
+
+  /** Fixture statement whose stated category rate points at the real id. */
+  const mxn = (over: Partial<ExtractedStatement> = {}) =>
+    mxnCashbackStatement({
+      detectedRates: [
+        detected({ scope: 'BASE', ratePercent: d(1), evidence: '1% base' }),
+        detected({
+          suggestedCategoryId: superCategoryId,
+          ratePercent: d(5),
+          evidence: '5% at supermarkets',
+        }),
+      ],
+      ...over,
+    });
+
   const extractorStub = {
-    extract: async () => {
+    extract: async (_pdf: Buffer, context: unknown) => {
       extraction.calls++;
+      extraction.contexts.push(context);
       if (extraction.error) throw extraction.error;
       return {
-        statement: extraction.statement ?? sampleStatement(),
+        statement: extraction.statement ?? mxn(),
         model: 'stub-model',
       };
     },
@@ -107,7 +73,8 @@ describe('Verifications (e2e)', () => {
         descriptor,
         categoryId: descriptor.includes('FARMACIA')
           ? pharmacyCategoryId
-          : descriptor === 'WM SUPERCENTER'
+          : descriptor.includes('SUPERMERCADO') ||
+              descriptor === 'WM SUPERCENTER'
             ? superCategoryId
             : null,
         matchedMerchantId:
@@ -117,9 +84,6 @@ describe('Verifications (e2e)', () => {
       })),
     }),
   };
-  let superCategoryId: string;
-  let pharmacyCategoryId: string;
-  let aiMerchantId: string;
 
   beforeAll(async () => {
     ctx = await createTestApp([
@@ -129,9 +93,8 @@ describe('Verifications (e2e)', () => {
   });
   afterAll(() => ctx.close());
 
-  let cardId: string;
   beforeEach(async () => {
-    extraction = { calls: 0 };
+    extraction = { calls: 0, contexts: [] };
     await resetDatabase(ctx.prisma);
     alice = await signInAs(ctx.app, 'alice');
     bob = await signInAs(ctx.app, 'bob');
@@ -142,14 +105,19 @@ describe('Verifications (e2e)', () => {
         .set(alice.auth)
         .send({ name: 'Supermarkets' })
     ).body;
-    const merchant = (
+    superCategoryId = cat.id;
+    pharmacyCategoryId = (
+      await http()
+        .post('/api/v1/categories')
+        .set(alice.auth)
+        .send({ name: 'Pharmacies', description: 'pharmacies and drugstores' })
+    ).body.id;
+    aiMerchantId = (
       await http()
         .post('/api/v1/merchants')
         .set(alice.auth)
         .send({ name: 'Walmart', keywords: ['WAL MART'], categoryId: cat.id })
-    ).body;
-    aiMerchantId = merchant.id;
-    superCategoryId = cat.id;
+    ).body.id;
     cardId = (
       await http()
         .post('/api/v1/cards')
@@ -182,315 +150,429 @@ describe('Verifications (e2e)', () => {
       });
     return req;
   };
+  const confirm = (
+    user: TestUser,
+    id: string,
+    body: Record<string, unknown> = {},
+  ) =>
+    http()
+      .post(`/api/v1/verifications/${id}/confirm`)
+      .set(user.auth)
+      .send({
+        baseRatePercent: '1',
+        categoryRates: [{ categoryId: superCategoryId, ratePercent: '5' }],
+        ...body,
+      });
 
   it('requires authentication', async () => {
     await http().post('/api/v1/verifications').expect(401);
     await http().get('/api/v1/verifications').expect(401);
-  });
-
-  it('happy path: extracts, matches (keyword + AI), computes and stores the verdict', async () => {
-    const res = await upload(alice).expect(201);
-
-    // super: 1000 + 200 - 100 = 1100 * 5% = 55 ; base: 300 * 1% = 3 ; expected 58
-    expect(res.body).toMatchObject({
-      cardId,
-      statement: {
-        bank: 'BBVA',
-        cardLast4: '4321',
-        periodStart: '2026-01-01',
-        periodEnd: '2026-01-31',
-        currency: 'MXN',
-        totalSpent: '1400',
-        totalToPay: '1400',
-      },
-      primaryCurrency: 'MXN',
-      reported: {
-        amount: '58',
-        unit: 'CASHBACK_CURRENCY',
-        source: 'STATEMENT',
-        label: 'Bonificación del periodo',
-      },
-      conversion: {
-        primaryCurrency: 'MXN',
-        requestedRate: null,
-        statementRate: null,
-      },
-      currencies: [
-        {
-          currency: 'MXN',
-          isPrimary: true,
-          spent: '1400',
-          eligibleSpent: '1400',
-          convertedEligibleSpent: '1400',
-          exchangeRate: null,
-          exchangeRateSource: null,
-          expectedReward: '58',
-          excludedCount: 0,
-        },
-      ],
-      loyalty: {
-        selectedBy: 'ONLY_PROGRAM',
-        selectedProgram: { name: 'Bonificación del periodo', unit: 'CURRENCY' },
-        programs: [{ name: 'Bonificación del periodo', accumulated: '58' }],
-      },
-      expected: { amount: '58', unit: 'CASHBACK_CURRENCY' },
-      difference: '0',
-      tolerance: '1',
-      verdict: 'MATCH',
-      model: 'stub-model',
-      models: { extraction: 'stub-model', classification: 'stub-classifier' },
-      warnings: [],
-    });
-    expect(
-      res.body.transactions.map((t: any) => [
-        t.merchant,
-        t.matchSource,
-        t.ruleApplied,
-        t.appliedRatePercent,
-        t.expectedReward,
-      ]),
-    ).toEqual([
-      ['WAL MART SUC 123', 'KEYWORD', true, '5', '50'],
-      ['WM SUPERCENTER', 'AI_MERCHANT', true, '5', '10'],
-      ['PEMEX 4455', 'NONE', false, '1', '3'],
-      ['WAL MART SUC 123', 'KEYWORD', true, '5', '-5'],
-    ]);
-    expect(res.body.transactions[1]).toMatchObject({
-      matchConfidence: 0.85,
-      matchReason: 'stub',
-      categoryName: 'Supermarkets',
-      matchedMerchantName: 'Walmart',
-    });
-    expect(res.body.breakdown[0]).toMatchObject({
-      categoryName: 'Supermarkets',
-      spend: '1100',
-      expectedReward: '55',
-      capped: false,
-    });
-    expect(res.body.breakdown[1]).toMatchObject({
-      categoryId: null,
-      expectedReward: '3',
-    });
-
-    const stored = await http()
-      .get(`/api/v1/verifications/${res.body.id}`)
-      .set(alice.auth)
-      .expect(200);
-    expect(stored.body).toEqual(res.body);
-  });
-
-  it('classifies lines into categories that have no merchants (AI_CATEGORY)', async () => {
-    pharmacyCategoryId = (
-      await http()
-        .post('/api/v1/categories')
-        .set(alice.auth)
-        .send({ name: 'Farmacia', description: 'farmacias y droguerías' })
-        .expect(201)
-    ).body.id;
     await http()
-      .patch(`/api/v1/cards/${cardId}`)
-      .set(alice.auth)
-      .send({
-        rules: [
-          { categoryId: superCategoryId, ratePercent: 5 },
-          { categoryId: pharmacyCategoryId, ratePercent: 3 },
+      .post(
+        '/api/v1/verifications/00000000-0000-4000-8000-000000000000/confirm',
+      )
+      .expect(401);
+  });
+
+  describe('step 1: upload', () => {
+    it('extracts and classifies but computes nothing (AWAITING_RATES)', async () => {
+      const res = await upload(alice).expect(201);
+      expect(res.body).toMatchObject({
+        cardId,
+        status: 'AWAITING_RATES',
+        primaryCurrency: 'MXN',
+        statement: {
+          bank: 'Example Bank',
+          cardLast4: '4321',
+          totalSpent: '1400',
+        },
+        reported: null,
+        expected: null,
+        difference: null,
+        tolerance: null,
+        verdict: null,
+        appliedRates: null,
+        explanation: null,
+        breakdown: [],
+        currencies: [],
+        model: 'stub-model',
+        models: { extraction: 'stub-model', classification: 'stub-classifier' },
+        warnings: [],
+      });
+      expect(res.body.detectedRates).toHaveLength(2);
+      expect(res.body.detectedRates[1]).toMatchObject({
+        scope: 'CATEGORY',
+        suggestedCategoryId: superCategoryId,
+        ratePercent: '5',
+        evidence: '5% at supermarkets',
+      });
+      expect(
+        res.body.transactions.map((t: any) => [
+          t.merchant,
+          t.matchSource,
+          t.categoryName,
+          t.expectedReward,
+          t.appliedRatePercent,
+        ]),
+      ).toEqual([
+        ['WAL MART SUC 123', 'KEYWORD', 'Supermarkets', null, null],
+        ['WM SUPERCENTER', 'AI_MERCHANT', 'Supermarkets', null, null],
+        ['PEMEX 4455', 'NONE', null, null, null],
+        ['WAL MART SUC 123', 'KEYWORD', 'Supermarkets', null, null],
+      ]);
+      expect(res.body.transactions[1]).toMatchObject({
+        matchConfidence: 0.85,
+        matchReason: 'stub',
+        matchedMerchantName: 'Walmart',
+      });
+      expect(extraction.contexts[0]).toMatchObject({
+        categories: expect.arrayContaining([
+          expect.objectContaining({ name: 'Supermarkets' }),
+          expect.objectContaining({
+            name: 'Pharmacies',
+            description: 'pharmacies and drugstores',
+          }),
+        ]),
+      });
+    });
+
+    it('proposes rates: STATEMENT > CARD_RULE > NONE, required only for NONE', async () => {
+      extraction.statement = mxn({
+        detectedRates: [],
+        transactions: [
+          line('WAL MART SUC 123', 1000),
+          line('FARMACIA SIMAN', 100),
         ],
-      })
-      .expect(200);
-    extraction.statement = sampleStatement({
-      loyaltyPrograms: [program('Bonificación', '3')],
-      transactions: [
-        line('FARMACIA SIMAN 22', 100),
-        line('SEGURO DE SALDO DE DEUDA', 50, { kind: 'INSURANCE' }),
-      ],
-    });
-    const res = await upload(alice).expect(201);
-    expect(res.body.transactions[0]).toMatchObject({
-      matchSource: 'AI_CATEGORY',
-      matchedMerchantId: null,
-      categoryName: 'Farmacia',
-      matchConfidence: 0.85,
-      appliedRatePercent: '3',
-      expectedReward: '3',
-    });
-    expect(res.body.transactions[1]).toMatchObject({
-      matchSource: 'NONE',
-      categoryId: null,
-      excludedReason: 'NON_PURCHASE_KIND',
-    });
-    expect(res.body.models.classification).toBe('stub-classifier');
-    expect(res.body.verdict).toBe('MATCH');
-  });
-
-  it('reads stored legacy AI matches as AI_MERCHANT', async () => {
-    const created = (await upload(alice).expect(201)).body;
-    await ctx.prisma.$executeRawUnsafe(
-      `UPDATE "Verification" SET transactions = replace(transactions::text, 'AI_MERCHANT', 'AI')::jsonb WHERE id = '${created.id}'`,
-    );
-    const stored = await http()
-      .get(`/api/v1/verifications/${created.id}`)
-      .set(alice.auth)
-      .expect(200);
-    expect(stored.body.transactions[1].matchSource).toBe('AI_MERCHANT');
-  });
-
-  it('flags an underpaid statement', async () => {
-    extraction.statement = sampleStatement({
-      loyaltyPrograms: [program('x', '30')],
-    });
-    const res = await upload(alice).expect(201);
-    expect(res.body).toMatchObject({ verdict: 'UNDERPAID', difference: '-28' });
-  });
-
-  it('accepts reportedRewardOverride and uses it', async () => {
-    extraction.statement = sampleStatement({ loyaltyPrograms: [] });
-    await upload(alice)
-      .expect(422)
-      .expect((r) => expect(r.body.code).toBe('REPORTED_REWARD_NOT_FOUND'));
-    const res = await upload(alice, { reportedRewardOverride: '70.5' }).expect(
-      201,
-    );
-    expect(res.body).toMatchObject({
-      verdict: 'OVERPAID',
-      reported: { amount: '70.5', source: 'OVERRIDE' },
-      difference: '12.5',
-    });
-  });
-
-  describe('multi-currency and loyalty programs', () => {
-    const usdLine = line('AMAZON WAL MART', 10, { currency: 'USD' });
-
-    it('excludes foreign lines with a warning when there is no rate', async () => {
-      extraction.statement = sampleStatement({
-        transactions: [line('WAL MART SUC 123', 1000), usdLine],
       });
       const res = await upload(alice).expect(201);
-      expect(res.body.expected.amount).toBe('50');
-      expect(res.body.transactions[1]).toMatchObject({
-        currency: 'USD',
-        excludedReason: 'NO_EXCHANGE_RATE',
-        convertedAmount: null,
-        expectedReward: '0',
-      });
-      expect(res.body.currencies.map((c: any) => c.currency)).toEqual([
-        'MXN',
-        'USD',
+      expect(res.body.rateProposal).toEqual([
+        {
+          categoryId: null,
+          categoryName: null,
+          ratePercent: '1',
+          monthlyCap: null,
+          source: 'CARD_RULE',
+          evidence: null,
+          unitNote: null,
+          required: false,
+        },
+        {
+          categoryId: pharmacyCategoryId,
+          categoryName: 'Pharmacies',
+          ratePercent: null,
+          monthlyCap: null,
+          source: 'NONE',
+          evidence: null,
+          unitNote: null,
+          required: true,
+        },
+        {
+          categoryId: superCategoryId,
+          categoryName: 'Supermarkets',
+          ratePercent: '5',
+          monthlyCap: null,
+          source: 'CARD_RULE',
+          evidence: null,
+          unitNote: null,
+          required: false,
+        },
       ]);
-      expect(res.body.currencies[1]).toMatchObject({
-        eligibleSpent: '0',
-        excludedCount: 1,
-        exchangeRate: null,
-      });
-      expect(res.body.warnings.map((w: any) => w.code)).toContain(
-        'NO_EXCHANGE_RATE',
+
+      extraction.statement = mxn();
+      const stated = await upload(alice).expect(201);
+      const superEntry = stated.body.rateProposal.find(
+        (e: any) => e.categoryId === superCategoryId,
       );
+      expect(superEntry).toMatchObject({
+        source: 'STATEMENT',
+        ratePercent: '5',
+        evidence: '5% at supermarkets',
+        required: false,
+      });
     });
 
-    it('converts with the exchangeRate form field and stores the conversion', async () => {
-      extraction.statement = sampleStatement({
-        transactions: [line('WAL MART SUC 123', 1000), usdLine],
+    it('never fails on an ambiguous program: it lists them and waits', async () => {
+      extraction.statement = hnlUsdTwoProgramsStatement();
+      await http()
+        .patch(`/api/v1/cards/${cardId}`)
+        .set(alice.auth)
+        .send({ currency: 'HNL' })
+        .expect(200);
+      const res = await upload(alice).expect(201);
+      expect(res.body.loyalty.selectedProgram).toBeNull();
+      expect(res.body.loyalty.programs.map((p: any) => p.name)).toEqual([
+        'PUNTOS BAC CREDOMATIC',
+        'CASH BAC CREDOMATIC',
+      ]);
+      expect(res.body.currencies).toEqual([]);
+    });
+
+    it('validates exchangeRate and rewardProgramName and rejects the removed override', async () => {
+      await upload(alice, { exchangeRate: '0' }).expect(400);
+      await upload(alice, { exchangeRate: 'abc' }).expect(400);
+      await upload(alice, { rewardProgramName: 'x'.repeat(81) }).expect(400);
+      await upload(alice, { reportedRewardOverride: '5' }).expect(400);
+      await upload(alice, { rewardProgramName: '' }).expect(201);
+    });
+
+    it('never persists the PDF: only extracted data is stored', async () => {
+      const res = await upload(alice).expect(201);
+      const row = await ctx.prisma.verification.findUniqueOrThrow({
+        where: { id: res.body.id },
       });
-      const res = await upload(alice, { exchangeRate: '20' }).expect(201);
-      // (1000 + 10 * 20) * 5%
-      expect(res.body.expected.amount).toBe('60');
-      expect(res.body.conversion.requestedRate).toBe('20');
-      expect(res.body.transactions[1]).toMatchObject({
-        convertedAmount: '200',
-        exchangeRate: '20',
-        exchangeRateSource: 'REQUEST',
-        excludedReason: null,
+      expect(JSON.stringify(row)).not.toContain(PDF.toString('base64'));
+      expect(JSON.stringify(row)).not.toContain('%PDF');
+    });
+
+    it('warns when the statement belongs to another card', async () => {
+      extraction.statement = mxn({ cardLast4: '9999' });
+      const res = await upload(alice).expect(201);
+      expect(res.body.warnings.map((w: any) => w.code)).toContain(
+        'CARD_LAST4_MISMATCH',
+      );
+    });
+  });
+
+  describe('step 2: confirm', () => {
+    it('audits with the confirmed rates, stores appliedRates and completes', async () => {
+      const started = (await upload(alice).expect(201)).body;
+      const res = await confirm(alice, started.id).expect(200);
+
+      // super: 1000 + 200 - 100 = 1100 * 5% = 55 ; base: 300 * 1% = 3
+      expect(res.body).toMatchObject({
+        id: started.id,
+        status: 'COMPLETED',
+        reported: {
+          amount: '58',
+          unit: 'CASHBACK_CURRENCY',
+          source: 'STATEMENT',
+          label: 'Bonificación del periodo',
+        },
+        expected: { amount: '58', unit: 'CASHBACK_CURRENCY' },
+        difference: '0',
+        tolerance: '1',
+        verdict: 'MATCH',
+        appliedRates: {
+          baseRatePercent: '1',
+          baseSource: 'STATEMENT_CONFIRMED',
+          savedToCard: false,
+          categoryRates: [
+            {
+              categoryId: superCategoryId,
+              categoryName: 'Supermarkets',
+              ratePercent: '5',
+              monthlyCap: null,
+              source: 'STATEMENT_CONFIRMED',
+            },
+          ],
+        },
+        currencies: [
+          {
+            currency: 'MXN',
+            isPrimary: true,
+            spent: '1400',
+            eligibleSpent: '1400',
+            expectedReward: '58',
+          },
+        ],
+        loyalty: { selectedBy: 'ONLY_PROGRAM' },
       });
-      expect(res.body.currencies[1]).toMatchObject({
-        currency: 'USD',
-        spent: '10',
-        convertedEligibleSpent: '200',
-        exchangeRateSource: 'REQUEST',
-        expectedReward: '10',
+      expect(
+        res.body.transactions.map((t: any) => [
+          t.matchSource,
+          t.ruleApplied,
+          t.appliedRatePercent,
+          t.expectedReward,
+        ]),
+      ).toEqual([
+        ['KEYWORD', true, '5', '50'],
+        ['AI_MERCHANT', true, '5', '10'],
+        ['NONE', false, '1', '3'],
+        ['KEYWORD', true, '5', '-5'],
+      ]);
+      expect(res.body.breakdown[0]).toMatchObject({
+        categoryName: 'Supermarkets',
+        spend: '1100',
+        expectedReward: '55',
+        capped: false,
       });
+      expect(extraction.calls).toBe(1);
+
       const stored = await http()
-        .get(`/api/v1/verifications/${res.body.id}`)
+        .get(`/api/v1/verifications/${started.id}`)
         .set(alice.auth)
         .expect(200);
       expect(stored.body).toEqual(res.body);
     });
 
-    it('uses the statement rate and lets the request rate win', async () => {
-      extraction.statement = sampleStatement({
-        transactions: [line('WAL MART SUC 123', 1000), usdLine],
-        exchangeRate: {
-          from: 'USD',
-          to: 'MXN',
-          rate: d(18),
-          source: 'STATEMENT',
+    it('answers 422 RATES_REQUIRED listing the missing categories', async () => {
+      extraction.statement = mxn({
+        transactions: [line('FARMACIA SIMAN', 100), line('WAL MART X', 100)],
+      });
+      const started = (await upload(alice).expect(201)).body;
+      const res = await confirm(alice, started.id).expect(422);
+      expect(res.body).toMatchObject({
+        code: 'RATES_REQUIRED',
+        details: {
+          missing: [
+            { categoryId: pharmacyCategoryId, categoryName: 'Pharmacies' },
+          ],
         },
       });
-      const fromStatement = await upload(alice).expect(201);
-      expect(fromStatement.body.conversion.statementRate).toEqual({
-        from: 'USD',
-        to: 'MXN',
-        rate: '18',
-        source: 'STATEMENT',
-      });
-      expect(fromStatement.body.expected.amount).toBe('59');
-      const fromRequest = await upload(alice, { exchangeRate: '20' }).expect(
-        201,
-      );
-      expect(fromRequest.body.expected.amount).toBe('60');
+      const ok = await confirm(alice, started.id, {
+        categoryRates: [
+          { categoryId: superCategoryId, ratePercent: '5' },
+          { categoryId: pharmacyCategoryId, ratePercent: '3', monthlyCap: '1' },
+        ],
+      }).expect(200);
+      // super 100 * 5% = 5 ; pharmacy 100 * 3% = 3 capped at 1
+      expect(ok.body.expected.amount).toBe('6');
+      expect(
+        ok.body.appliedRates.categoryRates.find(
+          (c: any) => c.categoryId === pharmacyCategoryId,
+        ),
+      ).toMatchObject({ source: 'USER_ENTERED', monthlyCap: '1' });
     });
 
-    it('excludes fees, insurance and payments from the reward', async () => {
-      extraction.statement = sampleStatement({
-        transactions: [
-          line('WAL MART SUC 123', 1000),
-          line('SEGURO DE SALDO DE DEUDA', 80, { kind: 'INSURANCE' }),
-          line('PAGO', 500, { kind: 'PAYMENT', isCredit: true }),
-        ],
+    it('recalculates a COMPLETED verification with other rates and no new Claude call', async () => {
+      const started = (await upload(alice).expect(201)).body;
+      const first = (await confirm(alice, started.id).expect(200)).body;
+      const second = (
+        await confirm(alice, started.id, {
+          baseRatePercent: '2',
+          categoryRates: [{ categoryId: superCategoryId, ratePercent: '10' }],
+        }).expect(200)
+      ).body;
+      // super 1100 * 10% = 110 ; base 300 * 2% = 6
+      expect(second.expected.amount).toBe('116');
+      expect(second.verdict).toBe('UNDERPAID');
+      expect(second.appliedRates.categoryRates[0]).toMatchObject({
+        ratePercent: '10',
+        source: 'USER_ENTERED',
       });
-      const res = await upload(alice).expect(201);
-      expect(res.body.expected.amount).toBe('50');
-      expect(
-        res.body.transactions.map((t: any) => [t.kind, t.excludedReason]),
-      ).toEqual([
-        ['PURCHASE', null],
-        ['INSURANCE', 'NON_PURCHASE_KIND'],
-        ['PAYMENT', 'NON_PURCHASE_KIND'],
+      expect(first.expected.amount).toBe('58');
+      expect(extraction.calls).toBe(1);
+    });
+
+    it('saveToCard persists the rates as the card rates', async () => {
+      const started = (await upload(alice).expect(201)).body;
+      const res = await confirm(alice, started.id, {
+        baseRatePercent: '2',
+        saveToCard: true,
+        categoryRates: [
+          { categoryId: superCategoryId, ratePercent: '8', monthlyCap: '500' },
+        ],
+      }).expect(200);
+      expect(res.body.appliedRates.savedToCard).toBe(true);
+      const card = (
+        await http().get(`/api/v1/cards/${cardId}`).set(alice.auth).expect(200)
+      ).body;
+      expect(card.baseRatePercent).toBe('2');
+      expect(card.rules).toEqual([
+        { categoryId: superCategoryId, ratePercent: '8', monthlyCap: '500' },
       ]);
     });
 
-    const twoPrograms = () =>
-      sampleStatement({
-        loyaltyPrograms: [
-          program('PUNTOS BAC CREDOMATIC', '1500', {
-            unit: 'POINTS',
-            available: d(1400),
-            redeemedInPeriod: d(100),
-          }),
-          program('CASH BAC CREDOMATIC', '58'),
+    it('validates the body and ownership', async () => {
+      const started = (await upload(alice).expect(201)).body;
+      await confirm(alice, started.id, { baseRatePercent: '101' }).expect(400);
+      await confirm(alice, started.id, { baseRatePercent: '-1' }).expect(400);
+      await confirm(alice, started.id, { baseRatePercent: undefined }).expect(
+        400,
+      );
+      await confirm(alice, started.id, {
+        categoryRates: [{ categoryId: superCategoryId, ratePercent: '101' }],
+      }).expect(400);
+      await confirm(alice, started.id, { unknown: 1 }).expect(400);
+      await confirm(alice, started.id, {
+        categoryRates: [
+          {
+            categoryId: '00000000-0000-4000-8000-000000000000',
+            ratePercent: '5',
+          },
         ],
-      });
-
-    it('answers 422 REWARD_PROGRAM_AMBIGUOUS with the program names', async () => {
-      extraction.statement = twoPrograms();
-      const res = await upload(alice).expect(422);
-      expect(res.body).toMatchObject({
-        code: 'REWARD_PROGRAM_AMBIGUOUS',
-        details: {
-          programs: ['PUNTOS BAC CREDOMATIC', 'CASH BAC CREDOMATIC'],
-        },
-      });
+      }).expect(404);
+      await confirm(alice, started.id, {
+        categoryRates: [
+          { categoryId: superCategoryId, ratePercent: '5' },
+          { categoryId: superCategoryId, ratePercent: '6' },
+        ],
+      }).expect(400);
+      await confirm(bob, started.id).expect(404);
     });
 
-    it('resolves the ambiguity with the rewardProgramName form field', async () => {
-      extraction.statement = twoPrograms();
-      const res = await upload(alice, {
-        rewardProgramName: 'cash bac',
-      }).expect(201);
+    it('flags an underpaid statement and accepts reportedRewardOverride', async () => {
+      extraction.statement = mxn({ loyaltyPrograms: [program('x', '30')] });
+      const started = (await upload(alice).expect(201)).body;
+      const under = await confirm(alice, started.id).expect(200);
+      expect(under.body).toMatchObject({
+        verdict: 'UNDERPAID',
+        difference: '-28',
+      });
+
+      extraction.statement = mxn({ loyaltyPrograms: [] });
+      const none = (await upload(alice).expect(201)).body;
+      await confirm(alice, none.id)
+        .expect(422)
+        .expect((r) => expect(r.body.code).toBe('REPORTED_REWARD_NOT_FOUND'));
+      const res = await confirm(alice, none.id, {
+        reportedRewardOverride: '70.5',
+      }).expect(200);
       expect(res.body).toMatchObject({
-        verdict: 'MATCH',
-        reported: { amount: '58', label: 'CASH BAC CREDOMATIC' },
+        verdict: 'OVERPAID',
+        reported: { amount: '70.5', source: 'OVERRIDE' },
+        difference: '12.5',
+      });
+      await confirm(alice, none.id, { reportedRewardOverride: '-3' }).expect(
+        400,
+      );
+    });
+  });
+
+  describe('multi-currency and loyalty programs', () => {
+    beforeEach(async () => {
+      await http()
+        .patch(`/api/v1/cards/${cardId}`)
+        .set(alice.auth)
+        .send({ currency: 'HNL' })
+        .expect(200);
+    });
+    const hnl = (over: Partial<ExtractedStatement> = {}) =>
+      hnlUsdTwoProgramsStatement({
+        detectedRates: [
+          detected({
+            suggestedCategoryId: superCategoryId,
+            ratePercent: d(7),
+            evidence: '7% cashback en supermercados',
+          }),
+        ],
+        ...over,
+      });
+
+    it('answers 422 REWARD_PROGRAM_AMBIGUOUS at confirm and resolves it by name', async () => {
+      extraction.statement = hnl();
+      const started = (await upload(alice).expect(201)).body;
+      const amb = await confirm(alice, started.id, {
+        categoryRates: [
+          { categoryId: superCategoryId, ratePercent: '7' },
+          { categoryId: pharmacyCategoryId, ratePercent: '0' },
+        ],
+      }).expect(422);
+      expect(amb.body).toMatchObject({
+        code: 'REWARD_PROGRAM_AMBIGUOUS',
+        details: { programs: ['PUNTOS BAC CREDOMATIC', 'CASH BAC CREDOMATIC'] },
+      });
+      const res = await confirm(alice, started.id, {
+        rewardProgramName: 'cash bac',
+        categoryRates: [
+          { categoryId: superCategoryId, ratePercent: '7' },
+          { categoryId: pharmacyCategoryId, ratePercent: '0' },
+        ],
+      }).expect(200);
+      expect(res.body).toMatchObject({
+        reported: { amount: '134.5', label: 'CASH BAC CREDOMATIC' },
         loyalty: { selectedBy: 'REQUEST' },
       });
-      expect(res.body.loyalty.programs).toHaveLength(2);
       expect(res.body.loyalty.programs[0]).toMatchObject({
         name: 'PUNTOS BAC CREDOMATIC',
         accumulated: '1500',
@@ -500,39 +582,144 @@ describe('Verifications (e2e)', () => {
       });
     });
 
-    it('uses the card rewardProgramName when set', async () => {
-      extraction.statement = twoPrograms();
+    it('uses the program asked at upload, then USD lines need a rate', async () => {
+      extraction.statement = hnl();
+      const started = (
+        await upload(alice, { rewardProgramName: 'CASH' }).expect(201)
+      ).body;
+      const rates = {
+        baseRatePercent: '1',
+        categoryRates: [
+          { categoryId: superCategoryId, ratePercent: '7' },
+          { categoryId: pharmacyCategoryId, ratePercent: '2' },
+        ],
+      };
+      const without = (await confirm(alice, started.id, rates).expect(200))
+        .body;
+      // super 2000 * 7% = 140 ; pharmacy 500 * 2% = 10 ; USD excluded
+      expect(without.expected.amount).toBe('150');
+      expect(without.transactions[2]).toMatchObject({
+        currency: 'USD',
+        excludedReason: 'NO_EXCHANGE_RATE',
+        convertedAmount: null,
+        expectedReward: '0',
+      });
+      expect(without.warnings.map((w: any) => w.code)).toContain(
+        'NO_EXCHANGE_RATE',
+      );
+      expect(without.currencies[1]).toMatchObject({
+        currency: 'USD',
+        eligibleSpent: '0',
+        excludedCount: 1,
+      });
+
+      const withRate = (
+        await confirm(alice, started.id, {
+          ...rates,
+          exchangeRate: '25',
+        }).expect(200)
+      ).body;
+      // + USD 40 * 25 = 1000 at base 1% = 10
+      expect(withRate.expected.amount).toBe('160');
+      expect(withRate.conversion.requestedRate).toBe('25');
+      expect(withRate.transactions[2]).toMatchObject({
+        convertedAmount: '1000',
+        exchangeRate: '25',
+        exchangeRateSource: 'REQUEST',
+        excludedReason: null,
+      });
+      expect(withRate.currencies[1]).toMatchObject({
+        convertedEligibleSpent: '1000',
+        expectedReward: '10',
+      });
+      expect(
+        withRate.transactions
+          .slice(3)
+          .map((t: any) => [t.kind, t.excludedReason, t.expectedReward]),
+      ).toEqual([
+        ['INSURANCE', 'NON_PURCHASE_KIND', '0'],
+        ['PAYMENT', 'NON_PURCHASE_KIND', '0'],
+      ]);
+    });
+
+    it('uses the exchangeRate sent with the upload and the card rewardProgramName', async () => {
+      extraction.statement = hnl();
       await http()
         .patch(`/api/v1/cards/${cardId}`)
         .set(alice.auth)
-        .send({ rewardProgramName: 'CASH BAC CREDOMATIC' })
+        .send({ rewardProgramName: 'PUNTOS' })
         .expect(200);
-      const res = await upload(alice).expect(201);
-      expect(res.body.loyalty.selectedBy).toBe('CARD');
-    });
-
-    it('validates exchangeRate', async () => {
-      await upload(alice, { exchangeRate: '0' }).expect(400);
-      await upload(alice, { exchangeRate: '-2' }).expect(400);
-      await upload(alice, { exchangeRate: 'abc' }).expect(400);
+      const started = (await upload(alice, { exchangeRate: '20' }).expect(201))
+        .body;
+      expect(started.conversion.requestedRate).toBe('20');
+      const res = (
+        await confirm(alice, started.id, {
+          categoryRates: [
+            { categoryId: superCategoryId, ratePercent: '7' },
+            { categoryId: pharmacyCategoryId, ratePercent: '2' },
+          ],
+        }).expect(200)
+      ).body;
+      expect(res.loyalty.selectedBy).toBe('CARD');
+      expect(res.reported.label).toBe('PUNTOS BAC CREDOMATIC');
+      expect(res.transactions[2].convertedAmount).toBe('800');
     });
   });
 
-  it('warns when the statement belongs to another card', async () => {
-    extraction.statement = sampleStatement({ cardLast4: '9999' });
-    const res = await upload(alice).expect(201);
-    expect(res.body.warnings.map((w: any) => w.code)).toContain(
-      'CARD_LAST4_MISMATCH',
-    );
-  });
+  describe('status and history', () => {
+    it('lists both statuses and filters by status', async () => {
+      const done = (await upload(alice).expect(201)).body;
+      await confirm(alice, done.id).expect(200);
+      const waiting = (await upload(alice).expect(201)).body;
 
-  it('never persists the PDF: only extracted data is stored', async () => {
-    const res = await upload(alice).expect(201);
-    const row = await ctx.prisma.verification.findUniqueOrThrow({
-      where: { id: res.body.id },
+      const all = await http()
+        .get('/api/v1/verifications')
+        .set(alice.auth)
+        .expect(200);
+      expect(all.body.total).toBe(2);
+      const byId = Object.fromEntries(
+        all.body.items.map((i: any) => [i.id, i]),
+      );
+      expect(byId[waiting.id]).toMatchObject({
+        status: 'AWAITING_RATES',
+        reportedAmount: null,
+        expectedAmount: null,
+        verdict: null,
+        primaryCurrency: 'MXN',
+      });
+      expect(byId[done.id]).toMatchObject({
+        status: 'COMPLETED',
+        reportedAmount: '58',
+        expectedAmount: '58',
+        difference: '0',
+        verdict: 'MATCH',
+        rewardUnit: 'CASHBACK_CURRENCY',
+      });
+      const pending = await http()
+        .get('/api/v1/verifications?status=AWAITING_RATES')
+        .set(alice.auth)
+        .expect(200);
+      expect(pending.body.items.map((i: any) => i.id)).toEqual([waiting.id]);
+      const completed = await http()
+        .get('/api/v1/verifications?status=COMPLETED')
+        .set(alice.auth)
+        .expect(200);
+      expect(completed.body.total).toBe(1);
+      await http()
+        .get('/api/v1/verifications?status=NOPE')
+        .set(alice.auth)
+        .expect(400);
     });
-    expect(JSON.stringify(row)).not.toContain(PDF.toString('base64'));
-    expect(JSON.stringify(row)).not.toContain('%PDF');
+
+    it('returns the proposal for an awaiting verification on GET', async () => {
+      const waiting = (await upload(alice).expect(201)).body;
+      const got = await http()
+        .get(`/api/v1/verifications/${waiting.id}`)
+        .set(alice.auth)
+        .expect(200);
+      expect(got.body.rateProposal).toEqual(waiting.rateProposal);
+      expect(got.body.status).toBe('AWAITING_RATES');
+    });
   });
 
   describe('upload validation', () => {
@@ -568,8 +755,6 @@ describe('Verifications (e2e)', () => {
 
     it('validates cardId and the override', async () => {
       await upload(alice, { cardId: 'nope' }).expect(400);
-      await upload(alice, { reportedRewardOverride: '-3' }).expect(400);
-      await upload(alice, { reportedRewardOverride: 'abc' }).expect(400);
     });
   });
 
@@ -598,7 +783,10 @@ describe('Verifications (e2e)', () => {
 
   describe('history', () => {
     it('lists newest first with pagination, filtered by card, scoped to the user', async () => {
-      for (let i = 0; i < 3; i++) await upload(alice).expect(201);
+      for (let i = 0; i < 3; i++) {
+        const v = (await upload(alice).expect(201)).body;
+        await confirm(alice, v.id).expect(200);
+      }
       const all = await http()
         .get('/api/v1/verifications')
         .set(alice.auth)

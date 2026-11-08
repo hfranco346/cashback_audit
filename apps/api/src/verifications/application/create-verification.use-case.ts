@@ -4,37 +4,23 @@ import { CardRepository } from '../../cards/domain/card.repository.js';
 import { CardNotFoundError } from '../../cards/domain/card-errors.js';
 import { CategoryRepository } from '../../categories/domain/category.repository.js';
 import { MerchantRepository } from '../../merchants/domain/merchant.repository.js';
+import { selectLoyaltyProgram } from '../domain/loyalty-program-selector.js';
 import {
   MerchantMatcher,
   type MatchableMerchant,
 } from '../domain/merchant-matcher.js';
 import {
-  looksCumulative,
-  selectLoyaltyProgram,
-} from '../domain/loyalty-program-selector.js';
-import {
-  calculateExpectedReward,
-  compareReward,
-  type ConversionRate,
-} from '../domain/reward-calculator.js';
-import {
   REWARD_ELIGIBLE_KINDS,
-  type ExtractedStatement,
   type CategoryCandidate,
 } from '../domain/statement.js';
 import {
   LineClassifier,
   StatementExtractor,
 } from '../domain/statement-extractor.js';
-import {
-  InvalidPdfError,
-  ReportedRewardMissingError,
-  RewardProgramAmbiguousError,
-} from '../domain/verification-errors.js';
+import { InvalidPdfError } from '../domain/verification-errors.js';
 import type {
   MatchSource,
   Verification,
-  VerificationBreakdownLine,
   VerificationTransaction,
   VerificationWarning,
 } from '../domain/verification.js';
@@ -50,40 +36,21 @@ export interface CreateVerificationInput {
   cardId: string;
   /** The uploaded PDF; held in memory only. */
   pdf: Buffer;
-  reportedRewardOverride?: string;
   /** Decimal string: 1 unit of the foreign currency in the card currency. */
   exchangeRate?: string;
   /** Loyalty program to audit; overrides the card's `rewardProgramName`. */
   rewardProgramName?: string;
 }
 
+const PDF_MAGIC = Buffer.from('%PDF-');
 const TOTALS_TOLERANCE = (reference: Decimal) =>
   Decimal.max(1, reference.abs().mul('0.01'));
 
-/** Rates usable to reach `primary`, from the statement (inverted if needed). */
-function statementRates(
-  statement: ExtractedStatement,
-  primary: string,
-): ConversionRate[] {
-  const printed = statement.exchangeRate;
-  if (!printed || printed.rate.lte(0)) return [];
-  if (printed.to === primary && printed.from !== primary) {
-    return [{ from: printed.from, rate: printed.rate, source: 'STATEMENT' }];
-  }
-  if (printed.from === primary && printed.to !== primary) {
-    return [
-      {
-        from: printed.to,
-        rate: new Decimal(1).div(printed.rate),
-        source: 'STATEMENT',
-      },
-    ];
-  }
-  return [];
-}
-
-const PDF_MAGIC = Buffer.from('%PDF-');
-
+/**
+ * Step 1 of a verification: read the statement (Claude), classify its lines
+ * and persist everything as AWAITING_RATES. No reward is computed here: the
+ * user confirms the rates first (see ConfirmVerificationUseCase).
+ */
 @Injectable()
 export class CreateVerificationUseCase {
   constructor(
@@ -108,54 +75,19 @@ export class CreateVerificationUseCase {
     if (!card) throw new CardNotFoundError();
 
     const userMerchants = await this.merchants.list(input.userId, {});
-    const allCategories = await this.categories.listWithCounts(input.userId);
-    const categories = allCategories;
+    const categories = await this.categories.listWithCounts(input.userId);
     const categoryName = new Map(categories.map((c) => [c.id, c.name]));
     const merchantById = new Map(userMerchants.map((m) => [m.id, m]));
 
-    const { statement, model } = await this.extractor.extract(input.pdf);
+    const { statement, model } = await this.extractor.extract(input.pdf, {
+      categories: categories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        description: c.description,
+      })),
+    });
     const warnings: VerificationWarning[] = [];
     let classificationModel: string | null = null;
-
-    // --- loyalty program + reported reward -------------------------------
-    const selection = selectLoyaltyProgram(
-      statement.loyaltyPrograms,
-      input.rewardProgramName,
-      card.rewardProgramName,
-    );
-    const program = selection.status === 'SELECTED' ? selection.program : null;
-    let reportedAmount: Decimal;
-    let reportedLabel: string | null = program?.name ?? null;
-    let reportedSource: 'STATEMENT' | 'OVERRIDE';
-    if (input.reportedRewardOverride !== undefined) {
-      reportedAmount = new Decimal(input.reportedRewardOverride);
-      reportedSource = 'OVERRIDE';
-    } else if (selection.status === 'AMBIGUOUS') {
-      throw new RewardProgramAmbiguousError(
-        selection.names,
-        selection.requestedName,
-      );
-    } else if (program?.accumulated) {
-      reportedAmount = program.accumulated;
-      reportedSource = 'STATEMENT';
-      const programUnit =
-        program.unit === 'UNKNOWN'
-          ? null
-          : program.unit === 'CURRENCY'
-            ? 'CURRENCY'
-            : 'POINTS';
-      if (
-        programUnit &&
-        programUnit !== (card.rewardUnit === 'POINTS' ? 'POINTS' : 'CURRENCY')
-      ) {
-        warnings.push({
-          code: 'REPORTED_UNIT_DIFFERS_FROM_CARD',
-          message: `The statement reports the reward in ${program.unit}, but the card is configured as ${card.rewardUnit}. The card configuration was used.`,
-        });
-      }
-    } else {
-      throw new ReportedRewardMissingError();
-    }
 
     // --- sanity warnings -----------------------------------------------
     if (statement.cardLast4 && statement.cardLast4 !== card.last4) {
@@ -184,14 +116,50 @@ export class CreateVerificationUseCase {
       });
     }
 
-    // --- merchant matching: deterministic first, AI for the rest ---------
-    const matchable: MatchableMerchant[] = userMerchants.map((m) => ({
-      id: m.id,
-      name: m.name,
-      keywords: m.keywords,
-      categoryId: m.categoryId,
-    }));
-    const matcher = new MerchantMatcher(matchable);
+    // Statement totals per currency vs the extracted lines (warn only).
+    for (const summary of statement.summaries) {
+      const target = summary.purchasesAndCharges;
+      if (!target) continue;
+      const lines = statement.transactions.filter(
+        (t) => t.currency === summary.currency,
+      );
+      const signed = (kinds: readonly string[]) =>
+        lines
+          .filter((t) => kinds.includes(t.kind))
+          .reduce(
+            (sum, t) => (t.isCredit ? sum.minus(t.amount) : sum.plus(t.amount)),
+            new Decimal(0),
+          );
+      const purchasesOnly = signed(['PURCHASE', 'REFUND']);
+      const withCharges = signed([
+        'PURCHASE',
+        'REFUND',
+        'FEE',
+        'INTEREST',
+        'INSURANCE',
+        'OTHER',
+      ]);
+      const tolerance = TOTALS_TOLERANCE(target);
+      if (
+        purchasesOnly.minus(target).abs().gt(tolerance) &&
+        withCharges.minus(target).abs().gt(tolerance)
+      ) {
+        warnings.push({
+          code: 'TOTAL_SPENT_MISMATCH',
+          message: `The extracted ${summary.currency} lines add up to ${purchasesOnly.toFixed(2)} (${withCharges.toFixed(2)} with charges) but the statement reports ${target.toFixed(2)}. Some transactions may be missing.`,
+        });
+      }
+    }
+
+    // --- line matching: keywords first, then one classification pass ------
+    const matcher = new MerchantMatcher(
+      userMerchants.map((m): MatchableMerchant => ({
+        id: m.id,
+        name: m.name,
+        keywords: m.keywords,
+        categoryId: m.categoryId,
+      })),
+    );
     const eligible = statement.transactions.map((tx) =>
       REWARD_ELIGIBLE_KINDS.includes(tx.kind),
     );
@@ -288,112 +256,12 @@ export class CreateVerificationUseCase {
       }
     }
 
-    // --- reward computation -------------------------------------------------
-    const requestedRate = input.exchangeRate
-      ? new Decimal(input.exchangeRate)
-      : null;
-    const rates: ConversionRate[] = [
-      ...(requestedRate
-        ? [{ from: null, rate: requestedRate, source: 'REQUEST' as const }]
-        : []),
-      ...statementRates(statement, card.currency),
-    ];
-    const calculation = calculateExpectedReward(
-      {
-        currency: card.currency,
-        rewardUnit: card.rewardUnit,
-        pointsPerCurrencyUnit: card.pointsPerCurrencyUnit,
-        baseRatePercent: card.baseRatePercent,
-        rules: card.rules,
-      },
-      statement.transactions.map((tx, index) => ({
-        index,
-        amount: tx.amount,
-        currency: tx.currency,
-        kind: tx.kind,
-        isCredit: tx.isCredit,
-        categoryId: matches[index]!.categoryId,
-      })),
-      rates,
-    );
-
-    const missingRate = calculation.currencies.filter(
-      (c) => c.excludedCount > 0,
-    );
-    if (missingRate.length > 0) {
-      const count = missingRate.reduce((n, c) => n + c.excludedCount, 0);
-      warnings.push({
-        code: 'NO_EXCHANGE_RATE',
-        message: `No exchange rate to ${card.currency} was available for ${missingRate.map((c) => c.currency).join(', ')}; ${count} line(s) were left out of the expected reward. Send exchangeRate to include them.`,
-      });
-    }
-    const foreignWithRate = calculation.currencies.filter(
-      (c) => !c.isPrimary && c.exchangeRate !== null,
-    );
-    if (requestedRate && foreignWithRate.length > 1) {
-      warnings.push({
-        code: 'EXCHANGE_RATE_APPLIED_TO_MULTIPLE_CURRENCIES',
-        message: `The exchangeRate you sent was applied to several currencies (${foreignWithRate.map((c) => c.currency).join(', ')}).`,
-      });
-    }
-
-    // Statement totals per currency vs the extracted lines (warn only).
-    for (const summary of statement.summaries) {
-      const target = summary.purchasesAndCharges;
-      if (!target) continue;
-      const lines = statement.transactions.filter(
-        (t) => t.currency === summary.currency,
-      );
-      const signed = (kinds: readonly string[]) =>
-        lines
-          .filter((t) => kinds.includes(t.kind))
-          .reduce(
-            (sum, t) => (t.isCredit ? sum.minus(t.amount) : sum.plus(t.amount)),
-            new Decimal(0),
-          );
-      const purchasesOnly = signed(['PURCHASE', 'REFUND']);
-      const withCharges = signed([
-        'PURCHASE',
-        'REFUND',
-        'FEE',
-        'INTEREST',
-        'INSURANCE',
-        'OTHER',
-      ]);
-      const tolerance = TOTALS_TOLERANCE(target);
-      if (
-        purchasesOnly.minus(target).abs().gt(tolerance) &&
-        withCharges.minus(target).abs().gt(tolerance)
-      ) {
-        warnings.push({
-          code: 'TOTAL_SPENT_MISMATCH',
-          message: `The extracted ${summary.currency} lines add up to ${purchasesOnly.toFixed(2)} (${withCharges.toFixed(2)} with charges) but the statement reports ${target.toFixed(2)}. Some transactions may be missing.`,
-        });
-      }
-    }
-
-    const comparison = compareReward(reportedAmount, calculation.expectedTotal);
-    if (
-      reportedSource === 'STATEMENT' &&
-      program &&
-      looksCumulative(program, calculation.expectedTotal)
-    ) {
-      warnings.push({
-        code: 'REPORTED_VALUE_MAY_BE_CUMULATIVE',
-        message: `"${program.name}" reports ${reportedAmount.toString()} accumulated, which looks like a running balance (available + redeemed + forfeited) well above the ${calculation.expectedTotal.toString()} expected for this period. Send reportedRewardOverride with the amount earned this period to audit it.`,
-      });
-    }
-    const primarySummary = statement.summaries.find(
-      (x) => x.currency === card.currency,
-    );
-
     const transactions: VerificationTransaction[] = statement.transactions.map(
       (tx, index) => {
         const match = matches[index]!;
         const merchant = match.merchantId
           ? merchantById.get(match.merchantId)!
           : null;
-        const detail = calculation.transactions[index]!;
         return {
           index,
           date: tx.date,
@@ -403,10 +271,10 @@ export class CreateVerificationUseCase {
           currency: tx.currency,
           isCredit: tx.isCredit,
           kind: tx.kind,
-          convertedAmount: detail.convertedAmount,
-          exchangeRate: detail.exchangeRate,
-          rateSource: detail.rateSource,
-          excludedReason: detail.excludedReason,
+          convertedAmount: null,
+          exchangeRate: null,
+          rateSource: null,
+          excludedReason: eligible[index] ? null : 'NON_PURCHASE_KIND',
           matchedMerchantId: merchant?.id ?? null,
           matchedMerchantName: merchant?.name ?? null,
           categoryId: match.categoryId,
@@ -416,24 +284,27 @@ export class CreateVerificationUseCase {
           matchSource: match.source,
           matchConfidence: match.confidence,
           matchReason: match.reason,
-          appliedRatePercent: detail.appliedRatePercent,
-          ruleApplied: detail.ruleApplied,
-          expectedReward: detail.expectedReward,
+          appliedRatePercent: null,
+          ruleApplied: false,
+          expectedReward: null,
         };
       },
     );
-    const breakdown: VerificationBreakdownLine[] = calculation.breakdown.map(
-      (line) => ({
-        ...line,
-        categoryName: line.categoryId
-          ? (categoryName.get(line.categoryId) ?? null)
-          : null,
-      }),
+
+    // The program is only *proposed* here; confirming resolves ambiguity.
+    const selection = selectLoyaltyProgram(
+      statement.loyaltyPrograms,
+      input.rewardProgramName,
+      card.rewardProgramName,
+    );
+    const primarySummary = statement.summaries.find(
+      (x) => x.currency === card.currency,
     );
 
     return this.verifications.create({
       userId: input.userId,
       cardId: card.id,
+      status: 'AWAITING_RATES',
       statementBank: statement.bank,
       statementLast4: statement.cardLast4,
       periodStart: statement.periodStart,
@@ -444,24 +315,31 @@ export class CreateVerificationUseCase {
       totalToPay: primarySummary?.totalBalance ?? null,
       summaries: statement.summaries,
       conversion: {
-        requestedRate,
+        requestedRate: input.exchangeRate
+          ? new Decimal(input.exchangeRate)
+          : null,
         statementRate: statement.exchangeRate,
-        currencies: calculation.currencies,
+        currencies: [],
       },
       loyalty: {
-        selected: program,
+        requestedProgramName: input.rewardProgramName ?? null,
+        reportedOverride: null,
+        selected: selection.status === 'SELECTED' ? selection.program : null,
         selectedBy: selection.status === 'SELECTED' ? selection.source : null,
         programs: statement.loyaltyPrograms,
       },
-      reportedAmount,
+      reportedAmount: null,
       reportedUnit: card.rewardUnit,
-      reportedLabel,
-      reportedSource,
-      expectedAmount: calculation.expectedTotal,
-      difference: comparison.difference,
-      tolerance: comparison.tolerance,
-      verdict: comparison.verdict,
-      breakdown,
+      reportedLabel: null,
+      reportedSource: null,
+      expectedAmount: null,
+      difference: null,
+      tolerance: null,
+      verdict: null,
+      detectedRates: statement.detectedRates,
+      appliedRates: null,
+      explanation: null,
+      breakdown: [],
       transactions,
       warnings,
       model,

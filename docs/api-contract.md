@@ -449,7 +449,9 @@ Rule (`rules[]`):
 | `ratePercent` | decimal | required, `0-100`, max 4 decimals |
 | `monthlyCap` | decimal or null | optional, `> 0`, max 2 decimals. Maximum reward obtainable from this rule per statement period, **in the card's reward unit** (currency for cashback cards, points for `POINTS` cards). `null`/absent = no cap |
 
-How the expected reward is computed (so the UI can explain it): for each
+How the expected reward is computed (so the UI can explain it). The card's
+rates are only the **default proposal**: every verification is audited with the
+rates the user confirms (section 8). For each
 transaction the rate is the card rule of the transaction's category if the
 card has one, otherwise `baseRatePercent`. Refunds/credits subtract. Lines in a
 foreign currency are first converted into the card currency. For
@@ -496,14 +498,31 @@ card. Errors: `400`, `404 CARD_NOT_FOUND`, `404 CATEGORY_NOT_FOUND`.
 
 ## 8. Verifications
 
-A verification audits one statement: the user uploads the PDF, the backend has
-Claude read it, computes the reward the card *should* have earned and compares it
-with the reward the bank reported.
+A verification audits one statement in **two steps**:
+
+1. **Upload** (`POST /verifications`): the backend has Claude read the PDF,
+   classifies the lines into your categories and stores the result as
+   `AWAITING_RATES`. It also proposes the reward rates to audit (from the
+   statement, from the card, or nothing). **No reward is computed yet.**
+2. **Confirm** (`POST /verifications/:id/confirm`): the user confirms or edits
+   the rates; the backend computes the reward the card *should* have earned
+   deterministically and compares it with the reward the bank reported. The same
+   call recalculates a `COMPLETED` verification with other rates (no new Claude
+   call, no cost).
+
+Banks change their cashback policies often, so the app should **always** show
+the proposed rates to the user and let them confirm or edit before step 2.
 
 **The PDF is processed in memory and discarded; only extracted results are
 stored.**
 
-### POST /verifications
+`status`: `AWAITING_RATES` (after step 1) or `COMPLETED` (after step 2).
+While `AWAITING_RATES` the fields `reported`, `expected`, `difference`,
+`tolerance`, `verdict`, `appliedRates` are `null`, `breakdown` and `currencies`
+are `[]`, and per-transaction `expectedReward`, `appliedRatePercent` and
+`convertedAmount` are `null`.
+
+### POST /verifications  (step 1)
 
 `Content-Type: multipart/form-data` with these parts:
 
@@ -511,9 +530,10 @@ stored.**
 | --- | --- | --- |
 | `file` | yes | The statement PDF. `application/pdf` only, max **10 MB** (10 485 760 bytes). The content must really be a PDF |
 | `cardId` | yes | UUID of one of your cards |
-| `reportedRewardOverride` | no | Decimal string (>= 0, max 2 decimals), e.g. `"125.40"`. The reward the bank reported, in the card's reward unit. Overrides what was read from the statement. Use it when the statement shows no reward figure (`REPORTED_REWARD_NOT_FOUND`), the user says it was read wrong, or the "Acumulados" column is a running balance (`REPORTED_VALUE_MAY_BE_CUMULATIVE`) |
-| `exchangeRate` | no | Decimal string `> 0`, max 6 decimals, e.g. `"26.35"`: how many units of the **card currency** one unit of the foreign currency is worth (foreign -> primary). Wins over a rate printed on the statement. Applied to every foreign currency on the statement |
-| `rewardProgramName` | no | 1-80 chars. Loyalty program to audit (same matching as the card field); overrides the card's `rewardProgramName`. Send it to resolve `422 REWARD_PROGRAM_AMBIGUOUS`. An empty value is ignored |
+| `exchangeRate` | no | Decimal string `> 0`, max 6 decimals, e.g. `"26.35"`: how many units of the **card currency** one unit of the foreign currency is worth (foreign -> primary). Wins over a rate printed on the statement. Applied to every foreign currency on the statement. Stored with the verification (it can be replaced at confirm time) |
+| `rewardProgramName` | no | 1-80 chars. Loyalty program to audit (same matching as the card field); overrides the card's `rewardProgramName`. An empty value is ignored. Stored with the verification (it can be replaced at confirm time) |
+
+`reportedRewardOverride` is **no longer accepted here** (it is part of step 2).
 
 Dart/Dio sketch:
 
@@ -533,9 +553,9 @@ The request is not idempotent: do not auto-retry on timeout without asking
 the user (each call consumes quota); check `GET /verifications` first.
 
 **Order of checks** (first failure wins): auth (`401`) -> rate limit (`429`) ->
-subscription (`402`) -> upload type/size (`415`/`413`) -> field validation
-(`400`) -> PDF signature (`400 INVALID_PDF`) -> card ownership (`404`) ->
-analysis (`422`/`502`/`503`).
+subscription (`402`, step 1 only: this is where the analysis cost is) -> upload
+type/size (`415`/`413`) -> field validation (`400`) -> PDF signature
+(`400 INVALID_PDF`) -> card ownership (`404`) -> analysis (`422`/`502`/`503`).
 
 **Multi-currency.** Statements can have one amount column per currency (e.g.
 Lempiras and Dolares). Every transaction carries its own `currency` (ISO 4217).
@@ -545,8 +565,8 @@ on the statement (`conversion.statementRate`; a rate printed in the opposite
 direction is inverted), (3) none. With no rate the request still **succeeds**:
 the expected reward is computed on the primary-currency lines only, the foreign
 lines come back with `excludedReason: "NO_EXCHANGE_RATE"` and the warning
-`NO_EXCHANGE_RATE` is added; the client can offer the user to retry with
-`exchangeRate`.
+`NO_EXCHANGE_RATE` is added; the client can offer the user to confirm again with
+`exchangeRate`. Conversion happens in step 2.
 
 **Line kinds.** Every extracted line has a `kind`: `PURCHASE`, `REFUND`, `FEE`,
 `INTEREST`, `INSURANCE`, `PAYMENT`, `OTHER`. Only `PURCHASE` and `REFUND` earn
@@ -559,9 +579,11 @@ request `rewardProgramName`, else the card's `rewardProgramName` (both:
 case/accent-insensitive "contains"; an exact name wins over a partial match),
 else the only program if there is exactly one. If it cannot be determined (several
 programs and no/unmatched name) the response is `422 REWARD_PROGRAM_AMBIGUOUS`
-with `details.programs` (array of names): let the user pick and retry with the
-`rewardProgramName` form field. If `reportedRewardOverride` is sent the
-ambiguity does not block the request (`loyalty.selectedProgram` is then `null`).
+with `details.programs` (array of names): let the user pick and retry with
+`rewardProgramName`. **Step 1 never fails because of this**: it stores every
+program and, when it cannot choose, returns `loyalty.selectedProgram: null`;
+the `422` is raised by step 2 unless it carries `rewardProgramName` or
+`reportedRewardOverride`.
 The value audited is the program's **`accumulated`** ("Acumulados") column unless
 overridden; the other columns are exposed in `loyalty.programs`.
 
@@ -593,145 +615,65 @@ classified. If classification fails (fully or for some lines) the verification
 still succeeds using keyword matches and carries the warning
 `AI_MATCHING_UNAVAILABLE`.
 
-`201` response (full verification object):
+**Rate proposal.** The extraction also reads the reward rates the statement
+itself states (`detectedRates[]`: `{ scope: "BASE"|"CATEGORY", categoryHint,
+suggestedCategoryId, ratePercent, unitNote, evidence, confidence }`;
+`ratePercent` is a percent of spend or `null` when it cannot be expressed that
+way, with the original wording in `unitNote`; `evidence` is a short quote).
+`rateProposal[]` merges that with the card rules:
+
+- one entry for the base (`categoryId: null`), and one for every category that
+  has at least one classified purchase/refund line **or** a card rule;
+- `source`: `STATEMENT` (the document states it; detections below 0.5 confidence
+  or without a percentage are ignored) > `CARD_RULE` (the card has it; the base
+  falls back to the card's `baseRatePercent`) > `NONE`;
+- `required: true` exactly when `source` is `NONE`: the client must make the user
+  type a rate (`ratePercent` is `null`), otherwise step 2 answers
+  `422 RATES_REQUIRED`;
+- `monthlyCap`: the card rule's cap, if any (the statement never states one);
+- `evidence` / `unitNote`: for `STATEMENT` entries.
+
+`GET /verifications/:id` always recomputes the proposal against the current card
+rules and classification, so it also prefills a recalculation.
+
+`201` response (full verification object, here after step 1):
 
 ```json
 {
   "id": "e5f6...",
   "cardId": "c3d4...",
-  "statement": {
-    "bank": "BBVA",
-    "cardLast4": "4321",
-    "periodStart": "2026-01-01",
-    "periodEnd": "2026-01-31",
-    "currency": "HNL",
-    "totalSpent": "1400",
-    "totalToPay": "1400",
-    "summaries": [
-      { "currency": "HNL", "previousBalance": "0", "purchasesAndCharges": "1400", "totalBalance": "1400" },
-      { "currency": "USD", "previousBalance": "0", "purchasesAndCharges": "10", "totalBalance": "10" }
-    ]
-  },
-  "primaryCurrency": "HNL",
-  "reported": {
-    "amount": "58",
-    "unit": "CASHBACK_CURRENCY",
-    "label": "CASH BAC CREDOMATIC",
-    "source": "STATEMENT"
-  },
-  "expected": { "amount": "58", "unit": "CASHBACK_CURRENCY" },
-  "difference": "0",
-  "tolerance": "1",
-  "verdict": "MATCH",
-  "conversion": {
-    "primaryCurrency": "HNL",
-    "requestedRate": "26.35",
-    "statementRate": null
-  },
-  "currencies": [
-    {
-      "currency": "HNL",
-      "isPrimary": true,
-      "spent": "1400",
-      "eligibleSpent": "1400",
-      "convertedEligibleSpent": "1400",
-      "exchangeRate": null,
-      "exchangeRateSource": null,
-      "expectedReward": "56",
-      "excludedCount": 0
-    },
-    {
-      "currency": "USD",
-      "isPrimary": false,
-      "spent": "10",
-      "eligibleSpent": "10",
-      "convertedEligibleSpent": "263.5",
-      "exchangeRate": "26.35",
-      "exchangeRateSource": "REQUEST",
-      "expectedReward": "2.64",
-      "excludedCount": 0
-    }
+  "status": "AWAITING_RATES",
+  "statement": { "bank": "Example Bank", "cardLast4": "4321", "periodStart": "2026-01-01", "periodEnd": "2026-01-31", "currency": "MXN", "totalSpent": "1400", "totalToPay": "1400", "summaries": [ { "currency": "MXN", "previousBalance": "0", "purchasesAndCharges": "1400", "totalBalance": "1400" } ] },
+  "primaryCurrency": "MXN",
+  "reported": null,
+  "expected": null,
+  "difference": null,
+  "tolerance": null,
+  "verdict": null,
+  "explanation": null,
+  "detectedRates": [
+    { "scope": "BASE", "categoryHint": null, "suggestedCategoryId": null, "ratePercent": "1", "unitNote": null, "evidence": "1% cashback on all purchases", "confidence": 0.9 },
+    { "scope": "CATEGORY", "categoryHint": "supermarkets", "suggestedCategoryId": "6f1c...", "ratePercent": "5", "unitNote": null, "evidence": "5% cashback at supermarkets", "confidence": 0.9 }
   ],
-  "loyalty": {
-    "selectedBy": "CARD",
-    "selectedProgram": {
-      "name": "CASH BAC CREDOMATIC",
-      "unit": "CURRENCY",
-      "accumulated": "58",
-      "available": "58",
-      "redeemedInPeriod": null,
-      "expiring": null,
-      "forfeited": null
-    },
-    "programs": [
-      {
-        "name": "PUNTOS BAC CREDOMATIC",
-        "unit": "POINTS",
-        "accumulated": "1500",
-        "available": "1400",
-        "redeemedInPeriod": "100",
-        "expiring": null,
-        "forfeited": "0"
-      },
-      {
-        "name": "CASH BAC CREDOMATIC",
-        "unit": "CURRENCY",
-        "accumulated": "58",
-        "available": "58",
-        "redeemedInPeriod": null,
-        "expiring": null,
-        "forfeited": null
-      }
-    ]
-  },
-  "breakdown": [
-    {
-      "categoryId": "6f1c...",
-      "categoryName": "Supermarkets",
-      "ratePercent": "5",
-      "transactionCount": 3,
-      "spend": "1100",
-      "uncappedReward": "55",
-      "expectedReward": "55",
-      "monthlyCap": null,
-      "capped": false
-    },
-    {
-      "categoryId": null,
-      "categoryName": null,
-      "ratePercent": "1",
-      "transactionCount": 1,
-      "spend": "300",
-      "uncappedReward": "3",
-      "expectedReward": "3",
-      "monthlyCap": null,
-      "capped": false
-    }
+  "rateProposal": [
+    { "categoryId": null, "categoryName": null, "ratePercent": "1", "monthlyCap": null, "source": "STATEMENT", "evidence": "1% cashback on all purchases", "unitNote": null, "required": false },
+    { "categoryId": "6f1c...", "categoryName": "Supermarkets", "ratePercent": "5", "monthlyCap": null, "source": "STATEMENT", "evidence": "5% cashback at supermarkets", "unitNote": null, "required": false },
+    { "categoryId": "7a2d...", "categoryName": "Pharmacies", "ratePercent": null, "monthlyCap": null, "source": "NONE", "evidence": null, "unitNote": null, "required": true }
   ],
+  "appliedRates": null,
+  "conversion": { "primaryCurrency": "MXN", "requestedRate": null, "statementRate": null },
+  "currencies": [],
+  "loyalty": { "selectedBy": "ONLY_PROGRAM", "requestedProgramName": null, "selectedProgram": { "name": "Bonificacion del periodo", "unit": "CURRENCY", "accumulated": "58", "available": null, "redeemedInPeriod": null, "expiring": null, "forfeited": null }, "programs": [ { "name": "Bonificacion del periodo", "unit": "CURRENCY", "accumulated": "58", "available": null, "redeemedInPeriod": null, "expiring": null, "forfeited": null } ] },
+  "breakdown": [],
   "transactions": [
     {
-      "index": 0,
-      "date": "2026-01-02",
-      "reference": "000123",
-      "merchant": "WAL MART SUC 123",
-      "amount": "1000",
-      "currency": "HNL",
-      "isCredit": false,
-      "kind": "PURCHASE",
-      "convertedAmount": "1000",
-      "exchangeRate": "1",
-      "exchangeRateSource": null,
-      "excludedReason": null,
-      "matchedMerchantId": "a2b9...",
-      "matchedMerchantName": "Walmart",
-      "categoryId": "6f1c...",
-      "categoryName": "Supermarkets",
-      "matchSource": "KEYWORD",
-      "matchConfidence": null,
-      "matchReason": null,
-      "appliedRatePercent": "5",
-      "ruleApplied": true,
-      "expectedReward": "50"
+      "index": 0, "date": "2026-01-02", "reference": "0001", "merchant": "WAL MART SUC 123",
+      "amount": "1000", "currency": "MXN", "isCredit": false, "kind": "PURCHASE",
+      "convertedAmount": null, "exchangeRate": null, "exchangeRateSource": null, "excludedReason": null,
+      "matchedMerchantId": "a2b9...", "matchedMerchantName": "Walmart",
+      "categoryId": "6f1c...", "categoryName": "Supermarkets",
+      "matchSource": "KEYWORD", "matchConfidence": null, "matchReason": null,
+      "appliedRatePercent": null, "ruleApplied": false, "expectedReward": null
     }
   ],
   "warnings": [],
@@ -741,25 +683,133 @@ still succeeds using keyword matches and carries the warning
 }
 ```
 
-Field semantics:
+Errors of step 1:
+
+| Status | `code` | Meaning / suggested UX |
+| --- | --- | --- |
+| 400 | `FILE_REQUIRED` | No `file` part |
+| 400 | `INVALID_PDF` | Bytes are not a PDF |
+| 400 | `VALIDATION_ERROR` | Bad `cardId` / `exchangeRate` / `rewardProgramName`, or an unknown field |
+| 402 | `SUBSCRIPTION_REQUIRED` | Show the paywall (see section 9). `details.entitlementId` |
+| 404 | `CARD_NOT_FOUND` | Card missing or not yours |
+| 413 | `PAYLOAD_TOO_LARGE` | File over 10 MB |
+| 415 | `UNSUPPORTED_MEDIA_TYPE` | Not `application/pdf` |
+| 422 | `UNREADABLE_STATEMENT` | Not a readable credit card statement (scanned, password protected, wrong document). Ask for the original PDF from the bank |
+| 429 | `TOO_MANY_REQUESTS` | Slow down |
+| 502 | `EXTRACTION_FAILED` | The analysis returned an unusable result; retrying usually works |
+| 503 | `EXTRACTION_UNAVAILABLE` | Analysis service busy or down; try again later |
+
+### POST /verifications/:id/confirm  (step 2 and recalculation)
+
+`Content-Type: application/json`. Not subscription-gated and it never calls
+Claude, so it can be repeated freely (`200`). Allowed on `AWAITING_RATES` and
+`COMPLETED` verifications.
+
+```json
+{
+  "baseRatePercent": "1",
+  "categoryRates": [
+    { "categoryId": "6f1c...", "ratePercent": "5", "monthlyCap": null },
+    { "categoryId": "7a2d...", "ratePercent": "3", "monthlyCap": "50" }
+  ],
+  "saveToCard": false,
+  "reportedRewardOverride": "125.40",
+  "exchangeRate": "26.35",
+  "rewardProgramName": "CASH BAC CREDOMATIC"
+}
+```
+
+| Field | Required | Rules |
+| --- | --- | --- |
+| `baseRatePercent` | yes | `0-100`, max 4 decimals. Rate for spend whose category has no entry in `categoryRates` |
+| `categoryRates[]` | yes (may be `[]`) | `{ categoryId, ratePercent (0-100), monthlyCap? (> 0, 2 decimals, in the card reward unit) }`. Max 50, one per category, categories must be yours (`404 CATEGORY_NOT_FOUND`; duplicates `400 DUPLICATE_RULE_CATEGORY`). It must include every `rateProposal` entry with `required: true` (else `422 RATES_REQUIRED`) |
+| `saveToCard` | no | When `true` the confirmed base rate and category rates **replace** the card's `baseRatePercent` and rules |
+| `reportedRewardOverride` | no | Decimal `>= 0`, 2 decimals. The reward the bank reported, in the card reward unit; wins over the statement. Kept for later recalculations |
+| `exchangeRate` | no | As in step 1; replaces the one given at upload |
+| `rewardProgramName` | no | As in step 1; replaces the one given at upload |
+
+The confirmed rates **completely replace the card rules for this verification**
+(a category not listed is audited at `baseRatePercent`). Values omitted in a
+recalculation (`exchangeRate`, `rewardProgramName`, `reportedRewardOverride`)
+keep the ones stored earlier. The response is the full verification with
+`status: "COMPLETED"`:
+
+```json
+{
+  "status": "COMPLETED",
+  "reported": { "amount": "58", "unit": "CASHBACK_CURRENCY", "label": "Bonificacion del periodo", "source": "STATEMENT" },
+  "expected": { "amount": "58", "unit": "CASHBACK_CURRENCY" },
+  "difference": "0",
+  "tolerance": "1",
+  "verdict": "MATCH",
+  "appliedRates": {
+    "baseRatePercent": "1",
+    "baseSource": "STATEMENT_CONFIRMED",
+    "savedToCard": false,
+    "categoryRates": [
+      { "categoryId": "6f1c...", "categoryName": "Supermarkets", "ratePercent": "5", "monthlyCap": null, "source": "STATEMENT_CONFIRMED" }
+    ]
+  },
+  "conversion": { "primaryCurrency": "MXN", "requestedRate": null, "statementRate": null },
+  "currencies": [
+    { "currency": "MXN", "isPrimary": true, "spent": "1400", "eligibleSpent": "1400", "convertedEligibleSpent": "1400", "exchangeRate": null, "exchangeRateSource": null, "expectedReward": "58", "excludedCount": 0 }
+  ],
+  "breakdown": [
+    { "categoryId": "6f1c...", "categoryName": "Supermarkets", "ratePercent": "5", "transactionCount": 3, "spend": "1100", "uncappedReward": "55", "expectedReward": "55", "monthlyCap": null, "capped": false },
+    { "categoryId": null, "categoryName": null, "ratePercent": "1", "transactionCount": 1, "spend": "300", "uncappedReward": "3", "expectedReward": "3", "monthlyCap": null, "capped": false }
+  ],
+  "transactions": [
+    {
+      "index": 0, "date": "2026-01-02", "reference": "0001", "merchant": "WAL MART SUC 123",
+      "amount": "1000", "currency": "MXN", "isCredit": false, "kind": "PURCHASE",
+      "convertedAmount": "1000", "exchangeRate": "1", "exchangeRateSource": null, "excludedReason": null,
+      "matchedMerchantId": "a2b9...", "matchedMerchantName": "Walmart",
+      "categoryId": "6f1c...", "categoryName": "Supermarkets",
+      "matchSource": "KEYWORD", "matchConfidence": null, "matchReason": null,
+      "appliedRatePercent": "5", "ruleApplied": true, "expectedReward": "50"
+    }
+  ]
+}
+```
+
+(other fields as in step 1, `rateProposal` included.) Errors:
+
+| Status | `code` | Meaning / suggested UX |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | Bad body (rates outside 0-100, unknown fields, ...) |
+| 400 | `DUPLICATE_RULE_CATEGORY` | Same category twice in `categoryRates` |
+| 404 | `VERIFICATION_NOT_FOUND`, `CATEGORY_NOT_FOUND` | Missing or not yours |
+| 422 | `RATES_REQUIRED` | `details.missing` = `[{ categoryId, categoryName }]` required entries without a rate: ask the user and resend |
+| 422 | `REWARD_PROGRAM_AMBIGUOUS` | `details.programs` = names; resend with `rewardProgramName` |
+| 422 | `REPORTED_REWARD_NOT_FOUND` | No usable reward figure for the chosen program (or none at all); resend with `reportedRewardOverride` |
+
+A failed confirm leaves the verification untouched.
+
+### Field semantics (both steps)
 
 - `statement.*`: what was read from the PDF; any of them can be `null`.
   `currency` is the statement's main currency (null if unclear). `summaries[]`
-  has one entry per currency column ("Saldo anterior", "Compras + otros cargos",
-  "Saldo total"; any figure can be `null`). `totalSpent` / `totalToPay` are the
-  summary figures of the **card's primary currency** (`null` when absent).
+  has one entry per currency column ("previous balance", "purchases + other
+  charges", "total balance"; any figure can be `null`). `totalSpent` /
+  `totalToPay` are the summary figures of the **card's primary currency**
+  (`null` when absent).
 - `primaryCurrency`: the card currency used for the computation.
-- `reported.amount`: reward the bank says it granted this period.
-  `reported.source` is `STATEMENT` (the chosen program's `accumulated` column) or
-  `OVERRIDE` (`reportedRewardOverride`). `reported.label` is the chosen program
-  name (`null` when none was chosen). `unit`/`expected.unit` is always the card's
-  `rewardUnit` (`CASHBACK_CURRENCY` or `POINTS`).
+- `reported.amount`: reward the bank says it granted. `reported.source` is
+  `STATEMENT` (the chosen program's `accumulated` column) or `OVERRIDE`.
+  `reported.label` is the chosen program name (`null` when none was chosen).
+  `unit`/`expected.unit` is always the card's `rewardUnit` (`CASHBACK_CURRENCY`
+  or `POINTS`).
+- `appliedRates`: exactly the rates the verification was audited with (also for
+  recalculations: it is replaced each time). `source` is `STATEMENT_CONFIRMED`
+  (equal to the statement's rate), `CARD_RULE_CONFIRMED` (equal to the card's
+  rate) or `USER_ENTERED`. Verifications created before this feature have
+  `appliedRates: null`.
 - `conversion`: `requestedRate` (the `exchangeRate` you sent, or `null`) and
   `statementRate` (`{ from, to, rate, source: "STATEMENT" }` or `null`).
-- `currencies[]`: one entry per statement currency that has purchases/refunds;
-  primary first. `spent` = net purchases minus refunds in that currency;
-  `eligibleSpent` = the part used in the calculation (0 when the rate is
-  missing); `convertedEligibleSpent` = that part in the primary currency;
+- `currencies[]` (after confirm): one entry per statement currency that has
+  purchases/refunds; primary first. `spent` = net purchases minus refunds in that
+  currency; `eligibleSpent` = the part used in the calculation (0 when the rate
+  is missing); `convertedEligibleSpent` = that part in the primary currency;
   `exchangeRate`/`exchangeRateSource` (`REQUEST`|`STATEMENT`) are `null` for the
   primary currency or when no rate was available; `expectedReward` = sum of the
   line rewards of this currency **before monthly caps** (caps apply per category
@@ -768,8 +818,9 @@ Field semantics:
 - `loyalty`: `programs[]` lists every program row of the statement (all values
   decimal strings or `null`; `unit` is `POINTS`, `CURRENCY`, `MILES` or
   `UNKNOWN`). `selectedProgram` is the audited one (or `null`); `selectedBy` is
-  `REQUEST`, `CARD`, `ONLY_PROGRAM` or `null`. `accumulated` may be a running
-  balance rather than earned this period; see `REPORTED_VALUE_MAY_BE_CUMULATIVE`.
+  `REQUEST`, `CARD`, `ONLY_PROGRAM` or `null`; `requestedProgramName` is the
+  name asked for. `accumulated` may be a running balance rather than earned this
+  period; see `REPORTED_VALUE_MAY_BE_CUMULATIVE`.
 - `expected.amount`: deterministic expected reward (after caps), 2 decimals.
 - `difference` = `reported - expected` (2 decimals). **Negative means the bank
   paid less than it should have.**
@@ -779,75 +830,57 @@ Field semantics:
   - `MATCH`: `|difference| <= tolerance`
   - `UNDERPAID`: `difference < -tolerance` (the user is owed money/points)
   - `OVERPAID`: `difference > tolerance`
-- `breakdown[]`: one line per card rule that applied plus one line with
-  `categoryId: null` for spend at the base rate. Rule lines first, then base.
+- `breakdown[]`: one line per rate that applied plus one line with
+  `categoryId: null` for spend at the base rate. Category lines first, then base.
   `spend` is net of refunds; `uncappedReward` is before the cap; `capped` is
   true when `monthlyCap` reduced the reward.
 - `transactions[]`: in statement order (`index` is 0-based). `amount` is always
   positive and expressed in the line's own `currency`; `isCredit: true` means
   refund/credit (it subtracts). `reference` is the bank reference number or
   `null`. `kind` is `PURCHASE|REFUND|FEE|INTEREST|INSURANCE|PAYMENT|OTHER`.
-  `convertedAmount` is the **signed** amount in the primary currency (negative
-  for credits; `null` when it could not be converted or the line is not a
-  purchase/refund); `exchangeRate`/`exchangeRateSource` as in `currencies[]`
-  (`"1"` for primary-currency lines, `null` source). `excludedReason` is `null`
-  for lines that counted, `NO_EXCHANGE_RATE` or `NON_PURCHASE_KIND` otherwise
-  (excluded lines have `expectedReward: "0"`, `appliedRatePercent: "0"` and no
-  category).
+  After confirm, `convertedAmount` is the **signed** amount in the primary
+  currency (negative for credits; `null` when it could not be converted or the
+  line is not a purchase/refund); `exchangeRate`/`exchangeRateSource` as in
+  `currencies[]` (`"1"` for primary-currency lines, `null` source).
+  `excludedReason` is `null` for lines that count, `NO_EXCHANGE_RATE` (confirm
+  only) or `NON_PURCHASE_KIND` (known from step 1) otherwise; excluded lines
+  have `expectedReward: "0"`, `appliedRatePercent: "0"` after confirm.
   `expectedReward` is per transaction **before caps**, rounded to 2 decimals and
   negative for credits, so the sum of lines can differ from `expected.amount`
-  when a cap applied or because of rounding. `ruleApplied` is true when a card
-  rule (not the base rate) set `appliedRatePercent`.
-  `categoryId`/`categoryName` are the matched merchant's category (even when the
-  card has no rule for it).
+  when a cap applied or because of rounding. `ruleApplied` is true when a
+  confirmed category rate (not the base rate) set `appliedRatePercent`.
+  `categoryId`/`categoryName` are the classified category.
 - `warnings[]`: `{ "code": string, "message": string }`. Show them to the user.
-  Codes:
+  Codes (step 1 unless noted):
   - `CARD_LAST4_MISMATCH`: statement belongs to a different card than selected.
   - `CURRENCY_MISMATCH`: none of the statement currencies is the card currency.
-  - `NO_EXCHANGE_RATE`: foreign lines were left out because no rate was
-    available; retry with `exchangeRate`.
-  - `EXCHANGE_RATE_APPLIED_TO_MULTIPLE_CURRENCIES`: the request `exchangeRate`
-    was applied to more than one foreign currency.
-  - `REPORTED_VALUE_MAY_BE_CUMULATIVE`: the audited program's `accumulated`
-    equals (about) `available + redeemedInPeriod + forfeited` and is more than
-    3x the expected reward, so it is probably a running balance. The verdict used
-    it anyway; ask the user for the amount earned this period and retry with
-    `reportedRewardOverride`.
-  - `REPORTED_UNIT_DIFFERS_FROM_CARD`: the statement's reward unit
-    (points vs money) differs from the card configuration; the card config won.
   - `TOTAL_SPENT_MISMATCH`: for a currency, extracted transactions add up
-    neither to the statement's "Compras + otros cargos" nor to the purchases-only
-    figure (some may be missing; the result may be unreliable).
+    neither to the statement's "purchases + other charges" nor to the
+    purchases-only figure (some may be missing; the result may be unreliable).
   - `NO_TRANSACTIONS`: no transactions found.
   - `AI_MATCHING_UNAVAILABLE`: classification failed for all or some lines;
     those lines keep keyword matches only.
+  - (confirm) `NO_EXCHANGE_RATE`: foreign lines were left out because no rate
+    was available; confirm again with `exchangeRate`.
+  - (confirm) `EXCHANGE_RATE_APPLIED_TO_MULTIPLE_CURRENCIES`: the request
+    `exchangeRate` was applied to more than one foreign currency.
+  - (confirm) `REPORTED_VALUE_MAY_BE_CUMULATIVE`: the audited program's
+    `accumulated` equals (about) `available + redeemedInPeriod + forfeited` and
+    is more than 3x the expected reward, so it is probably a running balance. The
+    verdict used it anyway; ask the user for the amount earned this period and
+    confirm again with `reportedRewardOverride`.
+  - (confirm) `REPORTED_UNIT_DIFFERS_FROM_CARD`: the program's unit (points vs
+    money) differs from the card configuration; the card config won.
 - `models`: `{ "extraction": string, "classification": string | null }` - the
   model that performed each step; `classification` is `null` when no
   classification call was made or it failed. `model` is deprecated and equals
   `models.extraction`.
 
-Errors specific to this endpoint:
-
-| Status | `code` | Meaning / suggested UX |
-| --- | --- | --- |
-| 400 | `FILE_REQUIRED` | No `file` part |
-| 400 | `INVALID_PDF` | Bytes are not a PDF |
-| 400 | `VALIDATION_ERROR` | Bad `cardId` / `reportedRewardOverride` / `exchangeRate` / `rewardProgramName` |
-| 402 | `SUBSCRIPTION_REQUIRED` | Show the paywall (see section 9). `details.entitlementId` |
-| 404 | `CARD_NOT_FOUND` | Card missing or not yours |
-| 413 | `PAYLOAD_TOO_LARGE` | File over 10 MB |
-| 415 | `UNSUPPORTED_MEDIA_TYPE` | Not `application/pdf` |
-| 422 | `UNREADABLE_STATEMENT` | Not a readable credit card statement (scanned, password protected, wrong document). Ask for the original PDF from the bank |
-| 422 | `REPORTED_REWARD_NOT_FOUND` | The statement shows no usable reward figure for the chosen program. Ask the user to type it and retry with `reportedRewardOverride` |
-| 422 | `REWARD_PROGRAM_AMBIGUOUS` | Several loyalty programs and none chosen/matched. `details.programs` is the list of names; let the user pick one and retry with the `rewardProgramName` form field |
-| 429 | `TOO_MANY_REQUESTS` | Slow down |
-| 502 | `EXTRACTION_FAILED` | The analysis returned an unusable result; retrying usually works |
-| 503 | `EXTRACTION_UNAVAILABLE` | Analysis service busy or down; try again later |
-
 ### GET /verifications
 
-Query: `cardId` (optional uuid; `404` if not yours), `page` (default 1, >= 1),
-`pageSize` (default 20, 1-100). Newest first.
+Query: `cardId` (optional uuid; `404` if not yours), `status` (optional,
+`AWAITING_RATES` or `COMPLETED`), `page` (default 1, >= 1), `pageSize`
+(default 20, 1-100). Newest first. Both statuses are listed.
 
 ```json
 {
@@ -855,6 +888,7 @@ Query: `cardId` (optional uuid; `404` if not yours), `page` (default 1, >= 1),
     {
       "id": "e5f6...",
       "cardId": "c3d4...",
+      "status": "COMPLETED",
       "statement": {
         "bank": "BBVA",
         "cardLast4": "4321",
@@ -878,13 +912,15 @@ Query: `cardId` (optional uuid; `404` if not yours), `page` (default 1, >= 1),
 ```
 
 Items are summaries (no `breakdown`, `transactions`, `warnings`, `conversion`,
-`currencies` or `loyalty`); fetch the
-detail for those. This endpoint is **not** paywalled: users keep access to their
+`currencies`, `loyalty` or rates); fetch the detail for those. For
+`AWAITING_RATES` items `reportedAmount`, `expectedAmount`, `difference` and
+`verdict` are `null`. This endpoint is **not** paywalled: users keep access to their
 history after a subscription lapses.
 
 ### GET /verifications/:id
 
-Full verification object (as in the `POST` response). `404 VERIFICATION_NOT_FOUND`.
+Full verification object (as in the `POST` responses, with the current
+`rateProposal`). `404 VERIFICATION_NOT_FOUND`.
 
 ### DELETE /verifications/:id
 
@@ -947,7 +983,9 @@ RevenueCat SDK's own entitlement state is fine for unlocking the UI optimistical
 
 ### POST /verifications gate
 
-Without an active entitlement, `POST /verifications` returns:
+Without an active entitlement, `POST /verifications` (step 1, where the Claude
+cost is) returns the following; `POST /verifications/:id/confirm`, `GET` and
+`DELETE` are not gated:
 
 ```json
 {
@@ -1069,3 +1107,29 @@ Clients built against the previous contract must change:
   (server setting `CLASSIFICATION_MIN_CONFIDENCE`).
 - `models.classification` identifies the model that classified (null if no call
   succeeded).
+
+### Two-step verification, rate proposal and generic extraction
+
+- **`POST /verifications` no longer returns the audit result.** It returns a
+  verification with `status: "AWAITING_RATES"`; the result (`reported`,
+  `expected`, `verdict`, `breakdown`, ...) only exists after
+  `POST /verifications/:id/confirm`. Until then those fields are `null`/`[]`.
+  Clients must call confirm to complete (and may call it again to recalculate).
+- **`POST /verifications` no longer accepts `reportedRewardOverride`** (a unknown
+  part is `400`); send it to confirm.
+- `422 REWARD_PROGRAM_AMBIGUOUS` and `422 REPORTED_REWARD_NOT_FOUND` are now
+  raised by **confirm**, not by upload (upload stores everything and never loses
+  the paid analysis).
+- **New fields** in the verification: `status`, `detectedRates[]`,
+  `rateProposal[]`, `appliedRates`, `loyalty.requestedProgramName`.
+- **New endpoint** `POST /verifications/:id/confirm` and new error
+  `422 RATES_REQUIRED` (`details.missing`).
+- **`GET /verifications`**: new `status` filter and `status` in each item; items
+  of `AWAITING_RATES` verifications carry `null` reward figures.
+- Rates for the audit come from the user's confirmation, not directly from the
+  card rules; the card rules are only the proposal (and are updated by
+  `saveToCard`).
+- Extraction is bank/country/format agnostic: dates and amounts of any format are
+  normalized, currencies are mapped to ISO 4217 from context. `transactions[].
+  merchant` is the line text exactly as printed.
+- Existing data: old verifications are `COMPLETED` with `appliedRates: null`.

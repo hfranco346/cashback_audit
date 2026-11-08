@@ -4,10 +4,18 @@ import { CardRepository } from '../../cards/domain/card.repository.js';
 import { CategoryRepository } from '../../categories/domain/category.repository.js';
 import type { Merchant } from '../../merchants/domain/merchant.js';
 import { MerchantRepository } from '../../merchants/domain/merchant.repository.js';
+import {
+  CAT_PHARMACY,
+  CAT_SUPER,
+  d,
+  hnlUsdTwoProgramsStatement,
+  line,
+  mxnCashbackStatement,
+  program,
+  usdMilesStatement,
+} from '../../../test/fixtures/statements.js';
 import type {
   ExtractedStatement,
-  ExtractedTransaction,
-  LoyaltyProgram,
   LineClassification,
 } from '../domain/statement.js';
 import {
@@ -18,23 +26,22 @@ import type { NewVerification, Verification } from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
 import { CreateVerificationUseCase } from './create-verification.use-case.js';
 
-const d = (v: string | number) => new Decimal(v);
 const USER = 'user-1';
 const pdf = Buffer.from('%PDF-1.4 fake');
 
-const card: Card = {
+export const card: Card = {
   id: 'card-1',
   userId: USER,
   alias: 'Daily',
-  bank: 'BAC',
+  bank: 'Example',
   last4: '4321',
   network: null,
   rewardUnit: 'CASHBACK_CURRENCY',
   pointsPerCurrencyUnit: d(1),
   baseRatePercent: d(1),
-  currency: 'HNL',
+  currency: 'MXN',
   rewardProgramName: null,
-  rules: [{ categoryId: 'cat-super', ratePercent: d(5), monthlyCap: null }],
+  rules: [{ categoryId: CAT_SUPER, ratePercent: d(5), monthlyCap: null }],
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -42,7 +49,7 @@ const merchant = (
   id: string,
   name: string,
   keywords: string[],
-  categoryId = 'cat-super',
+  categoryId = CAT_SUPER,
 ): Merchant => ({
   id,
   userId: USER,
@@ -57,55 +64,14 @@ const merchants = [
   merchant('m-sor', 'Soriana', []),
 ];
 
-const program = (
-  name: string,
-  accumulated: string | null,
-  over: Partial<LoyaltyProgram> = {},
-): LoyaltyProgram => ({
-  name,
-  accumulated: accumulated === null ? null : d(accumulated),
-  available: null,
-  redeemedInPeriod: null,
-  expiring: null,
-  forfeited: null,
-  unit: 'CURRENCY',
-  ...over,
-});
-
-const line = (
-  merchantText: string,
-  amount: number,
-  over: Partial<ExtractedTransaction> = {},
-): ExtractedTransaction => ({
-  date: '2026-01-02',
-  reference: null,
-  merchant: merchantText,
-  amount: d(amount),
-  currency: 'HNL',
-  isCredit: false,
-  kind: 'PURCHASE',
-  ...over,
-});
-
-const statement = (
-  over: Partial<ExtractedStatement> = {},
-): ExtractedStatement => ({
-  bank: 'BAC',
-  cardLast4: '4321',
-  periodStart: '2026-01-01',
-  periodEnd: '2026-01-31',
-  currency: 'HNL',
-  summaries: [],
-  exchangeRate: null,
-  loyaltyPrograms: [program('CASH BAC CREDOMATIC', '60')],
-  transactions: [
-    line('WALMART SUC 123', 1000),
-    line('SORIANA HIPER', 200),
-    line('WM SUPERCENTER 9', 100),
-    line('UBER TRIP', 100),
-  ],
-  ...over,
-});
+const defaultCategories = [
+  { id: CAT_SUPER, name: 'Supermarkets', description: null },
+  {
+    id: CAT_PHARMACY,
+    name: 'Pharmacies',
+    description: 'pharmacies, drugstores',
+  },
+];
 
 function setup(opts: {
   statement?: ExtractedStatement;
@@ -118,22 +84,14 @@ function setup(opts: {
   const saved: NewVerification[] = [];
   const classifierCalls: string[][] = [];
   const categoryCalls: unknown[][] = [];
+  const extractorContexts: unknown[] = [];
   const useCase = new CreateVerificationUseCase(
     {
       findById: async () => (opts.card === undefined ? card : opts.card),
     } as unknown as CardRepository,
     {
       listWithCounts: async () =>
-        (
-          opts.categories ?? [
-            { id: 'cat-super', name: 'Supermarkets', description: null },
-            {
-              id: 'cat-pharmacy',
-              name: 'Pharmacies',
-              description: 'pharmacies and drugstores',
-            },
-          ]
-        ).map((c) => ({
+        (opts.categories ?? defaultCategories).map((c) => ({
           ...c,
           userId: USER,
           merchantCount: 0,
@@ -145,10 +103,13 @@ function setup(opts: {
       list: async () => opts.merchants ?? merchants,
     } as unknown as MerchantRepository,
     {
-      extract: async () => ({
-        statement: opts.statement ?? statement(),
-        model: 'test-model',
-      }),
+      extract: async (_pdf: Buffer, context: unknown) => {
+        extractorContexts.push(context);
+        return {
+          statement: opts.statement ?? mxnCashbackStatement(),
+          model: 'test-model',
+        };
+      },
     } as unknown as StatementExtractor,
     {
       classify: async (descriptors: string[], categories: unknown[]) => {
@@ -170,476 +131,286 @@ function setup(opts: {
     } as unknown as VerificationRepository,
     0.7,
   );
-  return { useCase, saved, classifierCalls, categoryCalls };
+  return { useCase, saved, classifierCalls, categoryCalls, extractorContexts };
 }
 
-describe('CreateVerificationUseCase', () => {
-  it('matches by keyword first and sends only unmatched descriptors to the AI', async () => {
-    const { useCase, classifierCalls } = setup({});
-    await useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-    expect(classifierCalls).toEqual([['WM SUPERCENTER 9', 'UBER TRIP']]);
+const run = (
+  s: ReturnType<typeof setup>,
+  extra: { exchangeRate?: string; rewardProgramName?: string } = {},
+) => s.useCase.execute({ userId: USER, cardId: 'card-1', pdf, ...extra });
+
+const verdict = (
+  descriptor: string,
+  over: Partial<LineClassification> = {},
+): LineClassification => ({
+  descriptor,
+  categoryId: CAT_SUPER,
+  matchedMerchantId: null,
+  confidence: 0.9,
+  reason: 'looks like a supermarket',
+  ...over,
+});
+
+describe('CreateVerificationUseCase (step 1)', () => {
+  it('persists AWAITING_RATES with no reward figures', async () => {
+    const s = setup({});
+    const v = await run(s);
+    expect(v.status).toBe('AWAITING_RATES');
+    expect(v).toMatchObject({
+      reportedAmount: null,
+      expectedAmount: null,
+      difference: null,
+      tolerance: null,
+      verdict: null,
+      appliedRates: null,
+      explanation: null,
+      breakdown: [],
+    });
+    expect(v.transactions.every((t) => t.expectedReward === null)).toBe(true);
+    expect(v.transactions.every((t) => t.appliedRatePercent === null)).toBe(
+      true,
+    );
+    expect(v.detectedRates).toHaveLength(2);
+    expect(v.models).toEqual({
+      extraction: 'test-model',
+      classification: 'test-classifier',
+    });
   });
 
-  const verdict = (
-    descriptor: string,
-    over: Partial<LineClassification> = {},
-  ): LineClassification => ({
-    descriptor,
-    categoryId: 'cat-super',
-    matchedMerchantId: null,
-    confidence: 0.9,
-    reason: 'looks like a supermarket',
-    ...over,
+  it('gives the extractor the user categories as context', async () => {
+    const s = setup({});
+    await run(s);
+    expect(s.extractorContexts[0]).toEqual({ categories: defaultCategories });
+  });
+
+  it('matches by keyword first and sends only unmatched purchase lines to the classifier', async () => {
+    const s = setup({
+      statement: mxnCashbackStatement({
+        transactions: [
+          line('WALMART SUC 123', 1000),
+          line('SORIANA HIPER', 200),
+          line('WM SUPERCENTER 9', 100),
+          line('UBER TRIP', 100),
+          line('INTERESES', 30, { kind: 'INTEREST' }),
+        ],
+      }),
+    });
+    await run(s);
+    expect(s.classifierCalls).toEqual([['WM SUPERCENTER 9', 'UBER TRIP']]);
   });
 
   it('maps classifier results to AI_MERCHANT / AI_CATEGORY and applies the threshold', async () => {
-    const { useCase } = setup({
+    const s = setup({
+      statement: mxnCashbackStatement({
+        transactions: [
+          line('WALMART SUC 123', 1000),
+          line('WM SUPERCENTER 9', 100),
+          line('FARMACIA X', 50),
+          line('UBER TRIP', 100),
+        ],
+      }),
       guesses: [
         verdict('WM SUPERCENTER 9', { matchedMerchantId: 'm-wal' }),
-        verdict('UBER TRIP', { categoryId: 'cat-super', confidence: 0.69 }),
+        verdict('FARMACIA X', { categoryId: CAT_PHARMACY, confidence: 0.7 }),
+        verdict('UBER TRIP', { confidence: 0.69 }),
       ],
     });
-    const v = await useCase.execute({ userId: USER, cardId: 'card-1', pdf });
+    const v = await run(s);
     expect(
       v.transactions.map((t) => [
-        t.merchant,
         t.matchSource,
         t.matchedMerchantId,
         t.categoryId,
       ]),
     ).toEqual([
-      ['WALMART SUC 123', 'KEYWORD', 'm-wal', 'cat-super'],
-      ['SORIANA HIPER', 'KEYWORD', 'm-sor', 'cat-super'],
-      ['WM SUPERCENTER 9', 'AI_MERCHANT', 'm-wal', 'cat-super'],
-      ['UBER TRIP', 'NONE', null, null],
+      ['KEYWORD', 'm-wal', CAT_SUPER],
+      ['AI_MERCHANT', 'm-wal', CAT_SUPER],
+      ['AI_CATEGORY', null, CAT_PHARMACY],
+      ['NONE', null, null],
     ]);
-    expect(v.transactions[2]).toMatchObject({
+    expect(v.transactions[1]).toMatchObject({
       matchConfidence: 0.9,
       matchReason: 'looks like a supermarket',
       categoryName: 'Supermarkets',
-      ruleApplied: true,
     });
-    // 1300 at 5% + 100 at 1%
-    expect(v.expectedAmount.toString()).toBe('66');
-    expect(v.verdict).toBe('UNDERPAID'); // reported 60, tolerance 1% of 66 -> 1
-    expect(v.difference.toString()).toBe('-6');
   });
 
-  it('accepts a category-only result at exactly the threshold', async () => {
-    const { useCase } = setup({
-      merchants: [],
-      guesses: [
-        verdict('WALMART SUC 123', { confidence: 0.7 }),
-        verdict('SORIANA HIPER'),
-        verdict('WM SUPERCENTER 9', { categoryId: 'cat-unknown' }),
-        verdict('UBER TRIP', { categoryId: null }),
-      ],
-    });
-    const v = await useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-    expect(
-      v.transactions.map((t) => [t.matchSource, t.matchedMerchantId]),
-    ).toEqual([
-      ['AI_CATEGORY', null],
-      ['AI_CATEGORY', null],
-      ['NONE', null],
-      ['NONE', null],
-    ]);
-    expect(v.transactions[0]).toMatchObject({
-      categoryName: 'Supermarkets',
-      ruleApplied: true,
-      appliedRatePercent: d(5),
-    });
-    // categories with no merchants are valid targets: 1200 at 5% + 200 at 1%
-    expect(v.expectedAmount.toString()).toBe('62');
+  it('rejects classifier ids that are not the user categories', async () => {
+    const v = await run(
+      setup({
+        statement: mxnCashbackStatement({ transactions: [line('X', 10)] }),
+        guesses: [verdict('X', { categoryId: 'cat-unknown' })],
+      }),
+    );
+    expect(v.transactions[0]!.matchSource).toBe('NONE');
   });
 
-  it('offers every category (with merchants as examples) to the classifier', async () => {
-    const { useCase, categoryCalls } = setup({});
-    await useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-    const sent = categoryCalls[0] as {
+  it('offers every category (merchants as examples) to the classifier', async () => {
+    const s = setup({});
+    await run(s);
+    const sent = s.categoryCalls[0] as {
       id: string;
       description: string | null;
       merchants: { id: string }[];
     }[];
-    expect(sent.map((c) => c.id)).toEqual(['cat-super', 'cat-pharmacy']);
+    expect(sent.map((c) => c.id)).toEqual([CAT_SUPER, CAT_PHARMACY]);
     expect(sent[0]!.merchants.map((m) => m.id)).toEqual(['m-wal', 'm-sor']);
     expect(sent[1]).toMatchObject({
-      description: 'pharmacies and drugstores',
+      description: 'pharmacies, drugstores',
       merchants: [],
     });
   });
 
+  it('classifies into categories that have no merchants at all', async () => {
+    const s = setup({
+      merchants: [],
+      statement: mxnCashbackStatement({
+        transactions: [line('FARMACIA SIMAN', 100)],
+      }),
+      guesses: [verdict('FARMACIA SIMAN', { categoryId: CAT_PHARMACY })],
+    });
+    const v = await run(s);
+    expect(v.transactions[0]).toMatchObject({
+      matchSource: 'AI_CATEGORY',
+      categoryName: 'Pharmacies',
+    });
+  });
+
   it('records the classification model only when the classifier ran', async () => {
-    const ran = await setup({}).useCase.execute({
-      userId: USER,
-      cardId: 'card-1',
-      pdf,
-    });
-    expect(ran.models).toEqual({
-      extraction: 'test-model',
-      classification: 'test-classifier',
-    });
-    const skipped = await setup({
-      statement: statement({ transactions: [line('WALMART', 100)] }),
-    }).useCase.execute({ userId: USER, cardId: 'card-1', pdf });
+    const skipped = await run(
+      setup({
+        statement: mxnCashbackStatement({
+          transactions: [line('WALMART', 100)],
+        }),
+      }),
+    );
     expect(skipped.models.classification).toBeNull();
+    const none = await run(setup({ categories: [], merchants: [] }));
+    expect(none.models.classification).toBeNull();
   });
 
   it('keeps going with a warning when the classifier fails or skips lines', async () => {
-    const { useCase } = setup({ guesses: new Error('boom') });
-    const v = await useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-    expect(v.warnings.map((w) => w.code)).toContain('AI_MATCHING_UNAVAILABLE');
-    expect(v.transactions[2]!.matchSource).toBe('NONE');
-    expect(v.expectedAmount.toString()).toBe('62'); // 1200 at 5% + 200 at 1%
-
-    const partial = await setup({
-      guesses: [],
-      unclassified: ['UBER TRIP'],
-    }).useCase.execute({ userId: USER, cardId: 'card-1', pdf });
+    const failed = await run(setup({ guesses: new Error('boom') }));
+    expect(failed.warnings.map((w) => w.code)).toContain(
+      'AI_MATCHING_UNAVAILABLE',
+    );
+    expect(failed.models.classification).toBeNull();
+    const partial = await run(
+      setup({ guesses: [], unclassified: ['PEMEX 4455'] }),
+    );
     expect(partial.warnings.map((w) => w.code)).toContain(
       'AI_MATCHING_UNAVAILABLE',
     );
   });
 
-  it('skips the AI when everything matched or the user has no categories', async () => {
-    const all = setup({
-      statement: statement({ transactions: [line('WALMART', 100)] }),
+  it('flags non-purchase kinds as excluded and never classifies them', async () => {
+    const s = setup({
+      statement: hnlUsdTwoProgramsStatement(),
+      card: { ...card, currency: 'HNL' },
     });
-    await all.useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-    expect(all.classifierCalls).toHaveLength(0);
-
-    const none = setup({ merchants: [], categories: [] });
-    const v = await none.useCase.execute({
-      userId: USER,
-      cardId: 'card-1',
-      pdf,
-    });
-    expect(none.classifierCalls).toHaveLength(0);
-    expect(v.expectedAmount.toString()).toBe('14'); // all at base 1%
+    const v = await run(s);
+    expect(s.classifierCalls[0]).not.toContain('SEGURO DE SALDO DE DEUDA');
+    expect(s.classifierCalls[0]).not.toContain('PAGO RECIBIDO');
+    expect(v.transactions.map((t) => t.excludedReason)).toEqual([
+      null,
+      null,
+      null,
+      'NON_PURCHASE_KIND',
+      'NON_PURCHASE_KIND',
+    ]);
   });
 
-  describe('reported reward and loyalty programs', () => {
-    it('uses the accumulated value of the only program', async () => {
-      const v = await setup({}).useCase.execute({
-        userId: USER,
-        cardId: 'card-1',
-        pdf,
-      });
-      expect(v).toMatchObject({
-        reportedSource: 'STATEMENT',
-        reportedLabel: 'CASH BAC CREDOMATIC',
-      });
-      expect(v.reportedAmount.toString()).toBe('60');
-      expect(v.loyalty.selectedBy).toBe('ONLY_PROGRAM');
-      expect(v.loyalty.programs).toHaveLength(1);
+  it('proposes (never throws) the loyalty program and stores every program', async () => {
+    const ambiguous = await run(
+      setup({
+        statement: hnlUsdTwoProgramsStatement(),
+        card: { ...card, currency: 'HNL' },
+      }),
+    );
+    expect(ambiguous.loyalty.selected).toBeNull();
+    expect(ambiguous.loyalty.programs).toHaveLength(2);
+
+    const chosen = await run(
+      setup({
+        statement: hnlUsdTwoProgramsStatement(),
+        card: { ...card, currency: 'HNL' },
+      }),
+      { rewardProgramName: 'cash bac' },
+    );
+    expect(chosen.loyalty).toMatchObject({
+      selectedBy: 'REQUEST',
+      requestedProgramName: 'cash bac',
     });
+    expect(chosen.loyalty.selected!.name).toBe('CASH BAC CREDOMATIC');
 
-    const two = [
-      program('PUNTOS BAC CREDOMATIC', '999', { unit: 'POINTS' }),
-      program('CASH BAC CREDOMATIC', '60'),
-    ];
-
-    it('fails with REWARD_PROGRAM_AMBIGUOUS listing the names', async () => {
-      const error = await setup({
-        statement: statement({ loyaltyPrograms: two }),
-      })
-        .useCase.execute({ userId: USER, cardId: 'card-1', pdf })
-        .catch((e) => e);
-      expect(error).toMatchObject({
-        kind: 'UNPROCESSABLE',
-        code: 'REWARD_PROGRAM_AMBIGUOUS',
-        details: {
-          programs: ['PUNTOS BAC CREDOMATIC', 'CASH BAC CREDOMATIC'],
-        },
-      });
-    });
-
-    it('picks the program from the card setting or the request name', async () => {
-      const fromCard = await setup({
-        statement: statement({ loyaltyPrograms: two }),
-        card: { ...card, rewardProgramName: 'cash bac' },
-      }).useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-      expect(fromCard.loyalty).toMatchObject({ selectedBy: 'CARD' });
-      expect(fromCard.reportedAmount.toString()).toBe('60');
-
-      const fromRequest = await setup({
-        statement: statement({ loyaltyPrograms: two }),
-        card: { ...card, rewardProgramName: 'cash bac' },
-      }).useCase.execute({
-        userId: USER,
-        cardId: 'card-1',
-        pdf,
-        rewardProgramName: 'PUNTOS',
-      });
-      expect(fromRequest.loyalty).toMatchObject({ selectedBy: 'REQUEST' });
-      expect(fromRequest.reportedAmount.toString()).toBe('999');
-      expect(fromRequest.warnings.map((w) => w.code)).toContain(
-        'REPORTED_UNIT_DIFFERS_FROM_CARD',
-      );
-    });
-
-    it('does not block on ambiguity when an override is given, and lists all programs', async () => {
-      const v = await setup({
-        statement: statement({ loyaltyPrograms: two }),
-      }).useCase.execute({
-        userId: USER,
-        cardId: 'card-1',
-        pdf,
-        reportedRewardOverride: '61',
-      });
-      expect(v).toMatchObject({ reportedSource: 'OVERRIDE', verdict: 'MATCH' });
-      expect(v.loyalty.selected).toBeNull();
-      expect(v.loyalty.programs).toHaveLength(2);
-    });
-
-    it('prefers the override over the statement figure', async () => {
-      const v = await setup({}).useCase.execute({
-        userId: USER,
-        cardId: 'card-1',
-        pdf,
-        reportedRewardOverride: '61',
-      });
-      expect(v).toMatchObject({ reportedSource: 'OVERRIDE', verdict: 'MATCH' });
-      expect(v.reportedAmount.toString()).toBe('61');
-    });
-
-    it('fails with REPORTED_REWARD_NOT_FOUND without programs, or with an empty accumulated cell', async () => {
-      for (const loyaltyPrograms of [[], [program('CASH', null)]]) {
-        await expect(
-          setup({ statement: statement({ loyaltyPrograms }) }).useCase.execute({
-            userId: USER,
-            cardId: 'card-1',
-            pdf,
-          }),
-        ).rejects.toMatchObject({ code: 'REPORTED_REWARD_NOT_FOUND' });
-      }
-      const ok = await setup({
-        statement: statement({ loyaltyPrograms: [] }),
-      }).useCase.execute({
-        userId: USER,
-        cardId: 'card-1',
-        pdf,
-        reportedRewardOverride: '10',
-      });
-      expect(ok.reportedSource).toBe('OVERRIDE');
-    });
-
-    it('warns when the accumulated column looks like a running balance', async () => {
-      const running = program('CASH BAC CREDOMATIC', '5000', {
-        available: d(4900),
-        redeemedInPeriod: d(60),
-        forfeited: d(40),
-      });
-      const v = await setup({
-        statement: statement({ loyaltyPrograms: [running] }),
-      }).useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-      expect(v.warnings.map((w) => w.code)).toContain(
-        'REPORTED_VALUE_MAY_BE_CUMULATIVE',
-      );
-      expect(v.reportedAmount.toString()).toBe('5000'); // still the default value
-
-      const overridden = await setup({
-        statement: statement({ loyaltyPrograms: [running] }),
-      }).useCase.execute({
-        userId: USER,
-        cardId: 'card-1',
-        pdf,
-        reportedRewardOverride: '62',
-      });
-      expect(overridden.warnings.map((w) => w.code)).not.toContain(
-        'REPORTED_VALUE_MAY_BE_CUMULATIVE',
-      );
-    });
+    const miles = await run(setup({ statement: usdMilesStatement() }));
+    expect(miles.loyalty.selectedBy).toBe('ONLY_PROGRAM');
   });
 
-  describe('multi-currency', () => {
-    const mixed = (rate: ExtractedStatement['exchangeRate'] = null) =>
-      statement({
-        exchangeRate: rate,
-        transactions: [
-          line('WALMART SUC 123', 1000),
-          line('AMAZON WALMART', 10, { currency: 'USD' }),
-          line('UBER TRIP', 4, { currency: 'USD', kind: 'PURCHASE' }),
-        ],
-      });
+  it('stores the requested exchange rate, summaries and primary totals', async () => {
+    const v = await run(
+      setup({
+        statement: hnlUsdTwoProgramsStatement(),
+        card: { ...card, currency: 'HNL' },
+      }),
+      { exchangeRate: '26.35' },
+    );
+    expect(v.primaryCurrency).toBe('HNL');
+    expect(v.conversion.requestedRate!.toString()).toBe('26.35');
+    expect(v.totalSpent!.toString()).toBe('2670');
+    expect(v.totalToPay!.toString()).toBe('3170');
+    expect(v.summaries).toHaveLength(2);
+  });
 
-    it('excludes foreign lines with a warning when no rate is available', async () => {
-      const v = await setup({ statement: mixed() }).useCase.execute({
-        userId: USER,
-        cardId: 'card-1',
-        pdf,
-      });
-      expect(v.expectedAmount.toString()).toBe('50');
-      expect(v.transactions.map((t) => t.excludedReason)).toEqual([
-        null,
-        'NO_EXCHANGE_RATE',
-        'NO_EXCHANGE_RATE',
-      ]);
-      expect(v.warnings.map((w) => w.code)).toContain('NO_EXCHANGE_RATE');
-      expect(v.conversion.currencies.map((c) => c.currency)).toEqual([
-        'HNL',
-        'USD',
-      ]);
-    });
-
-    it('uses the statement rate and then the request rate over it', async () => {
-      const printed = {
-        from: 'USD',
-        to: 'HNL',
-        rate: d(25),
-        source: 'STATEMENT' as const,
-      };
-      const fromStatement = await setup({
-        statement: mixed(printed),
-      }).useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-      // 1000 + 10*25 = 1250 at 5% (Walmart keyword) ; 4*25 = 100 at 1%
-      expect(fromStatement.expectedAmount.toString()).toBe('63.5');
-      expect(fromStatement.transactions[1]).toMatchObject({
-        rateSource: 'STATEMENT',
-        convertedAmount: d(250),
-      });
-      expect(fromStatement.warnings.map((w) => w.code)).not.toContain(
-        'NO_EXCHANGE_RATE',
-      );
-
-      const fromRequest = await setup({
-        statement: mixed(printed),
-      }).useCase.execute({
-        userId: USER,
-        cardId: 'card-1',
-        pdf,
-        exchangeRate: '26',
-      });
-      expect(fromRequest.transactions[1]!.rateSource).toBe('REQUEST');
-      expect(fromRequest.conversion.requestedRate!.toString()).toBe('26');
-      // 1000 + 260 = 1260 at 5% = 63 ; 104 at 1% = 1.04
-      expect(fromRequest.expectedAmount.toString()).toBe('64.04');
-    });
-
-    it('inverts a statement rate printed in the opposite direction', async () => {
-      const v = await setup({
-        statement: mixed({
-          from: 'HNL',
-          to: 'USD',
-          rate: d('0.04'),
-          source: 'STATEMENT',
-        }),
-      }).useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-      expect(v.transactions[1]!.exchangeRate!.toString()).toBe('25');
-    });
-
-    it('excludes non-purchase kinds and never sends them to the classifier', async () => {
-      const { useCase, classifierCalls } = setup({
-        statement: statement({
-          transactions: [
-            line('WALMART', 100),
-            line('SEGURO DE SALDO DE DEUDA', 50, { kind: 'INSURANCE' }),
-            line('INTERESES', 30, { kind: 'INTEREST' }),
-            line('PAGO RECIBIDO', 500, { kind: 'PAYMENT', isCredit: true }),
-          ],
-        }),
-      });
-      const v = await useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-      expect(classifierCalls).toHaveLength(0);
-      expect(v.expectedAmount.toString()).toBe('5');
-      expect(v.transactions.map((t) => t.excludedReason)).toEqual([
-        null,
-        'NON_PURCHASE_KIND',
-        'NON_PURCHASE_KIND',
-        'NON_PURCHASE_KIND',
-      ]);
-      expect(v.transactions[1]).toMatchObject({
-        matchSource: 'NONE',
-        categoryId: null,
-      });
-    });
-
-    it('stores primary-currency totals and per-currency summaries', async () => {
-      const v = await setup({
-        statement: statement({
+  it('warns about last4, currencies and total gaps', async () => {
+    const v = await run(
+      setup({
+        statement: mxnCashbackStatement({
+          cardLast4: '9999',
           summaries: [
-            {
-              currency: 'HNL',
-              previousBalance: d(0),
-              purchasesAndCharges: d(1400),
-              totalBalance: d(1400),
-            },
             {
               currency: 'USD',
               previousBalance: null,
-              purchasesAndCharges: d(0),
-              totalBalance: d(0),
+              purchasesAndCharges: d(5000),
+              totalBalance: null,
             },
           ],
+          transactions: [line('WALMART', 100, { currency: 'USD' })],
         }),
-      }).useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-      expect(v.primaryCurrency).toBe('HNL');
-      expect(v.totalSpent!.toString()).toBe('1400');
-      expect(v.summaries).toHaveLength(2);
-      expect(v.warnings.map((w) => w.code)).not.toContain(
-        'TOTAL_SPENT_MISMATCH',
-      );
-    });
-  });
-
-  it('warns about last4, currency and unit mismatches, and total gaps', async () => {
-    const { useCase } = setup({
-      statement: statement({
-        cardLast4: '9999',
-        currency: 'USD',
-        summaries: [
-          {
-            currency: 'USD',
-            previousBalance: null,
-            purchasesAndCharges: d(5000),
-            totalBalance: null,
-          },
-        ],
-        loyaltyPrograms: [program('PUNTOS', '10', { unit: 'POINTS' })],
-        transactions: [line('WALMART', 100, { currency: 'USD' })],
       }),
-    });
-    const v = await useCase.execute({
-      userId: USER,
-      cardId: 'card-1',
-      pdf,
-      exchangeRate: '25',
-    });
+    );
     expect(v.warnings.map((w) => w.code).sort()).toEqual([
       'CARD_LAST4_MISMATCH',
       'CURRENCY_MISMATCH',
-      'REPORTED_UNIT_DIFFERS_FROM_CARD',
       'TOTAL_SPENT_MISMATCH',
     ]);
   });
 
-  it('handles an empty statement', async () => {
-    const { useCase } = setup({
-      statement: statement({
-        transactions: [],
-        loyaltyPrograms: [program('CASH', '0')],
-      }),
-    });
-    const v = await useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-    expect(v).toMatchObject({ verdict: 'MATCH' });
-    expect(v.expectedAmount.toString()).toBe('0');
+  it('stores an empty statement with a warning', async () => {
+    const v = await run(
+      setup({ statement: mxnCashbackStatement({ transactions: [] }) }),
+    );
     expect(v.warnings.map((w) => w.code)).toContain('NO_TRANSACTIONS');
   });
 
   it('rejects non-PDF bytes and unknown cards before calling Claude', async () => {
+    const s = setup({});
     await expect(
-      setup({}).useCase.execute({
+      s.useCase.execute({
         userId: USER,
         cardId: 'card-1',
         pdf: Buffer.from('GIF89a'),
       }),
     ).rejects.toMatchObject({ code: 'INVALID_PDF' });
-    await expect(
-      setup({ card: null }).useCase.execute({
-        userId: USER,
-        cardId: 'nope',
-        pdf,
-      }),
-    ).rejects.toMatchObject({ code: 'CARD_NOT_FOUND' });
+    expect(s.extractorContexts).toHaveLength(0);
+    await expect(run(setup({ card: null }))).rejects.toMatchObject({
+      code: 'CARD_NOT_FOUND',
+    });
+  });
+
+  it('keeps Decimal amounts exact', async () => {
+    const v = await run(setup({}));
+    expect(v.transactions[0]!.amount).toBeInstanceOf(Decimal);
+    expect(program('x', '1').accumulated).toBeInstanceOf(Decimal);
   });
 });

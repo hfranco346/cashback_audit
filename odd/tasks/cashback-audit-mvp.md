@@ -41,6 +41,9 @@ Out (for now): web client, multi-currency conversion, push notifications, produc
 - [ ] T11 API multi-currency + loyalty programs (per-currency transactions, exchange rates, program selection, cumulative warning)
 - [ ] T12 API model routing per task (`ANTHROPIC_EXTRACTION_MODEL` / `ANTHROPIC_CLASSIFICATION_MODEL`, models stored per verification)
 - [ ] T13 API category-level classification (Haiku, categories without merchants, transaction kinds, `AI_CATEGORY` / `AI_MERCHANT`)
+- [ ] T14 API two-step verification: generic extraction + `detectedRates`, `AWAITING_RATES` -> `POST /verifications/:id/confirm` with user-confirmed rates (`appliedRates`), recalculation, status filter, synthetic fixtures
+- [ ] T15 API narrative explanation (cheap model, Spanish, text-only), `PATCH /verifications/:id/transactions/:index` category correction, stale `AWAITING_RATES` cleanup
+- [ ] T16 API credits: ledger (FREE/PLAN/PURCHASED), webhook grants, atomic consumption + refund, `GET /credits/me`, replaces the subscription gate
 
 ## Accepted change (post-T10, user-requested after the first real statement)
 The first real statement (BAC Credomatic Honduras) is multi-currency (Lempiras and Dolares columns), lists several loyalty programs ("PUNTOS BAC CREDOMATIC", "CASH BAC CREDOMATIC") and includes non-purchase lines (insurance, interest). The user's categories ("Supermercados", "Farmacia") must count everything that is a supermarket or pharmacy even with no registered merchant. This supersedes the earlier "Out: multi-currency conversion" scope item and the T4 rule "reward = period figure from the statement" (the audited value is now the chosen program's `accumulated` column, with a cumulative-balance warning). Breaking API changes are tracked in `docs/api-contract.md` section 12. Mobile (Flutter) follows in a later task from the updated contract; `apps/mobile` is untouched by T11-T13.

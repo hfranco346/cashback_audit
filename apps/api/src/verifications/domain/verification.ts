@@ -6,8 +6,10 @@ import type {
   Verdict,
 } from './reward-calculator.js';
 import type { ProgramSelectionSource } from './loyalty-program-selector.js';
+import type { AppliedRateSource } from './rate-proposal.js';
 import type {
   CurrencySummary,
+  DetectedRate,
   LoyaltyProgram,
   StatementExchangeRate,
   TransactionKind,
@@ -48,11 +50,12 @@ export interface VerificationTransaction {
   matchConfidence: number | null;
   /** Short classifier explanation for AI matches. */
   matchReason: string | null;
-  appliedRatePercent: Decimal;
+  /** Null until the rates are confirmed. */
+  appliedRatePercent: Decimal | null;
   /** True when a card rule (not the base rate) was applied. */
   ruleApplied: boolean;
-  /** Before monthly caps. Negative for credits. */
-  expectedReward: Decimal;
+  /** Before monthly caps. Negative for credits. Null until rates are confirmed. */
+  expectedReward: Decimal | null;
 }
 
 export interface VerificationBreakdownLine {
@@ -73,6 +76,25 @@ export interface VerificationWarning {
   message: string;
 }
 
+export type VerificationStatus = 'AWAITING_RATES' | 'COMPLETED';
+
+/** The rate used for one category (or the base) in a completed audit. */
+export interface AppliedCategoryRate {
+  categoryId: string;
+  categoryName: string | null;
+  ratePercent: Decimal;
+  monthlyCap: Decimal | null;
+  source: AppliedRateSource;
+}
+
+/** Exactly the rates a verification was audited with. */
+export interface AppliedRates {
+  baseRatePercent: Decimal;
+  baseSource: AppliedRateSource;
+  categoryRates: AppliedCategoryRate[];
+  savedToCard: boolean;
+}
+
 export interface VerificationConversion {
   /** Rate sent with the request (foreign -> primary), if any. */
   requestedRate: Decimal | null;
@@ -82,6 +104,10 @@ export interface VerificationConversion {
 }
 
 export interface VerificationLoyalty {
+  /** Program name asked for at upload / confirm time. */
+  requestedProgramName: string | null;
+  /** Reward figure the user typed, if any (wins over the statement). */
+  reportedOverride: Decimal | null;
   selected: LoyaltyProgram | null;
   selectedBy: ProgramSelectionSource | null;
   programs: LoyaltyProgram[];
@@ -107,14 +133,20 @@ export interface Verification {
   primaryCurrency: string;
   totalSpent: Decimal | null;
   totalToPay: Decimal | null;
-  reportedAmount: Decimal;
+  status: VerificationStatus;
+  /** Reward figures are null while AWAITING_RATES. */
+  reportedAmount: Decimal | null;
   reportedUnit: RewardUnit;
   reportedLabel: string | null;
-  reportedSource: 'STATEMENT' | 'OVERRIDE';
-  expectedAmount: Decimal;
-  difference: Decimal;
-  tolerance: Decimal;
-  verdict: Verdict;
+  reportedSource: 'STATEMENT' | 'OVERRIDE' | null;
+  expectedAmount: Decimal | null;
+  difference: Decimal | null;
+  tolerance: Decimal | null;
+  verdict: Verdict | null;
+  detectedRates: DetectedRate[];
+  appliedRates: AppliedRates | null;
+  /** Short narrative of the result; never used in calculations. */
+  explanation: string | null;
   summaries: CurrencySummary[];
   conversion: VerificationConversion;
   loyalty: VerificationLoyalty;
@@ -129,6 +161,11 @@ export interface Verification {
 
 export type NewVerification = Omit<Verification, 'id' | 'createdAt'>;
 
+/** Fields that can change after creation (confirm / recalculate / corrections). */
+export type VerificationUpdate = Partial<
+  Omit<NewVerification, 'userId' | 'cardId'>
+>;
+
 export type VerificationSummary = Omit<
   Verification,
   | 'breakdown'
@@ -137,4 +174,7 @@ export type VerificationSummary = Omit<
   | 'summaries'
   | 'conversion'
   | 'loyalty'
+  | 'detectedRates'
+  | 'appliedRates'
+  | 'explanation'
 >;

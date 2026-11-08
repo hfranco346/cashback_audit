@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { CardRepository } from '../../cards/domain/card.repository.js';
 import { CardNotFoundError } from '../../cards/domain/card-errors.js';
-import type { Verification } from '../domain/verification.js';
+import type {
+  Verification,
+  VerificationStatus,
+} from '../domain/verification.js';
 import { VerificationNotFoundError } from '../domain/verification-errors.js';
 import {
   VerificationRepository,
@@ -17,7 +20,12 @@ export class ListVerificationsUseCase {
 
   async execute(
     userId: string,
-    options: { cardId?: string; page: number; pageSize: number },
+    options: {
+      cardId?: string;
+      status?: VerificationStatus;
+      page: number;
+      pageSize: number;
+    },
   ): Promise<VerificationPage & { page: number; pageSize: number }> {
     if (
       options.cardId &&
@@ -27,6 +35,7 @@ export class ListVerificationsUseCase {
     }
     const result = await this.verifications.list(userId, {
       cardId: options.cardId,
+      status: options.status,
       skip: (options.page - 1) * options.pageSize,
       take: options.pageSize,
     });

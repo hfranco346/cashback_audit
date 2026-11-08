@@ -140,6 +140,12 @@ enum ReportedSource {
   OVERRIDE
 }
 
+enum VerificationStatus {
+  /// Extracted and classified; waiting for the user to confirm the rates.
+  AWAITING_RATES
+  COMPLETED
+}
+
 /// Result of auditing one statement. The PDF itself is never stored.
 model Verification {
   id             String         @id @default(uuid()) @db.Uuid
@@ -156,20 +162,28 @@ model Verification {
   primaryCurrency String        @db.Char(3)
   totalSpent     Decimal?       @db.Decimal(16, 2)
   totalToPay     Decimal?       @db.Decimal(16, 2)
-  reportedAmount Decimal        @db.Decimal(16, 2)
+  status         VerificationStatus @default(COMPLETED)
+  /// Reward figures are null while AWAITING_RATES.
+  reportedAmount Decimal?       @db.Decimal(16, 2)
   reportedUnit   RewardUnit
   reportedLabel  String?
-  reportedSource ReportedSource
-  expectedAmount Decimal        @db.Decimal(16, 2)
-  difference     Decimal        @db.Decimal(16, 2)
-  tolerance      Decimal        @db.Decimal(16, 2)
-  verdict        Verdict
+  reportedSource ReportedSource?
+  expectedAmount Decimal?       @db.Decimal(16, 2)
+  difference     Decimal?       @db.Decimal(16, 2)
+  tolerance      Decimal?       @db.Decimal(16, 2)
+  verdict        Verdict?
   /// Statement summary per currency column.
   summaries      Json           @default("[]")
   /// Rates used and per-currency subtotals.
   conversion     Json           @default("{}")
   /// Chosen loyalty program and all programs found.
   loyalty        Json           @default("{}")
+  /// Rates the statement itself states (as extracted).
+  detectedRates  Json           @default("[]")
+  /// Rates confirmed by the user and used for the audit.
+  appliedRates   Json?
+  /// Short narrative of the result; never used in calculations.
+  explanation    String?
   breakdown      Json
   transactions   Json
   warnings       Json
@@ -182,6 +196,7 @@ model Verification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
 
+  @@index([userId, status, createdAt(sort: Desc)])
   @@index([userId, createdAt(sort: Desc)])
   @@index([cardId, createdAt(sort: Desc)])
 }

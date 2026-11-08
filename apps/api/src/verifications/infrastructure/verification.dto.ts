@@ -1,6 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
+import { Type } from 'class-transformer';
+import { CardRuleDto } from '../../cards/infrastructure/card.dto.js';
 import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  ValidateNested,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -16,15 +23,6 @@ export class CreateVerificationDto {
   @ApiProperty({ description: 'Card the statement belongs to' })
   @IsUUID()
   cardId!: string;
-
-  @ApiPropertyOptional({
-    example: '125.40',
-    description:
-      'Reward reported by the bank, when the statement does not show it or Claude misread it. Overrides the extracted value.',
-  })
-  @IsOptional()
-  @DecimalField({ min: '0', max: '1000000000000', maxDecimals: 2 })
-  reportedRewardOverride?: string;
 
   @ApiPropertyOptional({
     example: '24.65',
@@ -55,7 +53,62 @@ export class CreateVerificationDto {
   rewardProgramName?: string;
 }
 
+export class ConfirmVerificationDto {
+  @ApiProperty({
+    example: '1',
+    description: 'Base rate in percent (0-100) for spend with no category rate',
+  })
+  @DecimalField({ min: '0', max: '100', maxDecimals: 4 })
+  baseRatePercent!: string;
+
+  @ApiProperty({
+    type: [CardRuleDto],
+    description:
+      'Rate per category; must include every category marked required in rateProposal',
+  })
+  @IsArray()
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => CardRuleDto)
+  categoryRates!: CardRuleDto[];
+
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Also save these rates as the card rates',
+  })
+  @IsOptional()
+  @IsBoolean()
+  saveToCard?: boolean;
+
+  @ApiPropertyOptional({ example: '125.40' })
+  @IsOptional()
+  @DecimalField({ min: '0', max: '1000000000000', maxDecimals: 2 })
+  reportedRewardOverride?: string;
+
+  @ApiPropertyOptional({ example: '26.35' })
+  @IsOptional()
+  @DecimalField({
+    min: '0',
+    max: '1000000',
+    minInclusive: false,
+    maxDecimals: 6,
+  })
+  exchangeRate?: string;
+
+  @ApiPropertyOptional({ example: 'CASH BAC CREDOMATIC' })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  rewardProgramName?: string;
+}
+
 export class ListVerificationsQuery {
+  @ApiPropertyOptional({ enum: ['AWAITING_RATES', 'COMPLETED'] })
+  @IsOptional()
+  @IsEnum(['AWAITING_RATES', 'COMPLETED'])
+  status?: 'AWAITING_RATES' | 'COMPLETED';
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

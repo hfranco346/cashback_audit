@@ -1,18 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { PrismaService } from '../../shared/prisma/prisma.service.js';
-import type {
+import {
   Prisma,
-  Verification as PrismaVerification,
+  type Verification as PrismaVerification,
 } from '../../shared/prisma/generated/client.js';
 import type { CurrencySubtotal } from '../domain/reward-calculator.js';
+import type { DetectedRate } from '../domain/statement.js';
 import type { CurrencySummary, LoyaltyProgram } from '../domain/statement.js';
 import type {
+  AppliedRates,
   NewVerification,
+  VerificationUpdate,
   Verification,
   VerificationBreakdownLine,
   VerificationConversion,
   VerificationLoyalty,
+  VerificationStatus,
   VerificationSummary,
   VerificationTransaction,
   VerificationWarning,
@@ -38,8 +42,8 @@ const parseDec = (value: unknown) =>
 const serializeTransaction = (t: VerificationTransaction) => ({
   ...t,
   amount: t.amount.toString(),
-  appliedRatePercent: t.appliedRatePercent.toString(),
-  expectedReward: t.expectedReward.toString(),
+  appliedRatePercent: decStr(t.appliedRatePercent),
+  expectedReward: decStr(t.expectedReward),
   convertedAmount: decStr(t.convertedAmount),
   exchangeRate: decStr(t.exchangeRate),
 });
@@ -53,8 +57,8 @@ const deserializeTransaction = (j: Json): VerificationTransaction =>
     ...j,
     matchSource: j.matchSource === 'AI' ? 'AI_MERCHANT' : j.matchSource,
     amount: new Decimal(j.amount as string),
-    appliedRatePercent: new Decimal(j.appliedRatePercent as string),
-    expectedReward: new Decimal(j.expectedReward as string),
+    appliedRatePercent: parseDec(j.appliedRatePercent),
+    expectedReward: parseDec(j.expectedReward),
     convertedAmount: parseDec(j.convertedAmount),
     exchangeRate: parseDec(j.exchangeRate),
   }) as VerificationTransaction;
@@ -133,14 +137,49 @@ const deserializeConversion = (j: Json): VerificationConversion => {
 };
 
 const serializeLoyalty = (l: VerificationLoyalty) => ({
+  requestedProgramName: l.requestedProgramName,
+  reportedOverride: decStr(l.reportedOverride),
   selected: l.selected ? serializeProgram(l.selected) : null,
   selectedBy: l.selectedBy,
   programs: l.programs.map(serializeProgram),
 });
 const deserializeLoyalty = (j: Json): VerificationLoyalty => ({
+  requestedProgramName: (j.requestedProgramName as string | undefined) ?? null,
+  reportedOverride: parseDec(j.reportedOverride),
   selected: j.selected ? deserializeProgram(j.selected as Json) : null,
   selectedBy: (j.selectedBy as VerificationLoyalty['selectedBy']) ?? null,
   programs: ((j.programs as Json[] | undefined) ?? []).map(deserializeProgram),
+});
+
+const serializeDetected = (r: DetectedRate) => ({
+  ...r,
+  ratePercent: decStr(r.ratePercent),
+});
+const deserializeDetected = (j: Json): DetectedRate =>
+  ({ ...j, ratePercent: parseDec(j.ratePercent) }) as DetectedRate;
+
+const serializeApplied = (a: AppliedRates) => ({
+  baseRatePercent: a.baseRatePercent.toString(),
+  baseSource: a.baseSource,
+  savedToCard: a.savedToCard,
+  categoryRates: a.categoryRates.map((c) => ({
+    ...c,
+    ratePercent: c.ratePercent.toString(),
+    monthlyCap: decStr(c.monthlyCap),
+  })),
+});
+const deserializeApplied = (j: Json): AppliedRates => ({
+  baseRatePercent: new Decimal(j.baseRatePercent as string),
+  baseSource: j.baseSource as AppliedRates['baseSource'],
+  savedToCard: Boolean(j.savedToCard),
+  categoryRates: asArray(j.categoryRates).map(
+    (c) =>
+      ({
+        ...c,
+        ratePercent: new Decimal(c.ratePercent as string),
+        monthlyCap: parseDec(c.monthlyCap),
+      }) as AppliedRates['categoryRates'][number],
+  ),
 });
 
 const serializeLine = (l: VerificationBreakdownLine) => ({
@@ -180,13 +219,14 @@ function toSummary(row: PrismaVerification): VerificationSummary {
     primaryCurrency: row.primaryCurrency,
     totalSpent: decOrNull(row.totalSpent),
     totalToPay: decOrNull(row.totalToPay),
-    reportedAmount: dec(row.reportedAmount),
+    status: row.status,
+    reportedAmount: decOrNull(row.reportedAmount),
     reportedUnit: row.reportedUnit,
     reportedLabel: row.reportedLabel,
     reportedSource: row.reportedSource,
-    expectedAmount: dec(row.expectedAmount),
-    difference: dec(row.difference),
-    tolerance: dec(row.tolerance),
+    expectedAmount: decOrNull(row.expectedAmount),
+    difference: decOrNull(row.difference),
+    tolerance: decOrNull(row.tolerance),
     verdict: row.verdict,
     model: row.model,
     models: {
@@ -209,7 +249,65 @@ function toDomain(row: PrismaVerification): Verification {
     summaries: asArray(row.summaries).map(deserializeSummary),
     conversion: deserializeConversion(asRecord(row.conversion)),
     loyalty: deserializeLoyalty(asRecord(row.loyalty)),
+    detectedRates: asArray(row.detectedRates).map(deserializeDetected),
+    appliedRates: row.appliedRates
+      ? deserializeApplied(asRecord(row.appliedRates))
+      : null,
+    explanation: row.explanation,
   };
+}
+
+const iso = (date: string | null) =>
+  date ? new Date(`${date}T00:00:00Z`) : null;
+
+/** Maps the provided domain fields (all of them on create) to column values. */
+function toData(input: VerificationUpdate): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const set = (key: string, value: unknown) => {
+    if (value !== undefined) out[key] = value;
+  };
+  const dstr = (v: Decimal | null | undefined) =>
+    v === undefined ? undefined : (v?.toString() ?? null);
+  set('statementBank', input.statementBank);
+  set('statementLast4', input.statementLast4);
+  set(
+    'periodStart',
+    input.periodStart === undefined ? undefined : iso(input.periodStart),
+  );
+  set(
+    'periodEnd',
+    input.periodEnd === undefined ? undefined : iso(input.periodEnd),
+  );
+  set('currency', input.currency);
+  set('primaryCurrency', input.primaryCurrency);
+  set('totalSpent', dstr(input.totalSpent));
+  set('totalToPay', dstr(input.totalToPay));
+  set('status', input.status);
+  set('reportedAmount', dstr(input.reportedAmount));
+  set('reportedUnit', input.reportedUnit);
+  set('reportedLabel', input.reportedLabel);
+  set('reportedSource', input.reportedSource);
+  set('expectedAmount', dstr(input.expectedAmount));
+  set('difference', dstr(input.difference));
+  set('tolerance', dstr(input.tolerance));
+  set('verdict', input.verdict);
+  set('explanation', input.explanation);
+  set('model', input.model);
+  set('models', input.models);
+  set('summaries', input.summaries?.map(serializeSummary));
+  set('conversion', input.conversion && serializeConversion(input.conversion));
+  set('loyalty', input.loyalty && serializeLoyalty(input.loyalty));
+  set('detectedRates', input.detectedRates?.map(serializeDetected));
+  if (input.appliedRates !== undefined) {
+    out.appliedRates =
+      input.appliedRates === null
+        ? Prisma.JsonNull
+        : serializeApplied(input.appliedRates);
+  }
+  set('breakdown', input.breakdown?.map(serializeLine));
+  set('transactions', input.transactions?.map(serializeTransaction));
+  set('warnings', input.warnings);
+  return out;
 }
 
 @Injectable()
@@ -223,43 +321,23 @@ export class PrismaVerificationRepository extends VerificationRepository {
       data: {
         userId: input.userId,
         cardId: input.cardId,
-        statementBank: input.statementBank,
-        statementLast4: input.statementLast4,
-        periodStart: input.periodStart
-          ? new Date(`${input.periodStart}T00:00:00Z`)
-          : null,
-        periodEnd: input.periodEnd
-          ? new Date(`${input.periodEnd}T00:00:00Z`)
-          : null,
-        currency: input.currency,
-        primaryCurrency: input.primaryCurrency,
-        totalSpent: input.totalSpent?.toString() ?? null,
-        totalToPay: input.totalToPay?.toString() ?? null,
-        reportedAmount: input.reportedAmount.toString(),
-        reportedUnit: input.reportedUnit,
-        reportedLabel: input.reportedLabel,
-        reportedSource: input.reportedSource,
-        expectedAmount: input.expectedAmount.toString(),
-        difference: input.difference.toString(),
-        tolerance: input.tolerance.toString(),
-        verdict: input.verdict,
-        summaries: input.summaries.map(
-          serializeSummary,
-        ) as Prisma.InputJsonValue,
-        conversion: serializeConversion(
-          input.conversion,
-        ) as Prisma.InputJsonValue,
-        loyalty: serializeLoyalty(input.loyalty) as Prisma.InputJsonValue,
-        breakdown: input.breakdown.map(serializeLine) as Prisma.InputJsonValue,
-        transactions: input.transactions.map(
-          serializeTransaction,
-        ) as Prisma.InputJsonValue,
-        warnings: input.warnings as unknown as Prisma.InputJsonValue,
-        model: input.model,
-        models: input.models as unknown as Prisma.InputJsonValue,
-      },
+        ...toData(input),
+      } as Prisma.VerificationUncheckedCreateInput,
     });
     return toDomain(row);
+  }
+
+  async update(
+    userId: string,
+    id: string,
+    patch: VerificationUpdate,
+  ): Promise<Verification | null> {
+    const owned = await this.prisma.verification.updateMany({
+      where: { id, userId },
+      data: toData(patch) as Prisma.VerificationUncheckedUpdateManyInput,
+    });
+    if (owned.count === 0) return null;
+    return this.findById(userId, id);
   }
 
   async findById(userId: string, id: string): Promise<Verification | null> {
@@ -271,9 +349,18 @@ export class PrismaVerificationRepository extends VerificationRepository {
 
   async list(
     userId: string,
-    filter: { cardId?: string; skip: number; take: number },
+    filter: {
+      cardId?: string;
+      status?: VerificationStatus;
+      skip: number;
+      take: number;
+    },
   ): Promise<VerificationPage> {
-    const where = { userId, ...(filter.cardId && { cardId: filter.cardId }) };
+    const where = {
+      userId,
+      ...(filter.cardId && { cardId: filter.cardId }),
+      ...(filter.status && { status: filter.status }),
+    };
     const [rows, total] = await Promise.all([
       this.prisma.verification.findMany({
         where,

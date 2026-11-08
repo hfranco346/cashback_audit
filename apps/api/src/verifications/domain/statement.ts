@@ -73,6 +73,28 @@ export interface LoyaltyProgram {
   unit: LoyaltyUnit;
 }
 
+/** A reward rate the statement itself states (promotion, program terms). */
+export interface DetectedRate {
+  scope: 'BASE' | 'CATEGORY';
+  /** Category wording as written on the statement. */
+  categoryHint: string | null;
+  /** One of the user's categories, when the hint clearly maps to it. */
+  suggestedCategoryId: string | null;
+  /** Percent of spend; null when it cannot be expressed as a percentage. */
+  ratePercent: Decimal | null;
+  /** The raw wording when the rate is not a plain percentage. */
+  unitNote: string | null;
+  /** Short quote from the document. */
+  evidence: string;
+  /** 0..1 */
+  confidence: number;
+}
+
+/** User data the extractor may use to map statement wording to categories. */
+export interface ExtractionContext {
+  categories: { id: string; name: string; description: string | null }[];
+}
+
 export interface ExtractedStatement {
   bank: string | null;
   cardLast4: string | null;
@@ -83,6 +105,7 @@ export interface ExtractedStatement {
   summaries: CurrencySummary[];
   exchangeRate: StatementExchangeRate | null;
   loyaltyPrograms: LoyaltyProgram[];
+  detectedRates: DetectedRate[];
   transactions: ExtractedTransaction[];
 }
 

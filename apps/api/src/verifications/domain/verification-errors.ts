@@ -60,3 +60,40 @@ export class RewardProgramAmbiguousError extends DomainError {
     );
   }
 }
+
+export class RatesRequiredError extends DomainError {
+  constructor(missing: { categoryId: string; categoryName: string | null }[]) {
+    super(
+      'UNPROCESSABLE',
+      'RATES_REQUIRED',
+      'A reward rate is required for every category without a known rate. Send categoryRates for the missing categories.',
+      { missing },
+    );
+  }
+}
+
+export class VerificationAlreadyCompletedError extends DomainError {
+  constructor() {
+    super(
+      'CONFLICT',
+      'VERIFICATION_NOT_AWAITING_RATES',
+      'This verification is already completed.',
+    );
+  }
+}
+
+export class TransactionNotFoundError extends DomainError {
+  constructor() {
+    super('NOT_FOUND', 'TRANSACTION_NOT_FOUND', 'Transaction not found');
+  }
+}
+
+export class TransactionNotClassifiableError extends DomainError {
+  constructor() {
+    super(
+      'UNPROCESSABLE',
+      'TRANSACTION_NOT_CLASSIFIABLE',
+      'Only purchases and refunds can be assigned to a category.',
+    );
+  }
+}

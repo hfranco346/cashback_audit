@@ -21,6 +21,8 @@ import { CurrentUser } from '../../auth/infrastructure/current-user.decorator.js
 import { IdParam } from '../../shared/http/id.param.js';
 import { StrictThrottle } from '../../shared/http/throttling.js';
 import { SubscriptionGuard } from '../../subscriptions/infrastructure/subscription.guard.js';
+import { ConfirmVerificationUseCase } from '../application/confirm-verification.use-case.js';
+import { RateProposalService } from '../application/rate-proposal.service.js';
 import { CreateVerificationUseCase } from '../application/create-verification.use-case.js';
 import {
   DeleteVerificationUseCase,
@@ -28,6 +30,7 @@ import {
   ListVerificationsUseCase,
 } from '../application/verification.use-cases.js';
 import {
+  ConfirmVerificationDto,
   CreateVerificationDto,
   ListVerificationsQuery,
 } from './verification.dto.js';
@@ -67,6 +70,8 @@ export const pdfUploadOptions = {
 export class VerificationsController {
   constructor(
     private readonly createVerification: CreateVerificationUseCase,
+    private readonly confirmVerification: ConfirmVerificationUseCase,
+    private readonly proposals: RateProposalService,
     private readonly listVerifications: ListVerificationsUseCase,
     private readonly getVerification: GetVerificationUseCase,
     private readonly deleteVerification: DeleteVerificationUseCase,
@@ -88,7 +93,6 @@ export class VerificationsController {
           description: 'Statement PDF (max 10 MB)',
         },
         cardId: { type: 'string', format: 'uuid' },
-        reportedRewardOverride: { type: 'string', example: '125.40' },
         exchangeRate: { type: 'string', example: '24.65' },
         rewardProgramName: { type: 'string', example: 'CASH BAC CREDOMATIC' },
       },
@@ -109,11 +113,36 @@ export class VerificationsController {
       userId: user.id,
       cardId: dto.cardId,
       pdf: file.buffer,
+      exchangeRate: dto.exchangeRate,
+      rewardProgramName: dto.rewardProgramName,
+    });
+    return presentVerification(
+      verification,
+      await this.proposals.forVerification(user.id, verification),
+    );
+  }
+
+  @Post(':id/confirm')
+  @HttpCode(200)
+  async confirm(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() { id }: IdParam,
+    @Body() dto: ConfirmVerificationDto,
+  ) {
+    const verification = await this.confirmVerification.execute({
+      userId: user.id,
+      verificationId: id,
+      baseRatePercent: dto.baseRatePercent,
+      categoryRates: dto.categoryRates,
+      saveToCard: dto.saveToCard,
       reportedRewardOverride: dto.reportedRewardOverride,
       exchangeRate: dto.exchangeRate,
       rewardProgramName: dto.rewardProgramName,
     });
-    return presentVerification(verification);
+    return presentVerification(
+      verification,
+      await this.proposals.forVerification(user.id, verification),
+    );
   }
 
   @Get()
@@ -123,6 +152,7 @@ export class VerificationsController {
   ) {
     const result = await this.listVerifications.execute(user.id, {
       cardId: query.cardId,
+      status: query.status,
       page: query.page,
       pageSize: query.pageSize,
     });
@@ -136,7 +166,11 @@ export class VerificationsController {
 
   @Get(':id')
   async get(@CurrentUser() user: AuthenticatedUser, @Param() { id }: IdParam) {
-    return presentVerification(await this.getVerification.execute(user.id, id));
+    const verification = await this.getVerification.execute(user.id, id);
+    return presentVerification(
+      verification,
+      await this.proposals.forVerification(user.id, verification),
+    );
   }
 
   @Delete(':id')

@@ -6,6 +6,10 @@ import { ClaudeLineClassifier } from './claude-line-classifier.js';
 import { ClaudeStatementExtractor } from './claude-statement-extractor.js';
 import { parseExtraction } from './extraction-schema.js';
 
+const ctx = {
+  categories: [{ id: 'c-super', name: 'Supermarkets', description: null }],
+};
+
 const config = (
   key = 'sk-ant-secret-key',
   extra: Record<string, string> = {},
@@ -42,6 +46,17 @@ const validOutput = {
     },
   ],
   exchangeRate: null,
+  detectedRates: [
+    {
+      scope: 'CATEGORY',
+      categoryHint: 'supermarkets',
+      suggestedCategoryId: 'c-super',
+      ratePercent: '7',
+      unitNote: null,
+      evidence: '7% back at supermarkets',
+      confidence: 0.9,
+    },
+  ],
   loyaltyPrograms: [
     {
       name: 'PUNTOS BAC CREDOMATIC',
@@ -164,6 +179,36 @@ describe('parseExtraction', () => {
     }
   });
 
+  it('keeps detected rates, maps only known categories and nulls bad percentages', () => {
+    const s = parseExtraction(validOutput, new Set(['c-super']))!;
+    expect(s.detectedRates).toHaveLength(1);
+    expect(s.detectedRates[0]).toMatchObject({
+      scope: 'CATEGORY',
+      suggestedCategoryId: 'c-super',
+      evidence: '7% back at supermarkets',
+      confidence: 0.9,
+    });
+    expect(s.detectedRates[0]!.ratePercent!.toString()).toBe('7');
+
+    const unknown = parseExtraction(validOutput)!; // no categories known
+    expect(unknown.detectedRates[0]!.suggestedCategoryId).toBeNull();
+
+    const odd = parseExtraction({
+      ...validOutput,
+      detectedRates: [
+        { ...validOutput.detectedRates[0]!, scope: 'BASE', ratePercent: '250' },
+        {
+          ...validOutput.detectedRates[0]!,
+          ratePercent: '2 points',
+          confidence: 7,
+        },
+      ],
+    })!;
+    expect(odd.detectedRates.map((r) => r.ratePercent)).toEqual([null, null]);
+    expect(odd.detectedRates[0]!.suggestedCategoryId).toBeNull(); // BASE never maps
+    expect(odd.detectedRates[1]!.confidence).toBe(1);
+  });
+
   it('falls back to the statement currency for an unreadable line currency', () => {
     const s = parseExtraction({
       ...validOutput,
@@ -243,7 +288,7 @@ describe('ClaudeStatementExtractor', () => {
     );
     const pdf = Buffer.from('%PDF-1.7 test');
 
-    const { statement, model } = await extractor.extract(pdf);
+    const { statement, model } = await extractor.extract(pdf, ctx);
 
     expect(model).toBe('claude-sonnet-5-5');
     expect(statement.transactions).toHaveLength(3);
@@ -251,7 +296,8 @@ describe('ClaudeStatementExtractor', () => {
     expect(call.model).toBe('claude-sonnet-5-5');
     expect(call.output_config.format.type).toBe('json_schema');
     expect(call.system).toContain('untrusted data');
-    expect(call.system).toContain('Lempiras=HNL');
+    expect(call.system).not.toMatch(/Lempiras|Acumulados|BAC/);
+    expect(call.system).toContain('ISO 4217');
     const [doc, text] = call.messages[0].content;
     expect(doc).toEqual({
       type: 'document',
@@ -262,6 +308,7 @@ describe('ClaudeStatementExtractor', () => {
       },
     });
     expect(text.type).toBe('text');
+    expect(text.text).toContain('c-super');
   });
 
   it('routes extraction and classification to their configured models', async () => {
@@ -272,7 +319,7 @@ describe('ClaudeStatementExtractor', () => {
     const ext = fakeClient(textMessage(validOutput));
     const extracted = await new ClaudeStatementExtractor(
       new ClaudeJsonClient(ext.client, cfg),
-    ).extract(Buffer.from('%PDF-'));
+    ).extract(Buffer.from('%PDF-'), ctx);
     expect(extracted.model).toBe('claude-opus-5-5');
     expect(ext.calls[0].model).toBe('claude-opus-5-5');
 
@@ -291,12 +338,12 @@ describe('ClaudeStatementExtractor', () => {
     const extractor = new ClaudeStatementExtractor(
       new ClaudeJsonClient(client, config()),
     );
-    await expect(extractor.extract(Buffer.from('%PDF-'))).rejects.toMatchObject(
-      {
-        kind: 'UNPROCESSABLE',
-        code: 'UNREADABLE_STATEMENT',
-      },
-    );
+    await expect(
+      extractor.extract(Buffer.from('%PDF-'), ctx),
+    ).rejects.toMatchObject({
+      kind: 'UNPROCESSABLE',
+      code: 'UNREADABLE_STATEMENT',
+    });
   });
 
   it.each([
@@ -314,9 +361,9 @@ describe('ClaudeStatementExtractor', () => {
     const extractor = new ClaudeStatementExtractor(
       new ClaudeJsonClient(client, config()),
     );
-    await expect(extractor.extract(Buffer.from('%PDF-'))).rejects.toMatchObject(
-      { kind },
-    );
+    await expect(
+      extractor.extract(Buffer.from('%PDF-'), ctx),
+    ).rejects.toMatchObject({ kind });
   });
 
   const apiError = (status: number) =>
@@ -344,7 +391,7 @@ describe('ClaudeStatementExtractor', () => {
         new ClaudeJsonClient(client, config()),
       );
       const error = await extractor
-        .extract(Buffer.from('%PDF-'))
+        .extract(Buffer.from('%PDF-'), ctx)
         .catch((e) => e);
       expect(error.kind).toBe(kind);
       expect(error.message).not.toContain('sk-ant');
@@ -359,9 +406,9 @@ describe('ClaudeStatementExtractor', () => {
     const extractor = new ClaudeStatementExtractor(
       new ClaudeJsonClient(client, config()),
     );
-    await expect(extractor.extract(Buffer.from('%PDF-'))).rejects.toMatchObject(
-      { kind: 'UPSTREAM_UNAVAILABLE' },
-    );
+    await expect(
+      extractor.extract(Buffer.from('%PDF-'), ctx),
+    ).rejects.toMatchObject({ kind: 'UPSTREAM_UNAVAILABLE' });
   });
 
   it('fails fast without calling Claude when no API key is configured', async () => {
@@ -369,9 +416,9 @@ describe('ClaudeStatementExtractor', () => {
     const extractor = new ClaudeStatementExtractor(
       new ClaudeJsonClient(client, config('')),
     );
-    await expect(extractor.extract(Buffer.from('%PDF-'))).rejects.toMatchObject(
-      { code: 'EXTRACTION_UNAVAILABLE' },
-    );
+    await expect(
+      extractor.extract(Buffer.from('%PDF-'), ctx),
+    ).rejects.toMatchObject({ code: 'EXTRACTION_UNAVAILABLE' });
     expect(calls).toHaveLength(0);
   });
 });

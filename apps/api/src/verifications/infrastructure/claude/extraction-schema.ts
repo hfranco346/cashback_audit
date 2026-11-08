@@ -45,15 +45,15 @@ export const extractionOutputSchema = z.object({
         previousBalance: z
           .string()
           .nullable()
-          .describe('Saldo anterior, plain decimal string'),
+          .describe('Balance carried over from the previous statement'),
         purchasesAndCharges: z
           .string()
           .nullable()
-          .describe('Compras + otros cargos, plain decimal string'),
+          .describe('Purchases plus other charges of the period'),
         totalBalance: z
           .string()
           .nullable()
-          .describe('Saldo total / total to pay, plain decimal string'),
+          .describe('Total balance owed / total to pay'),
       }),
     )
     .describe('One entry per currency column of the statement summary'),
@@ -69,22 +69,61 @@ export const extractionOutputSchema = z.object({
     .array(
       z.object({
         name: z.string().describe('Program name exactly as printed'),
-        accumulated: z.string().nullable().describe('Acumulados'),
-        available: z.string().nullable().describe('Disponibles'),
-        redeemedInPeriod: z.string().nullable().describe('Redimidos en el mes'),
-        expiring: z.string().nullable().describe('Por vencer'),
-        forfeited: z.string().nullable().describe('Castigados'),
+        accumulated: z
+          .string()
+          .nullable()
+          .describe('Accumulated / earned column, as printed'),
+        available: z
+          .string()
+          .nullable()
+          .describe('Available / redeemable balance'),
+        redeemedInPeriod: z
+          .string()
+          .nullable()
+          .describe('Redeemed / used during the period'),
+        expiring: z.string().nullable().describe('Expiring soon'),
+        forfeited: z
+          .string()
+          .nullable()
+          .describe('Forfeited / expired / written off'),
         unit: z.enum(LOYALTY_UNITS),
       }),
     )
-    .describe('Every row of the loyalty-program table; empty if none'),
+    .describe('Every row of any rewards/loyalty table; empty if none'),
+  detectedRates: z
+    .array(
+      z.object({
+        scope: z.enum(['BASE', 'CATEGORY']),
+        categoryHint: z
+          .string()
+          .nullable()
+          .describe('Spending category as worded in the document'),
+        suggestedCategoryId: z
+          .string()
+          .nullable()
+          .describe('Id of the matching category from the provided list'),
+        ratePercent: z
+          .string()
+          .nullable()
+          .describe('Percent of spend as a plain decimal, e.g. "7"'),
+        unitNote: z
+          .string()
+          .nullable()
+          .describe('Original wording when not a plain percentage'),
+        evidence: z.string().describe('Short quote from the document'),
+        confidence: z.number().describe('0 to 1'),
+      }),
+    )
+    .describe(
+      'Reward rates the document itself states; empty if it states none',
+    ),
   transactions: z.array(
     z.object({
       date: z.string().describe('YYYY-MM-DD'),
       reference: z
         .string()
         .nullable()
-        .describe('Reference number (No. de referencia) if printed'),
+        .describe('Reference / authorization number if printed'),
       description: z.string().describe('Concept text exactly as printed'),
       amount: z.string().describe('Positive plain decimal string'),
       currency: z
@@ -103,10 +142,12 @@ export const extractionOutputSchema = z.object({
 export type ExtractionOutput = z.infer<typeof extractionOutputSchema>;
 
 const DECIMAL = /^\d{1,13}(\.\d{1,6})?$/;
+const RATE_DECIMAL = /^\d{1,3}(\.\d{1,4})?$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const CURRENCY = /^[A-Z]{3}$/;
 const MAX_TRANSACTIONS = 2000;
 const MAX_PROGRAMS = 20;
+const MAX_DETECTED_RATES = 40;
 
 const decimal = z.string().trim().regex(DECIMAL);
 const optionalDecimal = z
@@ -178,6 +219,20 @@ const strictSchema = extractionOutputSchema.extend({
     )
     .max(MAX_PROGRAMS)
     .catch([]),
+  detectedRates: z
+    .array(
+      z.object({
+        scope: z.enum(['BASE', 'CATEGORY']),
+        categoryHint: z.string().nullable(),
+        suggestedCategoryId: z.string().nullable(),
+        ratePercent: z.string().nullable(),
+        unitNote: z.string().nullable(),
+        evidence: z.string(),
+        confidence: z.number(),
+      }),
+    )
+    .max(MAX_DETECTED_RATES)
+    .catch([]),
   transactions: z
     .array(
       z.object({
@@ -204,7 +259,10 @@ const strictSchema = extractionOutputSchema.extend({
  * A line whose currency is unreadable falls back to the statement currency;
  * if that is unknown too the extraction is unusable.
  */
-export function parseExtraction(raw: unknown): ExtractedStatement | null {
+export function parseExtraction(
+  raw: unknown,
+  validCategoryIds: ReadonlySet<string> = new Set(),
+): ExtractedStatement | null {
   const result = strictSchema.safeParse(raw);
   if (!result.success) throw new ExtractionFailedError();
   const data = result.data;
@@ -259,6 +317,29 @@ export function parseExtraction(raw: unknown): ExtractedStatement | null {
     summaries,
     exchangeRate: exchangeRate && exchangeRate.rate.gt(0) ? exchangeRate : null,
     loyaltyPrograms: data.loyaltyPrograms,
+    detectedRates: data.detectedRates.map((r) => {
+      const percent =
+        r.ratePercent && RATE_DECIMAL.test(r.ratePercent.trim())
+          ? new Decimal(r.ratePercent.trim())
+          : null;
+      return {
+        scope: r.scope,
+        categoryHint: r.categoryHint?.trim().slice(0, 120) || null,
+        suggestedCategoryId:
+          r.scope === 'CATEGORY' &&
+          r.suggestedCategoryId &&
+          validCategoryIds.has(r.suggestedCategoryId)
+            ? r.suggestedCategoryId
+            : null,
+        ratePercent: percent && percent.lte(100) ? percent : null,
+        unitNote: r.unitNote?.trim().slice(0, 160) || null,
+        evidence: r.evidence.trim().slice(0, 240),
+        confidence: Math.min(
+          1,
+          Math.max(0, Number.isFinite(r.confidence) ? r.confidence : 0),
+        ),
+      };
+    }),
     transactions,
   };
 }
