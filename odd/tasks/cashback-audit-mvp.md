@@ -1,0 +1,55 @@
+# Feature: cashback-audit-mvp
+
+## Objective
+Mobile app (Flutter) + backend (NestJS/Postgres) that lets a user upload a credit-card statement PDF, have Claude extract transactions and the reported cashback/points, and verify whether the bank credited the reward the user is owed according to the card's rules and the user's merchant categories.
+
+## Problem / Why
+Banks report a points/cashback total per statement but users cannot easily check it against the accrual rates promised per category (e.g. 5% supermarkets). The app makes that audit automatic and keeps a history per card.
+
+## Decisions (user-confirmed)
+- Mobile: Flutter, GetX state management, animate_do for animations, Drift for local cache.
+- Backend: NestJS + Postgres (Prisma). Claude API key lives only in the backend.
+- Auth: native in NestJS — app obtains Google / Apple ID token, backend verifies it and issues its own JWT access + refresh tokens. No Firebase.
+- Subscription: RevenueCat (`purchases_flutter`) + RevenueCat webhook to backend; backend gates verification endpoint (IAP required by App Store 3.1.1 / Play Billing).
+- Cards: alias, bank, last 4 digits, reward rules. Never store full card numbers (PCI scope).
+- Statement PDFs are processed in memory and never persisted; only extracted results are stored.
+- Onboarding flow in the app.
+- Working name `cashback_audit` (user has not chosen a final name).
+
+## Scope
+In: auth, cards CRUD, merchant categories CRUD, statement verification via Claude, verification history, subscription gating, onboarding, paywall.
+Out (for now): web client, multi-currency conversion, push notifications, production deployment.
+
+## Constraints
+- Clean / hexagonal architecture, screaming feature folders; pure, unit-tested reward calculation domain.
+- Generated artifacts in English.
+- TDD mode: off (source: no project/session config; user did not request). Ordinary tests alongside each task. Runners: `pnpm test` / `pnpm test:e2e` (api), `flutter test` (mobile).
+- RDD: off (global). No native review ceremony.
+- Delivery strategy: ask-on-risk; branch `feat/mvp`, local work-unit commits only. Push/PR are user decisions.
+
+## Tasks
+- [ ] T1 API scaffold: NestJS + Prisma + docker-compose Postgres + config/env + health + Swagger
+- [ ] T2 API auth: Google/Apple ID token verification, users, JWT access/refresh, guard
+- [ ] T3 API cards + merchant categories CRUD with reward rules
+- [ ] T4 API verification: PDF upload → Claude structured extraction → domain reward calculation → verdict + history
+- [ ] T5 API subscription: RevenueCat webhook + entitlement guard on verification
+- [ ] T6 Mobile scaffold: Flutter app, GetX routing/DI, theme, Dio client, secure storage, Drift
+- [ ] T7 Mobile onboarding + login (Google / Apple)
+- [ ] T8 Mobile cards + categories screens
+- [ ] T9 Mobile statement upload, result, history
+- [ ] T10 Mobile paywall (RevenueCat)
+
+## Route declaration
+- T1–T5: delegated direct (writer trigger: 2+ non-trivial files) — one backend writer agent.
+- T6–T10: delegated direct (writer trigger) — one mobile writer agent, after backend contract exists (`docs/api-contract.md`).
+
+## Acceptance criteria
+- `pnpm build`, `pnpm lint`, `pnpm test` pass in `apps/api`; e2e pass against docker Postgres with Claude adapter mocked.
+- `flutter analyze` clean and `flutter test` pass in `apps/mobile`.
+- Reward calculation covers base rate, category rates, refunds, monthly caps, tolerance verdicts.
+
+## Progress / Evidence
+(updated per task with commit hashes and check results)
+
+## Next step
+T1.
