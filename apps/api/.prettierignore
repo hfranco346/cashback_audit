@@ -1,0 +1,3 @@
+src/shared/prisma/generated/
+dist/
+prisma/migrations/

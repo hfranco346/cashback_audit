@@ -1,0 +1,8 @@
+dist/
+node_modules/
+coverage/
+.env
+.env.*
+!.env.example
+src/shared/prisma/generated/
+*.tsbuildinfo

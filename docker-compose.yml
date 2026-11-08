@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cashback_audit_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cashback
+      POSTGRES_PASSWORD: cashback
+      POSTGRES_DB: cashback_audit
+    ports:
+      - '5433:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/10-init-databases.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cashback -d cashback_audit']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
