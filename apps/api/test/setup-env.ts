@@ -10,4 +10,4 @@ process.env.ANTHROPIC_API_KEY = 'test-key';
 process.env.REVENUECAT_WEBHOOK_AUTH = 'test-webhook-secret';
 process.env.THROTTLE_LIMIT = '100000';
 process.env.VERIFICATION_THROTTLE_LIMIT = '100000';
-process.env.SUBSCRIPTION_GATE_ENABLED = 'true';
+process.env.SUBSCRIPTION_GATE_ENABLED = 'false';

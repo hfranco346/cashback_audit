@@ -31,7 +31,7 @@ Out (for now): web client, multi-currency conversion, push notifications, produc
 - [x] T1 API scaffold: NestJS + Prisma + docker-compose Postgres + config/env + health + Swagger
 - [x] T2 API auth: Google/Apple ID token verification, users, JWT access/refresh, guard
 - [x] T3 API cards + merchant categories CRUD with reward rules
-- [ ] T4 API verification: PDF upload → Claude structured extraction → domain reward calculation → verdict + history
+- [x] T4 API verification: PDF upload → Claude structured extraction → domain reward calculation → verdict + history
 - [ ] T5 API subscription: RevenueCat webhook + entitlement guard on verification
 - [ ] T6 Mobile scaffold: Flutter app, GetX routing/DI, theme, Dio client, secure storage, Drift
 - [ ] T7 Mobile onboarding + login (Google / Apple)
@@ -55,6 +55,7 @@ Out (for now): web client, multi-currency conversion, push notifications, produc
 - T1 d088405: `pnpm build`: ok; `pnpm lint`: 0 warnings/errors; `pnpm test`: 10 passed; `pnpm test:e2e`: 2 passed (health, helmet header) against docker Postgres; manual boot: /api/v1/health 200, /docs 200.
 - T2 515f8cd: `pnpm build`: ok; `pnpm lint`: 0 warnings/errors; `pnpm test`: 28 passed (4 files); `pnpm test:e2e`: 11 passed (auth flow, refresh reuse detection, Apple name persistence, hashed storage, default-protected routes). Added uniform error body `{statusCode, code, message, details?}` via global filter + `DomainError`. Tokens signed with `jose` (HS256) behind `TokenService` port (no @nestjs/jwt).
 - T3 2f9cb8b: implemented directly with the coordinator's merchant data model (Merchant entity; `/categories`, `/merchants`, `/cards`). `pnpm build`: ok; `pnpm lint`: 0 warnings/errors; `pnpm test`: 29 passed; `pnpm test:e2e`: 40 passed (ownership isolation -> 404, last4 validation incl. 5 digits / full PAN, category delete 409 + reassignTo, merchant reassign, decimals as strings). Decisions: decimals serialized as strings (input accepts number or string); `monthlyCap` is expressed in the card's reward unit; deleting a category blocked (409 CATEGORY_IN_USE) when it has merchants OR card rules unless `?reassignTo=`; categories + merchants share one Nest module (mutual dependency).
+- T4 @C4@: `pnpm build`: ok; `pnpm lint`: 0 warnings/errors; `pnpm test`: 93 passed (9 files: calculator, matcher, Claude adapter with fake SDK client, use case); `pnpm test:e2e`: 57 passed (verification happy path with stubbed StatementExtractor/MerchantClassifier, upload validation 400/413/415, ownership 404, history pagination, upstream error mapping). NOT verified against the live Anthropic API (no key available): structured-output schema generated via `zodOutputFormat` (json_schema with $defs/anyOf) and `messages.stream().finalMessage()` follow the claude-api skill but have not been exercised for real. Design: two Claude calls max - (1) PDF extraction, (2) text-only fuzzy match of only the keyword-unmatched descriptors (skipped when none or user has no merchants; failure degrades to a warning). Amounts requested as decimal strings. Monthly cap applied to the net reward of a category in reward units. Verifications are deleted with their card (cascade). Not wired yet: SubscriptionGuard (T5). Server-side `fallbacks` for refusals not used (refusals map to 422).
 
 ## Next step
-T4.
+T5.

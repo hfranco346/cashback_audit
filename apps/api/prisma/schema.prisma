@@ -25,6 +25,7 @@ model User {
 
   refreshTokens RefreshToken[]
   cards         Card[]
+  verifications Verification[]
   categories    MerchantCategory[]
   merchants     Merchant[]
 
@@ -69,8 +70,9 @@ model Card {
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rules CardRule[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rules         CardRule[]
+  verifications Verification[]
 
   @@index([userId])
 }
@@ -121,4 +123,49 @@ model CardRule {
 
   @@unique([cardId, categoryId])
   @@index([categoryId])
+}
+
+enum Verdict {
+  MATCH
+  UNDERPAID
+  OVERPAID
+}
+
+enum ReportedSource {
+  STATEMENT
+  OVERRIDE
+}
+
+/// Result of auditing one statement. The PDF itself is never stored.
+model Verification {
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @db.Uuid
+  /// History is removed together with its card.
+  cardId         String         @db.Uuid
+  statementBank  String?
+  statementLast4 String?
+  periodStart    DateTime?      @db.Date
+  periodEnd      DateTime?      @db.Date
+  currency       String?        @db.Char(3)
+  totalSpent     Decimal?       @db.Decimal(16, 2)
+  totalToPay     Decimal?       @db.Decimal(16, 2)
+  reportedAmount Decimal        @db.Decimal(16, 2)
+  reportedUnit   RewardUnit
+  reportedLabel  String?
+  reportedSource ReportedSource
+  expectedAmount Decimal        @db.Decimal(16, 2)
+  difference     Decimal        @db.Decimal(16, 2)
+  tolerance      Decimal        @db.Decimal(16, 2)
+  verdict        Verdict
+  breakdown      Json
+  transactions   Json
+  warnings       Json
+  model          String
+  createdAt      DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([cardId, createdAt(sort: Desc)])
 }
