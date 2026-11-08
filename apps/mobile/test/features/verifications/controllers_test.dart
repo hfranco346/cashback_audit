@@ -12,7 +12,9 @@ import 'package:cashback_audit/features/verifications/presentation/confirm_rates
 import 'package:cashback_audit/features/verifications/presentation/history_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/upload_controller.dart';
+import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
 
 import '../../support/fake_verification_repository.dart';
 import '../../support/fakes.dart';
@@ -124,6 +126,8 @@ void main() {
     late CatalogController catalog;
     late ResultController c;
     late FakeMerchantRepository merchants;
+    late FakeVerificationRepository repo;
+    late FakeNavigator nav;
 
     setUp(() async {
       merchants = FakeMerchantRepository();
@@ -134,9 +138,12 @@ void main() {
         merchants: merchants,
       );
       await catalog.load();
+      repo = FakeVerificationRepository();
+      nav = FakeNavigator();
       c = ResultController(
-        repository: FakeVerificationRepository(),
+        repository: repo,
         catalog: catalog,
+        navigator: nav,
         initial: VerificationMapper.detail(verificationJson()),
       )..onInit();
     });
@@ -147,6 +154,130 @@ void main() {
       expect(c.visibleTransactions.single.index, 0);
       c.setFilter(TransactionFilter.uncounted);
       expect(c.visibleTransactions.single.index, 1);
+      c.setFilter(TransactionFilter.excluded);
+      expect(c.visibleTransactions, isEmpty);
+    });
+
+    test('excluded lines are neither counted nor uncounted', () {
+      final withExcluded = ResultController(
+        repository: repo,
+        catalog: catalog,
+        navigator: nav,
+        initial: VerificationMapper.detail(
+          verificationJson(
+            transactions: [
+              txJson(0, 'SUPER', '100', source: 'KEYWORD'),
+              txJson(1, 'OXXO', '100', source: 'NONE'),
+              txJson(2, 'PAGO', '100', source: 'NONE', kind: 'PAYMENT'),
+            ],
+          ),
+        ),
+      )..onInit();
+      withExcluded.setFilter(TransactionFilter.excluded);
+      expect(withExcluded.visibleTransactions.single.index, 2);
+      withExcluded.setFilter(TransactionFilter.uncounted);
+      expect(withExcluded.visibleTransactions.single.index, 1);
+    });
+
+    group('line correction', () {
+      VerificationTransaction line(int i) =>
+          c.verification.value!.transactions[i];
+
+      test('PATCHes the line then re-confirms with the same rates', () async {
+        final message = await c.correctCategory(line(1), 'cat1');
+        expect(repo.corrections.single.id, 'v1');
+        expect(repo.corrections.single.index, 1);
+        expect(repo.corrections.single.categoryId, 'cat1');
+        // Free recalculation with exactly the applied rates (base 1, cat1 5).
+        final req = repo.confirmRequests.single;
+        expect(req.baseRatePercent, Decimal.parse('1'));
+        expect(req.categoryRates.single.categoryId, 'cat1');
+        expect(req.categoryRates.single.ratePercent, Decimal.parse('5'));
+        expect(req.saveToCard, isFalse);
+        expect(req.exchangeRate, isNull);
+        expect(req.rewardProgramName, isNull);
+        expect(message, S.categoryChanged);
+        expect(c.stale.value, isFalse);
+        expect(c.recalculating.value, isFalse);
+      });
+
+      test('clearing a category sends null', () async {
+        await c.correctCategory(line(0), null);
+        expect(repo.corrections.single.categoryId, isNull);
+        expect(repo.confirmRequests, hasLength(1));
+      });
+
+      test('same category is a no-op', () async {
+        await c.correctCategory(line(0), 'cat1');
+        expect(repo.corrections, isEmpty);
+      });
+
+      test(
+        'a failed PATCH shows the message and does not recalculate',
+        () async {
+          repo.correctError = const AppException(
+            kind: AppErrorKind.unprocessable,
+            statusCode: 422,
+            code: 'TRANSACTION_NOT_CLASSIFIABLE',
+          );
+          final message = await c.correctCategory(line(1), 'cat1');
+          expect(message, S.errTransactionNotClassifiable);
+          expect(repo.confirmRequests, isEmpty);
+        },
+      );
+
+      test(
+        'a failed recalculation marks the result stale and can retry',
+        () async {
+          repo.confirmErrors.add(
+            const AppException(kind: AppErrorKind.network),
+          );
+          final message = await c.correctCategory(line(1), 'cat1');
+          expect(message, S.recalcFailedAfterChange);
+          expect(c.stale.value, isTrue);
+          expect(await c.retryRecalculation(), S.categoryChanged);
+          expect(c.stale.value, isFalse);
+          expect(repo.confirmRequests, hasLength(2));
+        },
+      );
+
+      test('a new category needing a rate reopens the confirmation', () async {
+        repo.confirmErrors.add(
+          const AppException(
+            kind: AppErrorKind.unprocessable,
+            statusCode: 422,
+            code: 'RATES_REQUIRED',
+          ),
+        );
+        final message = await c.correctCategory(line(1), 'cat1');
+        expect(message, S.recalcNeedsRate);
+        expect(nav.pushedForResult, ['/confirm-rates']);
+        final args = nav.pushedForResultArgs.single as ConfirmRatesArgs;
+        expect(args.returnToResult, isTrue);
+        expect(args.verification?.id, 'v1');
+      });
+    });
+
+    test(
+      '"Recalcular con otros %" opens the confirmation and takes its result',
+      () async {
+        final fresh = VerificationMapper.detail(
+          verificationJson(verdict: 'MATCH'),
+        );
+        nav.nextResult = fresh;
+        await c.recalculateWithOtherRates();
+        expect(nav.pushedForResult, ['/confirm-rates']);
+        final args = nav.pushedForResultArgs.single as ConfirmRatesArgs;
+        expect(args.returnToResult, isTrue);
+        expect(args.verification?.appliedRates, isNotNull);
+        expect(c.verification.value?.verdict, Verdict.match);
+      },
+    );
+
+    test('cancelling the confirmation keeps the current result', () async {
+      nav.nextResult = null;
+      await c.recalculateWithOtherRates();
+      expect(c.verification.value?.verdict, Verdict.underpaid);
     });
 
     test(
@@ -167,8 +298,9 @@ void main() {
 
     test('loads by id when opened from history', () async {
       final byId = ResultController(
-        repository: FakeVerificationRepository(),
+        repository: repo,
         catalog: catalog,
+        navigator: nav,
         verificationId: 'v9',
       )..onInit();
       await Future<void>.delayed(Duration.zero);

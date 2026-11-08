@@ -24,6 +24,10 @@ VerificationTransaction _tx(
   String source, {
   bool credit = false,
   String amount = '100',
+  String currency = 'MXN',
+  String kind = 'PURCHASE',
+  String? excludedReason,
+  String? reason,
 }) => VerificationMapper.detail(
   verificationJson(
     transactions: [
@@ -34,6 +38,10 @@ VerificationTransaction _tx(
         source: source,
         credit: credit,
         rate: source == 'NONE' ? '1' : '5',
+        currency: currency,
+        kind: kind,
+        excludedReason: excludedReason,
+        reason: reason,
       ),
     ],
   ),
@@ -71,6 +79,126 @@ void main() {
         find.byKey(const Key('tx-icon-counted')),
       );
       expect(icon.color, StatusColors.light.success);
+    });
+
+    testWidgets('AI match shows the IA chip and the reason as subtitle', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          TransactionTile(
+            transaction: _tx(4, 'AI_CATEGORY', reason: 'Es un supermercado'),
+            currency: 'MXN',
+            unit: RewardUnit.cashbackCurrency,
+          ),
+        ),
+      );
+      expect(find.byKey(const Key('ai-chip-4')), findsOneWidget);
+      expect(find.byKey(const Key('tx-reason-4')), findsOneWidget);
+      expect(find.text('Es un supermercado'), findsOneWidget);
+    });
+
+    testWidgets('user-corrected lines show the user chip, not the IA chip', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          TransactionTile(
+            transaction: _tx(5, 'USER'),
+            currency: 'MXN',
+            unit: RewardUnit.cashbackCurrency,
+          ),
+        ),
+      );
+      expect(find.byKey(const Key('user-chip-5')), findsOneWidget);
+      expect(find.byKey(const Key('ai-chip-5')), findsNothing);
+      expect(find.byKey(const Key('tx-icon-counted')), findsOneWidget);
+    });
+
+    testWidgets('excluded lines are neutral grey with the Spanish reason', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          Column(
+            children: [
+              TransactionTile(
+                transaction: _tx(0, 'NONE', kind: 'PAYMENT'),
+                currency: 'MXN',
+                unit: RewardUnit.cashbackCurrency,
+                onAssign: () {},
+                onTap: () {},
+              ),
+              TransactionTile(
+                transaction: _tx(
+                  1,
+                  'NONE',
+                  currency: 'USD',
+                  excludedReason: 'NO_EXCHANGE_RATE',
+                ),
+                currency: 'MXN',
+                unit: RewardUnit.cashbackCurrency,
+              ),
+              TransactionTile(
+                transaction: _tx(2, 'NONE', kind: 'INSURANCE'),
+                currency: 'MXN',
+                unit: RewardUnit.cashbackCurrency,
+              ),
+            ],
+          ),
+        ),
+      );
+      // Neither green nor red.
+      expect(find.byKey(const Key('tx-icon-counted')), findsNothing);
+      expect(find.byKey(const Key('tx-icon-uncounted')), findsNothing);
+      expect(find.byKey(const Key('tx-icon-excluded')), findsNWidgets(3));
+      final icon = tester.widget<Icon>(
+        find.byKey(const Key('tx-icon-excluded')).first,
+      );
+      expect(icon.color, StatusColors.light.neutral);
+      expect(icon.color, isNot(StatusColors.light.danger));
+      expect(icon.color, isNot(StatusColors.light.success));
+      expect(find.text(S.excludedLabel), findsNWidgets(3));
+      expect(find.text(S.excludedPayment), findsOneWidget);
+      expect(find.text(S.excludedNoRate('USD')), findsOneWidget);
+      expect(find.text(S.excludedInsurance), findsOneWidget);
+      // No "assign" action and no rate on excluded lines.
+      expect(find.byKey(const Key('assign-0')), findsNothing);
+      expect(find.byKey(const Key('tx-rate-0')), findsNothing);
+    });
+
+    testWidgets('foreign counted lines show the converted amount', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          TransactionTile(
+            transaction: _tx(0, 'AI_CATEGORY', currency: 'USD', amount: '10'),
+            currency: 'MXN',
+            unit: RewardUnit.cashbackCurrency,
+          ),
+        ),
+      );
+      expect(find.text(r'$10.00'), findsOneWidget);
+      expect(find.byKey(const Key('tx-converted-0')), findsOneWidget);
+    });
+
+    testWidgets('tapping a counted line asks to change its category', (
+      tester,
+    ) async {
+      var taps = 0;
+      await tester.pumpWidget(
+        _wrap(
+          TransactionTile(
+            transaction: _tx(0, 'KEYWORD'),
+            currency: 'MXN',
+            unit: RewardUnit.cashbackCurrency,
+            onTap: () => taps++,
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const Key('tx-tap-0')));
+      expect(taps, 1);
     });
 
     testWidgets('AI match shows the IA chip', (tester) async {
@@ -180,10 +308,12 @@ void main() {
   group('TransactionsSection filter', () {
     final txs = [
       _tx(0, 'KEYWORD'),
-      _tx(1, 'AI'),
+      _tx(1, 'AI_CATEGORY'),
       _tx(2, 'NONE'),
       _tx(3, 'NONE'),
       _tx(4, 'NONE'),
+      _tx(5, 'NONE', kind: 'PAYMENT'),
+      _tx(6, 'NONE', currency: 'USD', excludedReason: 'NO_EXCHANGE_RATE'),
     ];
 
     Widget host() => _wrap(
@@ -206,31 +336,40 @@ void main() {
     );
 
     testWidgets('shows summary and counts, filters the list', (tester) async {
-      await tester.binding.setSurfaceSize(const Size(500, 1600));
+      await tester.binding.setSurfaceSize(const Size(900, 2400));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(host());
-      expect(find.text(S.transactionsSummary(2, 3)), findsOneWidget);
-      expect(find.text(S.filterWithCount(S.filterAll, 5)), findsOneWidget);
+      expect(find.text(S.transactionsSummary(2, 3, 2)), findsOneWidget);
+      expect(find.text(S.filterWithCount(S.filterAll, 7)), findsOneWidget);
       expect(find.text(S.filterWithCount(S.filterCounted, 2)), findsOneWidget);
       expect(
         find.text(S.filterWithCount(S.filterUncounted, 3)),
         findsOneWidget,
       );
-      expect(find.byType(TransactionTile), findsNWidgets(5));
+      expect(find.text(S.filterWithCount(S.filterExcluded, 2)), findsOneWidget);
+      expect(find.byType(TransactionTile), findsNWidgets(7));
 
       await tester.tap(find.text(S.filterWithCount(S.filterCounted, 2)));
       await tester.pump();
       expect(find.byType(TransactionTile), findsNWidgets(2));
       expect(find.byKey(const Key('tx-icon-uncounted')), findsNothing);
+      expect(find.byKey(const Key('tx-icon-excluded')), findsNothing);
 
       await tester.tap(find.text(S.filterWithCount(S.filterUncounted, 3)));
       await tester.pump();
       expect(find.byType(TransactionTile), findsNWidgets(3));
       expect(find.byKey(const Key('tx-icon-counted')), findsNothing);
+      expect(find.byKey(const Key('tx-icon-excluded')), findsNothing);
 
-      await tester.tap(find.text(S.filterWithCount(S.filterAll, 5)));
+      await tester.tap(find.text(S.filterWithCount(S.filterExcluded, 2)));
       await tester.pump();
-      expect(find.byType(TransactionTile), findsNWidgets(5));
+      expect(find.byType(TransactionTile), findsNWidgets(2));
+      expect(find.byKey(const Key('tx-icon-excluded')), findsNWidgets(2));
+      expect(find.byKey(const Key('tx-icon-uncounted')), findsNothing);
+
+      await tester.tap(find.text(S.filterWithCount(S.filterAll, 7)));
+      await tester.pump();
+      expect(find.byType(TransactionTile), findsNWidgets(7));
     });
   });
 
@@ -274,7 +413,11 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(find.text(S.verdictUnderpaid), findsOneWidget);
-        expect(find.text('AI matching failed'), findsOneWidget);
+        // Warnings are shown in Spanish, not with the server's English text.
+        expect(find.text(S.warnAiUnavailable), findsOneWidget);
+        expect(find.text('AI matching failed'), findsNothing);
+        expect(find.byKey(const Key('explanation-card')), findsOneWidget);
+        expect(find.byKey(const Key('applied-rates-card')), findsOneWidget);
         expect(find.text('Super · 5%'), findsOneWidget);
         expect(find.text('${S.baseRateLine} · 1%'), findsOneWidget);
         await tester.tap(find.byKey(const Key('assign-1')));

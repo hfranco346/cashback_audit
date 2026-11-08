@@ -103,6 +103,8 @@ class StatusColors extends ThemeExtension<StatusColors> {
     required this.successContainer,
     required this.danger,
     required this.dangerContainer,
+    required this.neutral,
+    required this.neutralContainer,
   });
 
   final Color success;
@@ -110,11 +112,18 @@ class StatusColors extends ThemeExtension<StatusColors> {
   final Color danger;
   final Color dangerContainer;
 
+  /// Lines excluded from the reward (payments, fees...): neither a hit nor a
+  /// miss, so they are grey.
+  final Color neutral;
+  final Color neutralContainer;
+
   static const light = StatusColors(
     success: Color(0xFF0B7A5B),
     successContainer: Color(0xFFD7F2E8),
     danger: Color(0xFFC4351F),
     dangerContainer: Color(0xFFFFE1DA),
+    neutral: Color(0xFF5B6665),
+    neutralContainer: Color(0xFFE3E8E7),
   );
 
   static const dark = StatusColors(
@@ -122,6 +131,8 @@ class StatusColors extends ThemeExtension<StatusColors> {
     successContainer: Color(0xFF0E3A2E),
     danger: Color(0xFFFF8C77),
     dangerContainer: Color(0xFF4A1A12),
+    neutral: Color(0xFFA7B3B1),
+    neutralContainer: Color(0xFF273331),
   );
 
   @override
@@ -130,11 +141,15 @@ class StatusColors extends ThemeExtension<StatusColors> {
     Color? successContainer,
     Color? danger,
     Color? dangerContainer,
+    Color? neutral,
+    Color? neutralContainer,
   }) => StatusColors(
     success: success ?? this.success,
     successContainer: successContainer ?? this.successContainer,
     danger: danger ?? this.danger,
     dangerContainer: dangerContainer ?? this.dangerContainer,
+    neutral: neutral ?? this.neutral,
+    neutralContainer: neutralContainer ?? this.neutralContainer,
   );
 
   @override
@@ -149,6 +164,12 @@ class StatusColors extends ThemeExtension<StatusColors> {
       )!,
       danger: Color.lerp(danger, other.danger, t)!,
       dangerContainer: Color.lerp(dangerContainer, other.dangerContainer, t)!,
+      neutral: Color.lerp(neutral, other.neutral, t)!,
+      neutralContainer: Color.lerp(
+        neutralContainer,
+        other.neutralContainer,
+        t,
+      )!,
     );
   }
 }

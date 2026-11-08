@@ -7,6 +7,7 @@ import '../../../shared/widgets/molecules/inline_message.dart';
 import '../../categories/presentation/widgets/merchant_form_sheet.dart';
 import '../domain/verification_entities.dart';
 import 'result_controller.dart';
+import 'widgets/category_picker_sheet.dart';
 import 'widgets/verification_result_view.dart';
 
 class ResultPage extends GetView<ResultController> {
@@ -60,6 +61,30 @@ class ResultPage extends GetView<ResultController> {
     if (saved == true) Get.snackbar(S.merchantAssigned, S.assignedNotice);
   }
 
+  Future<void> _correct(VerificationTransaction tx) async {
+    final catalog = controller.catalog;
+    if (!catalog.loaded.value) await catalog.load();
+    final picked = await Get.bottomSheet<_Pick>(
+      CategoryPickerSheet(
+        transaction: tx,
+        categories: catalog.categories.toList(),
+        onPick: (id) => Get.back<_Pick>(result: _Pick(id)),
+      ),
+      backgroundColor: Get.theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+    );
+    if (picked == null) return;
+    final message = await controller.correctCategory(tx, picked.categoryId);
+    if (message != null) Get.snackbar(S.changeCategory, message);
+  }
+
+  Future<void> _retry() async {
+    final message = await controller.retryRecalculation();
+    if (message != null) Get.snackbar(S.recalcAction, message);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,8 +110,19 @@ class ResultPage extends GetView<ResultController> {
           onFilterChanged: controller.setFilter,
           assigned: Map.of(controller.assigned),
           onAssign: _assign,
+          onCorrect: _correct,
+          onRecalculate: controller.recalculateWithOtherRates,
+          stale: controller.stale.value,
+          recalculating: controller.recalculating.value,
+          onRetryRecalculation: _retry,
         );
       }),
     );
   }
+}
+
+/// Wrapper so "no category" (null) can be told apart from a dismissed sheet.
+class _Pick {
+  const _Pick(this.categoryId);
+  final String? categoryId;
 }

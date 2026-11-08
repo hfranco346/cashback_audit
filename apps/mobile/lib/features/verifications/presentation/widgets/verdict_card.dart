@@ -15,6 +15,7 @@ class VerdictCard extends StatelessWidget {
     required this.reported,
     required this.difference,
     this.reportedNote,
+    this.reportedLabel,
     this.heroTag,
   });
 
@@ -24,6 +25,9 @@ class VerdictCard extends StatelessWidget {
   final String reported;
   final String difference;
   final String? reportedNote;
+
+  /// Name of the audited loyalty program, shown under the reported figure.
+  final String? reportedLabel;
   final Object? heroTag;
 
   @override
@@ -92,7 +96,7 @@ class VerdictCard extends StatelessWidget {
                     child: _Figure(
                       label: S.reportedLabel,
                       value: reported,
-                      note: reportedNote,
+                      note: reportedNote ?? reportedLabel,
                     ),
                   ),
                   Expanded(

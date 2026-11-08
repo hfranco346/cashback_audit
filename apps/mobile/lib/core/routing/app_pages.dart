@@ -152,6 +152,7 @@ abstract final class AppPages {
           () => ResultController(
             repository: Get.find<VerificationRepository>(),
             catalog: Get.find<CatalogController>(),
+            navigator: Get.find<AppNavigator>(),
             initial: args is Verification ? args : null,
             verificationId: args is String ? args : null,
           ),

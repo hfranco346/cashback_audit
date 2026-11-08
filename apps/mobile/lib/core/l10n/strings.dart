@@ -283,14 +283,73 @@ abstract final class S {
   static const filterAll = 'Todos';
   static const filterCounted = 'En rubro';
   static const filterUncounted = 'Sin rubro';
+  static const filterExcluded = 'Excluidos';
   static String filterWithCount(String label, int n) => '$label ($n)';
-  static String transactionsSummary(int counted, int uncounted) =>
-      '$counted en rubro · $uncounted sin rubro';
+  static String transactionsSummary(int counted, int uncounted, int excluded) =>
+      '$counted en rubro · $uncounted sin rubro · $excluded excluidos';
   static const countedLabel = 'Contó en rubro';
   static const uncountedLabel = 'Sin rubro';
+  static const excludedLabel = 'No genera recompensa';
   static const aiChip = 'IA';
   static const aiChipTooltip = 'Asignado por inteligencia artificial';
-  static const assignToCategory = 'Asignar a rubro';
+  static const userChip = 'Tú';
+  static const userChipTooltip = 'Rubro corregido por ti';
+  static String convertedAs(String amount) => '≈ $amount';
+  static const excludedPayment = 'Pago a la tarjeta';
+  static const excludedFee = 'Comisión o cargo';
+  static const excludedInterest = 'Intereses';
+  static const excludedInsurance = 'Seguro';
+  static const excludedOther = 'Movimiento que no genera recompensa';
+  static String excludedNoRate(String currency) =>
+      'Compra en $currency sin tipo de cambio';
+  static const changeCategory = 'Cambiar rubro';
+  static const changeCategoryTitle = 'Cambiar el rubro de este movimiento';
+  static const noCategoryOption = 'Sin rubro';
+  static const categoryChanged = 'Rubro actualizado y resultado recalculado';
+  static const recalcFailedAfterChange =
+      'Cambiaste el rubro, pero no pudimos recalcular el resultado. Los montos mostrados siguen siendo los anteriores.';
+  static const recalcNeedsRate =
+      'Ese rubro necesita un porcentaje. Confírmalo para recalcular.';
+  static const recalcAction = 'Recalcular';
+  static const recalcWithOtherRates = 'Recalcular con otros %';
+  static const explanationTitle = 'En pocas palabras';
+  static const loyaltyTitle = 'Programas de recompensa';
+  static const loyaltyAudited = 'Auditado';
+  static const loyaltyCumulativeChip = 'Posible saldo acumulado';
+  static const loyaltyProgram = 'Programa';
+  static const loyaltyAccumulated = 'Acumulado';
+  static const loyaltyAvailable = 'Disponible';
+  static const loyaltyRedeemed = 'Canjeado';
+  static const loyaltyExpiring = 'Por vencer';
+  static const loyaltyForfeited = 'Perdido';
+  static const currenciesTitle = 'Subtotales por moneda';
+  static const currencySpent = 'Gasto neto';
+  static const currencyEligible = 'Considerado';
+  static const currencyReward = 'Recompensa (sin topes)';
+  static String currencyRate(String from, String to, String rate) =>
+      '1 $from = $rate $to';
+  static String currencyExcluded(int n) =>
+      n == 1 ? '1 movimiento excluido' : '$n movimientos excluidos';
+  static const appliedRatesTitle = 'Porcentajes usados';
+  static const warnLast4 =
+      'Este estado de cuenta parece ser de otra tarjeta: los últimos 4 dígitos no coinciden.';
+  static const warnCurrencyMismatch =
+      'Ninguna moneda del estado de cuenta coincide con la moneda de tu tarjeta.';
+  static const warnTotalMismatch =
+      'Los movimientos leídos no suman el total del estado de cuenta. Puede que falten algunos y el resultado sea poco confiable.';
+  static const warnNoTransactions =
+      'No encontramos movimientos en el estado de cuenta.';
+  static const warnAiUnavailable =
+      'La clasificación con IA no estuvo disponible para algunos movimientos; solo se usaron tus comercios registrados.';
+  static const warnNoExchangeRate =
+      'Hay compras en moneda extranjera sin tipo de cambio: quedaron fuera del cálculo.';
+  static const warnExchangeMultiple =
+      'El tipo de cambio se aplicó a más de una moneda extranjera.';
+  static const warnCumulative =
+      'La cifra reportada parece un saldo acumulado y no lo ganado en este periodo. Revisa el programa.';
+  static const warnUnitDiffers =
+      'El programa reporta una unidad distinta a la de tu tarjeta; se usó la configuración de la tarjeta.';
+  static const assignToCategory = 'Recordar comercio en un rubro';
   static const assignedNotice = 'Asignado para próximas verificaciones';
   static String assignedTo(String category) =>
       'Asignado a $category · aplicará en la próxima verificación';
