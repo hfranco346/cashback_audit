@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CreditsService } from '../../credits/application/credits.service.js';
 import { UserRepository } from '../../users/domain/user.repository.js';
 import type { User } from '../../users/domain/user.js';
 import {
@@ -18,11 +19,13 @@ export class SignInWithGoogleUseCase {
     private readonly verifier: GoogleIdTokenVerifier,
     private readonly users: UserRepository,
     private readonly sessions: AuthSessionService,
+    private readonly credits: CreditsService,
   ) {}
 
   async execute(idToken: string): Promise<SignInResult> {
     const identity = await this.verifier.verify(idToken);
     const user = await this.users.upsertFromIdentity(identity);
+    await this.credits.grantFree(user.id);
     return { user, tokens: await this.sessions.startSession(user.id) };
   }
 }
@@ -33,6 +36,7 @@ export class SignInWithAppleUseCase {
     private readonly verifier: AppleIdTokenVerifier,
     private readonly users: UserRepository,
     private readonly sessions: AuthSessionService,
+    private readonly credits: CreditsService,
   ) {}
 
   async execute(
@@ -41,6 +45,7 @@ export class SignInWithAppleUseCase {
   ): Promise<SignInResult> {
     const identity = await this.verifier.verify(identityToken, fullName);
     const user = await this.users.upsertFromIdentity(identity);
+    await this.credits.grantFree(user.id);
     return { user, tokens: await this.sessions.startSession(user.id) };
   }
 }

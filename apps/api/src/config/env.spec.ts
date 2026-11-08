@@ -12,7 +12,10 @@ describe('validateEnv', () => {
     expect(env.ANTHROPIC_EXTRACTION_MODEL).toBe('claude-sonnet-5-5');
     expect(env.ANTHROPIC_CLASSIFICATION_MODEL).toBe('claude-haiku-5-5');
     expect(env.REVENUECAT_ENTITLEMENT_ID).toBe('pro');
-    expect(env.SUBSCRIPTION_GATE_ENABLED).toBe(true);
+    expect(env.CREDITS_GATE_ENABLED).toBe(true);
+    expect(env.FREE_CREDITS).toBe(1);
+    expect(env.PLAN_CREDITS_PER_PERIOD).toBe(5);
+    expect(env.CREDIT_PACKS).toEqual({ credits_3: 3, credits_10: 10 });
     expect(env.PORT).toBe(3000);
   });
 
@@ -82,11 +85,65 @@ describe('validateEnv', () => {
     );
   });
 
-  it('parses the gate flag', () => {
-    expect(
-      validateEnv({ ...base, SUBSCRIPTION_GATE_ENABLED: 'false' })
-        .SUBSCRIPTION_GATE_ENABLED,
-    ).toBe(false);
+  describe('credits', () => {
+    it('parses the gate flag; the old name is an alias used only when the new one is unset', () => {
+      expect(
+        validateEnv({ ...base, CREDITS_GATE_ENABLED: 'false' })
+          .CREDITS_GATE_ENABLED,
+      ).toBe(false);
+      expect(
+        validateEnv({ ...base, SUBSCRIPTION_GATE_ENABLED: 'false' })
+          .CREDITS_GATE_ENABLED,
+      ).toBe(false);
+      expect(
+        validateEnv({
+          ...base,
+          CREDITS_GATE_ENABLED: 'true',
+          SUBSCRIPTION_GATE_ENABLED: 'false',
+        }).CREDITS_GATE_ENABLED,
+      ).toBe(true);
+      expect(() =>
+        validateEnv({ ...base, CREDITS_GATE_ENABLED: 'maybe' }),
+      ).toThrow(/CREDITS_GATE_ENABLED/);
+    });
+
+    it('parses CREDIT_PACKS into a product -> credits map', () => {
+      expect(
+        validateEnv({ ...base, CREDIT_PACKS: ' pack.a:2 , pack_b:50 ' })
+          .CREDIT_PACKS,
+      ).toEqual({ 'pack.a': 2, pack_b: 50 });
+      expect(validateEnv({ ...base, CREDIT_PACKS: '' }).CREDIT_PACKS).toEqual(
+        {},
+      );
+    });
+
+    it.each([
+      'credits_3',
+      'credits_3:x',
+      'credits_3:0',
+      ':3',
+      'a:1,a:2',
+      'a:1:2',
+      'a b:3',
+      'a:1001',
+    ])('rejects the invalid pack list %j', (value) => {
+      expect(() => validateEnv({ ...base, CREDIT_PACKS: value })).toThrow(
+        /CREDIT_PACKS/,
+      );
+    });
+
+    it('validates the credit amounts', () => {
+      expect(
+        validateEnv({
+          ...base,
+          FREE_CREDITS: '0',
+          PLAN_CREDITS_PER_PERIOD: '10',
+        }),
+      ).toMatchObject({ FREE_CREDITS: 0, PLAN_CREDITS_PER_PERIOD: 10 });
+      expect(() => validateEnv({ ...base, FREE_CREDITS: '-1' })).toThrow(
+        /FREE_CREDITS/,
+      );
+    });
   });
 
   it('fails with a readable message when required values are missing', () => {

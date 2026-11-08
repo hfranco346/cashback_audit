@@ -24,6 +24,8 @@ import {
 } from '../domain/statement-extractor.js';
 import type { NewVerification, Verification } from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
+import type { CreditsService } from '../../credits/application/credits.service.js';
+import { NoCreditsError } from '../../credits/domain/credit-errors.js';
 import { CreateVerificationUseCase } from './create-verification.use-case.js';
 
 const USER = 'user-1';
@@ -80,11 +82,14 @@ function setup(opts: {
   unclassified?: string[];
   categories?: { id: string; name: string; description: string | null }[];
   card?: Card | null;
+  extractError?: Error;
+  credits?: 'ok' | 'none';
 }) {
   const saved: NewVerification[] = [];
   const classifierCalls: string[][] = [];
   const categoryCalls: unknown[][] = [];
   const extractorContexts: unknown[] = [];
+  const events: string[] = [];
   const useCase = new CreateVerificationUseCase(
     {
       findById: async () => (opts.card === undefined ? card : opts.card),
@@ -104,7 +109,9 @@ function setup(opts: {
     } as unknown as MerchantRepository,
     {
       extract: async (_pdf: Buffer, context: unknown) => {
+        events.push('extract');
         extractorContexts.push(context);
+        if (opts.extractError) throw opts.extractError;
         return {
           statement: opts.statement ?? mxnCashbackStatement(),
           model: 'test-model',
@@ -126,12 +133,41 @@ function setup(opts: {
     {
       create: async (input: NewVerification) => {
         saved.push(input);
-        return { ...input, id: 'v-1', createdAt: new Date() } as Verification;
+        return {
+          ...input,
+          id: input.id ?? 'v-1',
+          createdAt: new Date(),
+        } as Verification;
       },
     } as unknown as VerificationRepository,
     0.7,
+    {
+      reserve: async (_user: string, verificationId: string) => {
+        events.push('reserve');
+        if (opts.credits === 'none')
+          throw new NoCreditsError({
+            free: 0,
+            plan: 0,
+            planPeriodEnd: null,
+            purchased: 0,
+            total: 0,
+            subscriptionActive: false,
+          });
+        return { entryId: 'e-1', verificationId };
+      },
+      refund: async () => {
+        events.push('refund');
+      },
+    } as unknown as CreditsService,
   );
-  return { useCase, saved, classifierCalls, categoryCalls, extractorContexts };
+  return {
+    useCase,
+    saved,
+    classifierCalls,
+    categoryCalls,
+    extractorContexts,
+    events,
+  };
 }
 
 const run = (
@@ -406,6 +442,49 @@ describe('CreateVerificationUseCase (step 1)', () => {
     expect(s.extractorContexts).toHaveLength(0);
     await expect(run(setup({ card: null }))).rejects.toMatchObject({
       code: 'CARD_NOT_FOUND',
+    });
+  });
+
+  describe('credits', () => {
+    it('reserves the credit before extracting and keeps it on success', async () => {
+      const s = setup({});
+      const v = await run(s);
+      expect(s.events).toEqual(['reserve', 'extract']);
+      expect(v.id).toBe(s.saved[0]!.id);
+    });
+
+    it('uses the reservation verification id as the verification id', async () => {
+      const s = setup({});
+      await run(s);
+      expect(s.saved[0]!.id).toMatch(/^[0-9a-f-]{36}$/);
+    });
+
+    it('refunds when extraction fails, and rethrows the original error', async () => {
+      const boom = new Error('upstream');
+      const s = setup({ extractError: boom });
+      await expect(run(s)).rejects.toBe(boom);
+      expect(s.events).toEqual(['reserve', 'extract', 'refund']);
+    });
+
+    it('answers NO_CREDITS before any paid work', async () => {
+      const s = setup({ credits: 'none' });
+      await expect(run(s)).rejects.toMatchObject({ code: 'NO_CREDITS' });
+      expect(s.events).toEqual(['reserve']);
+    });
+
+    it('reserves nothing for invalid PDFs or unknown cards', async () => {
+      const s = setup({});
+      await expect(
+        s.useCase.execute({
+          userId: USER,
+          cardId: 'card-1',
+          pdf: Buffer.from('GIF89a'),
+        }),
+      ).rejects.toMatchObject({ code: 'INVALID_PDF' });
+      expect(s.events).toEqual([]);
+      const none = setup({ card: null });
+      await expect(run(none)).rejects.toMatchObject({ code: 'CARD_NOT_FOUND' });
+      expect(none.events).toEqual([]);
     });
   });
 

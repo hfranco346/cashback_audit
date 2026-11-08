@@ -13,6 +13,8 @@ const payloadSchema = z.object({
     entitlement_id: z.string().nullish(),
     product_id: z.string().nullish(),
     store: z.string().nullish(),
+    transaction_id: z.string().nullish(),
+    cancel_reason: z.string().nullish(),
     expiration_at_ms: z.number().nullish(),
     event_timestamp_ms: z.number(),
   }),
@@ -38,6 +40,8 @@ export function parseRevenueCatPayload(
     entitlementIds,
     productId: e.product_id ?? null,
     store: e.store ?? null,
+    transactionId: e.transaction_id ?? null,
+    cancelReason: e.cancel_reason ?? null,
     expirationAt: e.expiration_at_ms ? new Date(e.expiration_at_ms) : null,
     eventAt: new Date(e.event_timestamp_ms),
   };

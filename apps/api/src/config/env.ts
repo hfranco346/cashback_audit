@@ -21,6 +21,40 @@ const modelId = z.preprocess(
     .optional(),
 );
 
+const PACK_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
+
+/** `credits_3:3,credits_10:10` -> `{ credits_3: 3, credits_10: 10 }`. */
+const creditPacks = z
+  .string()
+  .default('credits_3:3,credits_10:10')
+  .transform((raw, ctx): Record<string, number> => {
+    const packs: Record<string, number> = {};
+    for (const part of raw
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)) {
+      const [id, amount, ...rest] = part.split(':').map((x) => x.trim());
+      const credits = Number(amount);
+      if (
+        rest.length > 0 ||
+        !id ||
+        !PACK_ID.test(id) ||
+        !Number.isInteger(credits) ||
+        credits < 1 ||
+        credits > 1000 ||
+        id in packs
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `invalid pack "${part}" (use productId:credits, e.g. credits_3:3)`,
+        });
+        return z.NEVER;
+      }
+      packs[id] = credits;
+    }
+    return packs;
+  });
+
 const baseSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
@@ -56,7 +90,16 @@ const baseSchema = z.object({
 
   REVENUECAT_WEBHOOK_AUTH: z.string().default(''),
   REVENUECAT_ENTITLEMENT_ID: z.string().default('pro'),
-  SUBSCRIPTION_GATE_ENABLED: booleanString.default(true),
+  /** Charge one credit per statement upload (set false for local dev). */
+  CREDITS_GATE_ENABLED: booleanString.optional(),
+  /** @deprecated Alias of CREDITS_GATE_ENABLED (used when that one is unset). */
+  SUBSCRIPTION_GATE_ENABLED: booleanString.optional(),
+  /** Lifetime free credits granted to every new user. */
+  FREE_CREDITS: z.coerce.number().int().min(0).max(100).default(1),
+  /** Credits granted on each paid billing period of the subscription. */
+  PLAN_CREDITS_PER_PERIOD: z.coerce.number().int().min(0).max(1000).default(5),
+  /** Consumable credit packs: `productId:credits` pairs, comma separated. */
+  CREDIT_PACKS: creditPacks,
 
   THROTTLE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(120),
@@ -70,6 +113,8 @@ const baseSchema = z.object({
  */
 export const envSchema = baseSchema.transform((env) => ({
   ...env,
+  CREDITS_GATE_ENABLED:
+    env.CREDITS_GATE_ENABLED ?? env.SUBSCRIPTION_GATE_ENABLED ?? true,
   ANTHROPIC_EXTRACTION_MODEL:
     env.ANTHROPIC_EXTRACTION_MODEL ??
     env.ANTHROPIC_MODEL ??

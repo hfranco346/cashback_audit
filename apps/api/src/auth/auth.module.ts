@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CreditsModule } from '../credits/credits.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AuthSessionService } from './application/auth-session.service.js';
 import {
@@ -23,7 +24,7 @@ import { JwtAuthGuard } from './infrastructure/jwt-auth.guard.js';
 import { PrismaRefreshTokenRepository } from './infrastructure/prisma-refresh-token.repository.js';
 
 @Module({
-  imports: [UsersModule],
+  imports: [UsersModule, CreditsModule],
   controllers: [AuthController],
   providers: [
     AuthSessionService,

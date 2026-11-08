@@ -26,7 +26,7 @@ pnpm db:deploy              # applies migrations (use `pnpm db:migrate` while de
 pnpm start:dev              # http://localhost:3000/api/v1/health  and  /docs (Swagger)
 ```
 
-Set `SUBSCRIPTION_GATE_ENABLED=false` in `.env` to try `POST /verifications`
+Set `CREDITS_GATE_ENABLED=false` in `.env` to try `POST /verifications`
 without a RevenueCat subscription.
 
 ## Scripts
@@ -65,7 +65,10 @@ All variables are validated at startup (`src/config/env.ts`); see
 | `ANTHROPIC_MODEL` | Deprecated; fallback for `ANTHROPIC_EXTRACTION_MODEL` only when that one is unset |
 | `REVENUECAT_WEBHOOK_AUTH` | Shared secret; RevenueCat sends it verbatim in the `Authorization` header |
 | `REVENUECAT_ENTITLEMENT_ID` | Default `pro` |
-| `SUBSCRIPTION_GATE_ENABLED` | `true` (default) / `false` for local dev |
+| `CREDITS_GATE_ENABLED` | `true` (default) charges one credit per statement analysis; `false` for local dev (no checks, no spending). `SUBSCRIPTION_GATE_ENABLED` is the deprecated alias |
+| `FREE_CREDITS` | Lifetime free credits per new user. Default `1` |
+| `PLAN_CREDITS_PER_PERIOD` | Credits granted per paid subscription period (no roll over). Default `5` |
+| `CREDIT_PACKS` | Consumable packs as `productId:credits` pairs. Default `credits_3:3,credits_10:10` |
 | `THROTTLE_*`, `VERIFICATION_THROTTLE_LIMIT` | Rate limits (default 120/min; 5/min for verifications) |
 
 Missing optional credentials fail closed: with no `GOOGLE_CLIENT_IDS` /
@@ -84,7 +87,7 @@ src/<feature>/
 ```
 
 Features: `auth`, `users`, `cards`, `categories` (categories + merchants),
-`verifications`, `subscriptions`; shared pieces in `src/shared`
+`verifications`, `subscriptions`, `credits`; shared pieces in `src/shared`
 (Prisma service, `DomainError` + global exception filter, throttling, decimal
 validation). The reward maths lives in
 `src/verifications/domain/reward-calculator.ts` and the deterministic merchant

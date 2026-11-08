@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { CreditsService } from '../../credits/application/credits.service.js';
 import { Decimal } from 'decimal.js';
+import type { Card } from '../../cards/domain/card.js';
 import { CardRepository } from '../../cards/domain/card.repository.js';
 import { CardNotFoundError } from '../../cards/domain/card-errors.js';
 import { CategoryRepository } from '../../categories/domain/category.repository.js';
@@ -62,6 +65,7 @@ export class CreateVerificationUseCase {
     private readonly verifications: VerificationRepository,
     @Inject(CLASSIFICATION_MIN_CONFIDENCE)
     private readonly minConfidence: number,
+    private readonly credits: CreditsService,
   ) {}
 
   async execute(input: CreateVerificationInput): Promise<Verification> {
@@ -74,6 +78,26 @@ export class CreateVerificationUseCase {
     const card = await this.cards.findById(input.userId, input.cardId);
     if (!card) throw new CardNotFoundError();
 
+    // One credit is spent atomically before the paid work starts and given
+    // back if anything fails (extraction, upstream errors, persistence).
+    const verificationId = randomUUID();
+    const reservation = await this.credits.reserve(
+      input.userId,
+      verificationId,
+    );
+    try {
+      return await this.process(input, card, verificationId);
+    } catch (error) {
+      await this.credits.refund(reservation);
+      throw error;
+    }
+  }
+
+  private async process(
+    input: CreateVerificationInput,
+    card: Card,
+    verificationId: string,
+  ): Promise<Verification> {
     const userMerchants = await this.merchants.list(input.userId, {});
     const categories = await this.categories.listWithCounts(input.userId);
     const categoryName = new Map(categories.map((c) => [c.id, c.name]));
@@ -302,6 +326,7 @@ export class CreateVerificationUseCase {
     );
 
     return this.verifications.create({
+      id: verificationId,
       userId: input.userId,
       cardId: card.id,
       status: 'AWAITING_RATES',

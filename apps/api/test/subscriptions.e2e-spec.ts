@@ -1,9 +1,4 @@
 import request from 'supertest';
-import { Decimal } from 'decimal.js';
-import {
-  LineClassifier,
-  StatementExtractor,
-} from '../src/verifications/domain/statement-extractor.js';
 import {
   createTestApp,
   resetDatabase,
@@ -12,66 +7,17 @@ import {
   type TestUser,
 } from './test-app.js';
 
-// ConfigModule.forRoot reads the environment when AppModule is first imported,
-// so the flag must be set before the imports below are evaluated.
-vi.hoisted(() => {
-  process.env.SUBSCRIPTION_GATE_ENABLED = 'true';
-});
-
 const AUTH = 'test-webhook-secret';
-const PDF = Buffer.from('%PDF-1.7\n');
 const DAY = 86_400_000;
 
-describe('Subscriptions (e2e, gate enabled)', () => {
+describe('Subscriptions (e2e)', () => {
   let ctx: TestApp;
   let alice: TestUser;
-  let cardId: string;
   let eventCounter = 0;
   const http = () => request(ctx.app.getHttpServer());
 
   beforeAll(async () => {
-    ctx = await createTestApp([
-      {
-        token: StatementExtractor,
-        useValue: {
-          extract: async () => ({
-            statement: {
-              bank: 'BBVA',
-              cardLast4: '4321',
-              periodStart: null,
-              periodEnd: null,
-              currency: 'MXN',
-              summaries: [],
-              exchangeRate: null,
-              detectedRates: [],
-              loyaltyPrograms: [
-                {
-                  name: 'x',
-                  accumulated: new Decimal(1),
-                  available: null,
-                  redeemedInPeriod: null,
-                  expiring: null,
-                  forfeited: null,
-                  unit: 'CURRENCY',
-                },
-              ],
-              transactions: [],
-            },
-            model: 'stub',
-          }),
-        },
-      },
-      {
-        token: LineClassifier,
-        useValue: {
-          classify: async () => ({
-            results: [],
-            unclassified: [],
-            model: null,
-          }),
-        },
-      },
-    ]);
+    ctx = await createTestApp();
   });
   afterAll(async () => {
     await ctx.close();
@@ -79,16 +25,6 @@ describe('Subscriptions (e2e, gate enabled)', () => {
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
     alice = await signInAs(ctx.app, 'alice');
-    cardId = (
-      await http().post('/api/v1/cards').set(alice.auth).send({
-        alias: 'c',
-        bank: 'b',
-        last4: '4321',
-        rewardUnit: 'CASHBACK_CURRENCY',
-        baseRatePercent: 1,
-        currency: 'MXN',
-      })
-    ).body.id;
   });
 
   const rcEvent = (type: string, over: Record<string, unknown> = {}) => ({
@@ -113,15 +49,6 @@ describe('Subscriptions (e2e, gate enabled)', () => {
     if (auth !== null) req = req.set('Authorization', auth);
     return req.send(body as object);
   };
-  const verify = () =>
-    http()
-      .post('/api/v1/verifications')
-      .set(alice.auth)
-      .field('cardId', cardId)
-      .attach('file', PDF, {
-        filename: 's.pdf',
-        contentType: 'application/pdf',
-      });
   const mySubscription = async () =>
     (await http().get('/api/v1/subscriptions/me').set(alice.auth).expect(200))
       .body;
@@ -150,21 +77,18 @@ describe('Subscriptions (e2e, gate enabled)', () => {
     });
   });
 
-  describe('gate on POST /verifications', () => {
-    it('returns 402 SUBSCRIPTION_REQUIRED without a subscription', async () => {
-      const res = await verify().expect(402);
-      expect(res.body).toMatchObject({
-        statusCode: 402,
-        code: 'SUBSCRIPTION_REQUIRED',
-        details: { entitlementId: 'pro' },
+  describe('subscription state', () => {
+    it('has no subscription by default', async () => {
+      expect(await mySubscription()).toMatchObject({
+        active: false,
+        status: 'NONE',
       });
     });
 
-    it('allows verification after INITIAL_PURCHASE', async () => {
+    it('activates on INITIAL_PURCHASE', async () => {
       await send(rcEvent('INITIAL_PURCHASE'))
         .expect(200)
-        .expect({ status: 'applied' });
-      await verify().expect(201);
+        .expect((r) => expect(r.body.status).toBe('applied'));
       expect(await mySubscription()).toMatchObject({
         entitlementId: 'pro',
         active: true,
@@ -175,7 +99,7 @@ describe('Subscriptions (e2e, gate enabled)', () => {
       });
     });
 
-    it('keeps access after CANCELLATION until expiration, then blocks on EXPIRATION', async () => {
+    it('stays active after CANCELLATION until expiration, then is inactive on EXPIRATION', async () => {
       const expiration = Date.now() + 10 * DAY;
       await send(
         rcEvent('INITIAL_PURCHASE', { expiration_at_ms: expiration }),
@@ -188,7 +112,6 @@ describe('Subscriptions (e2e, gate enabled)', () => {
         status: 'CANCELLED',
         willRenew: false,
       });
-      await verify().expect(201);
 
       await send(
         rcEvent('EXPIRATION', { expiration_at_ms: Date.now() }),
@@ -197,10 +120,9 @@ describe('Subscriptions (e2e, gate enabled)', () => {
         active: false,
         status: 'EXPIRED',
       });
-      await verify().expect(402);
     });
 
-    it('UNCANCELLATION and RENEWAL restore / extend access', async () => {
+    it('UNCANCELLATION and RENEWAL restore / extend the subscription', async () => {
       await send(rcEvent('INITIAL_PURCHASE')).expect(200);
       await send(rcEvent('CANCELLATION')).expect(200);
       await send(rcEvent('UNCANCELLATION')).expect(200);
@@ -220,17 +142,33 @@ describe('Subscriptions (e2e, gate enabled)', () => {
         rcEvent('INITIAL_PURCHASE', { expiration_at_ms: Date.now() - 1000 }),
       ).expect(200);
       expect((await mySubscription()).active).toBe(false);
-      await verify().expect(402);
     });
 
-    it('keeps access during a BILLING_ISSUE grace period', async () => {
+    it('stays active during a BILLING_ISSUE grace period', async () => {
       await send(rcEvent('INITIAL_PURCHASE')).expect(200);
       await send(rcEvent('BILLING_ISSUE')).expect(200);
       expect(await mySubscription()).toMatchObject({
         active: true,
         status: 'BILLING_ISSUE',
       });
-      await verify().expect(201);
+    });
+
+    it('does not let a credit pack purchase touch the subscription', async () => {
+      await send(
+        rcEvent('NON_RENEWING_PURCHASE', {
+          product_id: 'credits_3',
+          entitlement_ids: null,
+          transaction_id: 'tx-pack-1',
+        }),
+      ).expect(200);
+      await send(
+        rcEvent('CANCELLATION', {
+          product_id: 'credits_3',
+          entitlement_ids: null,
+          cancel_reason: 'CUSTOMER_SUPPORT',
+        }),
+      ).expect(200);
+      expect((await mySubscription()).status).toBe('NONE');
     });
 
     it('PRODUCT_CHANGE updates the product', async () => {
@@ -245,8 +183,12 @@ describe('Subscriptions (e2e, gate enabled)', () => {
   describe('event handling rules', () => {
     it('is idempotent by event id', async () => {
       const body = rcEvent('INITIAL_PURCHASE');
-      await send(body).expect(200).expect({ status: 'applied' });
-      await send(body).expect(200).expect({ status: 'duplicate' });
+      await send(body)
+        .expect(200)
+        .expect((r) => expect(r.body.status).toBe('applied'));
+      await send(body)
+        .expect(200)
+        .expect((r) => expect(r.body.status).toBe('duplicate'));
       expect(await ctx.prisma.revenueCatEvent.count()).toBe(1);
       expect(await ctx.prisma.subscription.count()).toBe(1);
     });
@@ -263,15 +205,17 @@ describe('Subscriptions (e2e, gate enabled)', () => {
         rcEvent('INITIAL_PURCHASE', { event_timestamp_ms: now - 5 * DAY }),
       )
         .expect(200)
-        .expect({ status: 'stale' });
+        .expect((r) => expect(r.body.status).toBe('stale'));
       expect((await mySubscription()).status).toBe('EXPIRED');
     });
 
     it('ignores other entitlements, unhandled types and unknown users (still 200)', async () => {
       await send(rcEvent('INITIAL_PURCHASE', { entitlement_ids: ['other'] }))
         .expect(200)
-        .expect({ status: 'ignored' });
-      await send(rcEvent('TEST')).expect(200).expect({ status: 'ignored' });
+        .expect((r) => expect(r.body.status).toBe('ignored'));
+      await send(rcEvent('TEST'))
+        .expect(200)
+        .expect((r) => expect(r.body.status).toBe('ignored'));
       await send(
         rcEvent('INITIAL_PURCHASE', {
           app_user_id: '$RCAnonymousID:abc',
@@ -280,7 +224,7 @@ describe('Subscriptions (e2e, gate enabled)', () => {
         }),
       )
         .expect(200)
-        .expect({ status: 'ignored' });
+        .expect((r) => expect(r.body.status).toBe('ignored'));
       await send(
         rcEvent('INITIAL_PURCHASE', {
           app_user_id: '11111111-1111-4111-8111-111111111111',
@@ -289,7 +233,7 @@ describe('Subscriptions (e2e, gate enabled)', () => {
         }),
       )
         .expect(200)
-        .expect({ status: 'ignored' });
+        .expect((r) => expect(r.body.status).toBe('ignored'));
       expect(await ctx.prisma.subscription.count()).toBe(0);
     });
 
@@ -301,7 +245,7 @@ describe('Subscriptions (e2e, gate enabled)', () => {
         }),
       )
         .expect(200)
-        .expect({ status: 'applied' });
+        .expect((r) => expect(r.body.status).toBe('applied'));
       expect((await mySubscription()).active).toBe(true);
     });
 

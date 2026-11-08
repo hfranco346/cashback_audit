@@ -25,6 +25,7 @@ import type {
   VerificationUpdate,
 } from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
+import type { CreditsService } from '../../credits/application/credits.service.js';
 import { ConfirmVerificationUseCase } from './confirm-verification.use-case.js';
 import { CreateVerificationUseCase } from './create-verification.use-case.js';
 import { RateProposalService } from './rate-proposal.service.js';
@@ -140,6 +141,10 @@ function world(
     } as unknown as LineClassifier,
     repo,
     0.7,
+    {
+      reserve: async () => null,
+      refund: async () => undefined,
+    } as unknown as CreditsService,
   );
   const confirm = new ConfirmVerificationUseCase(
     repo,

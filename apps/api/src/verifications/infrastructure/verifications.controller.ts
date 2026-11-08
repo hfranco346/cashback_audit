@@ -21,7 +21,7 @@ import type { AuthenticatedUser } from '../../auth/domain/authenticated-user.js'
 import { CurrentUser } from '../../auth/infrastructure/current-user.decorator.js';
 import { IdParam } from '../../shared/http/id.param.js';
 import { StrictThrottle } from '../../shared/http/throttling.js';
-import { SubscriptionGuard } from '../../subscriptions/infrastructure/subscription.guard.js';
+import { CreditsGuard } from '../../credits/infrastructure/credits.guard.js';
 import { UpdateTransactionCategoryUseCase } from '../application/update-transaction.use-case.js';
 import { ConfirmVerificationUseCase } from '../application/confirm-verification.use-case.js';
 import { RateProposalService } from '../application/rate-proposal.service.js';
@@ -83,7 +83,7 @@ export class VerificationsController {
   ) {}
 
   @Post()
-  @UseGuards(SubscriptionGuard)
+  @UseGuards(CreditsGuard)
   @StrictThrottle()
   @UseInterceptors(FileInterceptor('file', pdfUploadOptions))
   @ApiConsumes('multipart/form-data')

@@ -553,9 +553,10 @@ The request is not idempotent: do not auto-retry on timeout without asking
 the user (each call consumes quota); check `GET /verifications` first.
 
 **Order of checks** (first failure wins): auth (`401`) -> rate limit (`429`) ->
-subscription (`402`, step 1 only: this is where the analysis cost is) -> upload
+credits (`402 NO_CREDITS`, step 1 only: this is where the analysis cost is) -> upload
 type/size (`415`/`413`) -> field validation (`400`) -> PDF signature
-(`400 INVALID_PDF`) -> card ownership (`404`) -> analysis (`422`/`502`/`503`).
+(`400 INVALID_PDF`) -> card ownership (`404`) -> credit reservation (`402`, atomic)
+-> analysis (`422`/`502`/`503`, credit refunded).
 
 **Multi-currency.** Statements can have one amount column per currency (e.g.
 Lempiras and Dolares). Every transaction carries its own `currency` (ISO 4217).
@@ -692,7 +693,7 @@ Errors of step 1:
 | 400 | `FILE_REQUIRED` | No `file` part |
 | 400 | `INVALID_PDF` | Bytes are not a PDF |
 | 400 | `VALIDATION_ERROR` | Bad `cardId` / `exchangeRate` / `rewardProgramName`, or an unknown field |
-| 402 | `SUBSCRIPTION_REQUIRED` | Show the paywall (see section 9). `details.entitlementId` |
+| 402 | `NO_CREDITS` | Show the paywall (see section 9). `details` = the credit balance |
 | 404 | `CARD_NOT_FOUND` | Card missing or not yours |
 | 413 | `PAYLOAD_TOO_LARGE` | File over 10 MB |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Not `application/pdf` |
@@ -703,7 +704,7 @@ Errors of step 1:
 
 ### POST /verifications/:id/confirm  (step 2 and recalculation)
 
-`Content-Type: application/json`. Not subscription-gated and it never calls
+`Content-Type: application/json`. Not credit-gated and it never calls
 Claude, so it can be repeated freely (`200`). Allowed on `AWAITING_RATES` and
 `COMPLETED` verifications.
 
@@ -956,10 +957,24 @@ should treat a `404` on an old awaiting verification as expected.
 
 ---
 
-## 9. Subscriptions and the paywall
+## 9. Credits, subscriptions and the paywall
 
-Subscriptions are sold through the stores and managed by RevenueCat. The backend
-learns about them through RevenueCat webhooks and gates `POST /verifications`.
+**Model.** Every statement analysis (`POST /verifications`, step 1) costs **one
+credit**. There are three kinds of credits, spent in this order:
+
+1. `FREE`: one lifetime credit for every new user (no purchase needed).
+2. `PLAN`: 5 credits per paid billing period of the monthly subscription. They
+   **do not roll over**: on each renewal what is left is expired and 5 new ones
+   are granted. They only count while the period is current.
+3. `PURCHASED`: consumable credit packs (e.g. 3 or 10 credits); they never expire.
+
+The **backend is the source of truth** for the balance (it is *not* RevenueCat
+virtual currency). Purchases reach the backend through RevenueCat webhooks.
+Confirming, recalculating, reading and deleting verifications cost nothing.
+
+Subscriptions and packs are sold through the stores (and web payments through
+RevenueCat Web Billing / Stripe / Paddle, which need no extra client handling)
+and managed by RevenueCat.
 
 ### RevenueCat app user id (required)
 
@@ -1009,23 +1024,91 @@ backend may take a few seconds to know. Poll `GET /subscriptions/me` (e.g. every
 2 s for up to ~30 s) until `active` is true before enabling uploads; the
 RevenueCat SDK's own entitlement state is fine for unlocking the UI optimistically.
 
-### POST /verifications gate
+### GET /credits/me
 
-Without an active entitlement, `POST /verifications` (step 1, where the Claude
-cost is) returns the following; `POST /verifications/:id/confirm`, `GET` and
-`DELETE` are not gated:
+`200`:
+
+```json
+{
+  "free": 0,
+  "plan": 3,
+  "planPeriodEnd": "2026-03-01T10:00:00.000Z",
+  "purchased": 2,
+  "total": 5,
+  "subscriptionActive": true
+}
+```
+
+- `free`, `plan`, `purchased`: credits per bucket. `plan` is only the current
+  period's remaining credits; `planPeriodEnd` is when they expire (`null` when
+  there are none).
+- `total = free + plan + purchased`: how many analyses the user can still run.
+- `subscriptionActive`: same as `GET /subscriptions/me`.`active`.
+
+Like the subscription, purchases are asynchronous: after a purchase succeeds in
+the app, poll `GET /credits/me` (e.g. every 2 s for up to ~30 s) until the
+balance changes before enabling uploads.
+
+### GET /credits/me/history
+
+Query `page` (default 1), `pageSize` (default 20, 1-100). Newest first, append-only
+ledger:
+
+```json
+{
+  "items": [
+    {
+      "id": "b7c1...",
+      "delta": -1,
+      "bucket": "FREE",
+      "reason": "CONSUME",
+      "source": "SYSTEM",
+      "verificationId": "e5f6...",
+      "periodEnd": null,
+      "createdAt": "2026-02-01T10:00:00.000Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 20,
+  "total": 1
+}
+```
+
+`bucket`: `FREE | PLAN | PURCHASED`. `reason`: `GRANT_FREE`, `GRANT_PLAN`,
+`GRANT_PACK`, `CONSUME`, `REFUND` (a credit given back after a failed analysis, or
+a refunded pack), `EXPIRE_PLAN` (left-over plan credits at renewal). `source`:
+`APPLE | GOOGLE | WEB | SYSTEM`. `periodEnd` is set for `PLAN` entries.
+
+### Spending credits: POST /verifications
+
+The credit is spent **atomically and before Claude is called**
+(free -> plan -> purchased); two parallel uploads can never spend the same
+credit. If the analysis fails for any reason (`422`, `502`, `503`, `500`) the
+credit is **refunded** to the same bucket. Invalid requests (`400`, `404`,
+`413`, `415`) never reserve one. A cheap pre-check answers before the upload is
+processed. With no credits:
 
 ```json
 {
   "statusCode": 402,
-  "code": "SUBSCRIPTION_REQUIRED",
-  "message": "An active subscription is required to verify statements",
-  "details": { "entitlementId": "pro" }
+  "code": "NO_CREDITS",
+  "message": "No verification credits left. Subscribe or buy a credit pack.",
+  "details": {
+    "free": 0,
+    "plan": 0,
+    "planPeriodEnd": null,
+    "purchased": 0,
+    "total": 0,
+    "subscriptionActive": false
+  }
 }
 ```
 
-In local development the gate can be switched off with
-`SUBSCRIPTION_GATE_ENABLED=false` on the server.
+Show the paywall: subscription (5 credits per month) and credit packs.
+`POST /verifications/:id/confirm`, `PATCH`, `GET` and `DELETE` are never gated.
+In local development the gate (and all spending) can be switched off with
+`CREDITS_GATE_ENABLED=false` on the server (`SUBSCRIPTION_GATE_ENABLED` is still
+read as an alias when the new name is unset).
 
 ### POST /webhooks/revenuecat (server to server)
 
@@ -1034,15 +1117,40 @@ In local development the gate can be switched off with
 `REVENUECAT_WEBHOOK_AUTH` (compared in constant time; if the variable is empty
 every call is rejected). Returns `401 INVALID_WEBHOOK_AUTH` otherwise.
 
-Handled event types: `INITIAL_PURCHASE`, `RENEWAL`, `PRODUCT_CHANGE`,
-`UNCANCELLATION`, `NON_RENEWING_PURCHASE` (-> `ACTIVE`), `CANCELLATION` (->
-`CANCELLED`, access kept until the event's `expiration_at_ms`), `BILLING_ISSUE`
-(-> `BILLING_ISSUE`, access kept until `expiration_at_ms`), `EXPIRATION` (->
-`EXPIRED`). Everything else is acknowledged and ignored. Events are idempotent
-by `event.id`, and events older than the last applied one are ignored.
+**Subscription events** (entitlement `REVENUECAT_ENTITLEMENT_ID`):
+`INITIAL_PURCHASE`, `RENEWAL`, `PRODUCT_CHANGE`, `UNCANCELLATION` (-> `ACTIVE`),
+`CANCELLATION` (-> `CANCELLED`, access kept until the event's
+`expiration_at_ms`), `BILLING_ISSUE` (-> `BILLING_ISSUE`, access kept until
+`expiration_at_ms`), `EXPIRATION` (-> `EXPIRED`). Events are idempotent by
+`event.id`, and events older than the last applied one are ignored. Purchases of a
+credit pack never change the subscription.
 
-Response `200`: `{ "status": "applied" | "duplicate" | "stale" | "ignored" }`.
+**Credits.** In the same call the backend updates the credit ledger:
+
+- `INITIAL_PURCHASE` / `RENEWAL` of the subscription with a future
+  `expiration_at_ms`: the previous period's left-over plan credits are expired and
+  `PLAN_CREDITS_PER_PERIOD` (5) are granted for the new period
+  (`periodEnd = expiration_at_ms`). A period is granted only once, whatever the
+  event ids.
+- `NON_RENEWING_PURCHASE` (or `INITIAL_PURCHASE`) of a product configured in
+  `CREDIT_PACKS` (server setting, `productId:credits` pairs such as
+  `credits_3:3,credits_10:10`): grants those credits as `PURCHASED`. Idempotent by
+  the store `transaction_id` (event id when absent).
+- A refund of a pack (`REFUND` event, or `CANCELLATION` with
+  `cancel_reason: CUSTOMER_SUPPORT`): debits the pack's credits from `PURCHASED`,
+  never below zero (a pack already spent is only logged).
+- The `store` maps to the ledger `source`: `APP_STORE`/`MAC_APP_STORE` -> `APPLE`,
+  `PLAY_STORE` -> `GOOGLE`, `STRIPE`/`RC_BILLING`/`PADDLE` -> `WEB`, anything else
+  -> `SYSTEM`.
+
+Everything else is acknowledged and ignored.
+
+Response `200`: `{ "status": "applied" | "duplicate" | "stale" | "ignored",
+"credits": "granted" | "debited" | "duplicate" | "ignored" }`.
 `400 INVALID_WEBHOOK_PAYLOAD` for bodies that are not RevenueCat events.
+
+The app must expose the pack **product ids** configured in `CREDIT_PACKS` as
+consumable products in RevenueCat/the stores.
 
 ---
 
@@ -1068,7 +1176,7 @@ Response `200`: `{ "status": "applied" | "duplicate" | "stale" | "ignored" }`.
 | 401 | `INVALID_REFRESH_TOKEN` | Refresh token unknown, expired, revoked or reused -> sign in again |
 | 401 | `UNAUTHORIZED` | Access token valid but the account no longer exists |
 | 401 | `INVALID_WEBHOOK_AUTH` | Webhook only |
-| 402 | `SUBSCRIPTION_REQUIRED` | Paywall |
+| 402 | `NO_CREDITS` | Paywall (see section 9) |
 | 404 | `CARD_NOT_FOUND`, `CATEGORY_NOT_FOUND`, `MERCHANT_NOT_FOUND`, `VERIFICATION_NOT_FOUND` | Missing **or not yours** |
 | 409 | `CATEGORY_NAME_TAKEN`, `MERCHANT_NAME_TAKEN` | Duplicate name for this user |
 | 409 | `CATEGORY_IN_USE` | Delete a category that still has merchants/card rules (`details.merchants`, `details.cardRules`) |
@@ -1171,3 +1279,19 @@ Clients built against the previous contract must change:
   `matchSource` value `USER`; new errors `404 TRANSACTION_NOT_FOUND`,
   `422 TRANSACTION_NOT_CLASSIFIABLE`.
 - Abandoned `AWAITING_RATES` verifications are deleted after 7 days.
+
+### Credits replace the subscription gate
+
+- **`402 SUBSCRIPTION_REQUIRED` no longer exists**; `POST /verifications` answers
+  `402 NO_CREDITS` (with the balance in `details`) when the user has no credits.
+  Having a subscription is no longer enough or required by itself: it grants 5
+  credits per period.
+- Every new user gets **1 free credit**; existing users were given one too.
+- A successful `POST /verifications` consumes one credit; a failed one refunds it.
+- New endpoints `GET /credits/me` and `GET /credits/me/history`.
+- Credit packs: configure the product ids in `CREDIT_PACKS`; purchases (including
+  web payments through RevenueCat) reach the backend by webhook.
+- Webhook response gained `credits`. `NON_RENEWING_PURCHASE` no longer activates
+  the subscription.
+- `SUBSCRIPTION_GATE_ENABLED` was renamed `CREDITS_GATE_ENABLED` (old name kept as
+  alias).

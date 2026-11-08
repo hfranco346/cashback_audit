@@ -163,7 +163,10 @@ export interface Verification {
   createdAt: Date;
 }
 
-export type NewVerification = Omit<Verification, 'id' | 'createdAt'>;
+/** `id` may be pre-generated (the credit reservation references it). */
+export type NewVerification = Omit<Verification, 'id' | 'createdAt'> & {
+  id?: string;
+};
 
 /** Fields that can change after creation (confirm / recalculate / corrections). */
 export type VerificationUpdate = Partial<

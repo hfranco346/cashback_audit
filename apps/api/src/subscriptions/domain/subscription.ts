@@ -38,6 +38,10 @@ export interface RevenueCatEventInput {
   entitlementIds: string[] | null;
   productId: string | null;
   store: string | null;
+  /** Store transaction id (stable across webhook redeliveries). */
+  transactionId: string | null;
+  /** CANCELLATION reason, e.g. CUSTOMER_SUPPORT for refunds. */
+  cancelReason: string | null;
   expirationAt: Date | null;
   eventAt: Date;
 }
@@ -54,7 +58,6 @@ export function transitionFor(type: string): SubscriptionTransition | null {
     case 'RENEWAL':
     case 'PRODUCT_CHANGE':
     case 'UNCANCELLATION':
-    case 'NON_RENEWING_PURCHASE':
       return { status: 'ACTIVE', willRenew: true };
     case 'CANCELLATION':
       // Still entitled until the period ends.

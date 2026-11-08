@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CardsModule } from '../cards/cards.module.js';
 import { CategoriesModule } from '../categories/categories.module.js';
-import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
+import { CreditsModule } from '../credits/credits.module.js';
 import type { Env } from '../config/env.js';
 import { CleanupAwaitingRatesService } from './application/cleanup-awaiting-rates.service.js';
 import { UpdateTransactionCategoryUseCase } from './application/update-transaction.use-case.js';
@@ -35,7 +35,7 @@ import { PrismaVerificationRepository } from './infrastructure/prisma-verificati
 import { VerificationsController } from './infrastructure/verifications.controller.js';
 
 @Module({
-  imports: [CardsModule, CategoriesModule, SubscriptionsModule],
+  imports: [CardsModule, CategoriesModule, CreditsModule],
   controllers: [VerificationsController],
   providers: [
     CreateVerificationUseCase,

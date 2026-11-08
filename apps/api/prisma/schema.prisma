@@ -29,6 +29,7 @@ model User {
   categories    MerchantCategory[]
   merchants     Merchant[]
   subscriptions Subscription[]
+  creditEntries CreditLedger[]
 
   @@unique([provider, providerSubject])
 }
@@ -240,4 +241,52 @@ model RevenueCatEvent {
   userId     String?  @db.Uuid
   outcome    String
   receivedAt DateTime @default(now())
+}
+
+enum CreditBucket {
+  /// One lifetime credit granted to every new user.
+  FREE
+  /// Granted each billing period of the subscription; does not roll over.
+  PLAN
+  /// Bought in consumable packs; never expires.
+  PURCHASED
+}
+
+enum CreditReason {
+  GRANT_FREE
+  GRANT_PLAN
+  GRANT_PACK
+  CONSUME
+  REFUND
+  EXPIRE_PLAN
+}
+
+enum CreditSource {
+  APPLE
+  GOOGLE
+  WEB
+  SYSTEM
+}
+
+/// Append-only credit ledger; the balance is the sum of the entries per bucket
+/// (PLAN entries only count while `periodEnd` is in the future).
+model CreditLedger {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @db.Uuid
+  delta          Int
+  bucket         CreditBucket
+  reason         CreditReason
+  source         CreditSource
+  /// Idempotency key (RevenueCat transaction/event id, `free:<user>`, `refund:<entry>`).
+  externalRef    String?      @unique
+  /// Verification a CONSUME/REFUND entry belongs to (no FK: history is deletable).
+  verificationId String?      @db.Uuid
+  /// PLAN entries: end of the billing period they belong to.
+  periodEnd      DateTime?
+  createdAt      DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, bucket])
 }

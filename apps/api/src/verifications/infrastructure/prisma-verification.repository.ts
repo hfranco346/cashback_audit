@@ -320,6 +320,7 @@ export class PrismaVerificationRepository extends VerificationRepository {
   async create(input: NewVerification): Promise<Verification> {
     const row = await this.prisma.verification.create({
       data: {
+        ...(input.id && { id: input.id }),
         userId: input.userId,
         cardId: input.cardId,
         ...toData(input),
