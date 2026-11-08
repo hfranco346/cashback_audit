@@ -4,6 +4,14 @@ import '../../features/auth/domain/auth_repository.dart';
 import '../../features/auth/presentation/login_controller.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/session_controller.dart';
+import '../../features/cards/domain/card_entities.dart';
+import '../../features/cards/domain/card_repository.dart';
+import '../../features/cards/presentation/card_form_controller.dart';
+import '../../features/cards/presentation/card_form_page.dart';
+import '../../features/cards/presentation/cards_controller.dart';
+import '../../features/categories/presentation/catalog_controller.dart';
+import '../../features/categories/presentation/catalog_page.dart';
+import '../../features/settings/presentation/settings_page.dart';
 import '../../features/home/presentation/home_page.dart';
 import '../../features/onboarding/presentation/onboarding_controller.dart';
 import '../../features/onboarding/presentation/onboarding_page.dart';
@@ -55,6 +63,28 @@ abstract final class AppPages {
         );
       }),
     ),
-    GetPage(name: Routes.home, page: () => const HomePage()),
+    GetPage(
+      name: Routes.home,
+      page: () => const HomePage(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: Routes.cardForm,
+      page: () => const CardFormPage(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(
+          () => CardFormController(
+            repository: Get.find<CardRepository>(),
+            cards: Get.find<CardsController>(),
+            catalog: Get.find<CatalogController>(),
+            editing: Get.arguments is CreditCard
+                ? Get.arguments as CreditCard
+                : null,
+          ),
+        );
+      }),
+    ),
+    GetPage(name: Routes.catalog, page: () => const CatalogPage()),
+    GetPage(name: Routes.settings, page: () => const SettingsPage()),
   ];
 }
