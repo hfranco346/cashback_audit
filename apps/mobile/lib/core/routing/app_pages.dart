@@ -48,8 +48,10 @@ abstract final class AppPages {
       name: Routes.splash,
       page: () => const SplashPage(),
       binding: BindingsBuilder(() {
-        Get.lazyPut(
-          () => SplashController(
+        // Eager: SplashPage never reads its controller, and the controller's
+        // onReady is what navigates away from the splash.
+        Get.put(
+          SplashController(
             onboarding: Get.find<OnboardingRepository>(),
             tokens: Get.find<TokenStorage>(),
             navigator: Get.find<AppNavigator>(),
