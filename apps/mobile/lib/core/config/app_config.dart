@@ -8,14 +8,16 @@ import 'credit_packs.dart';
 /// `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1`
 abstract final class AppConfig {
   /// Development-only access token for the local backend (e.g. a token signed
-  /// for a seeded test user). Ignored outside debug builds.
+  /// for a seeded test user). Ignored in release builds.
   static const String devAccessToken = String.fromEnvironment(
     'DEV_ACCESS_TOKEN',
   );
 
-  /// True only in debug builds that were given [devAccessToken]; release
-  /// builds compile this to `false`, so the dev sign-in never ships.
-  static bool get devLoginEnabled => kDebugMode && devAccessToken.isNotEmpty;
+  /// True in debug and profile builds that were given [devAccessToken].
+  /// Profile builds run standalone on a physical iPhone (debug builds cannot
+  /// relaunch without the tooling); release builds compile this to `false`,
+  /// so the dev sign-in never reaches the stores.
+  static bool get devLoginEnabled => !kReleaseMode && devAccessToken.isNotEmpty;
 
   /// Backend base URL. Android emulators reach the host machine at 10.0.2.2.
   static const String apiBaseUrl = String.fromEnvironment(
