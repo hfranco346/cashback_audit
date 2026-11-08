@@ -4,6 +4,8 @@ import 'package:cashback_audit/core/network/dio_factory.dart';
 import 'package:cashback_audit/core/network/session_events.dart';
 import 'package:cashback_audit/core/storage/token_storage.dart';
 import 'package:cashback_audit/core/theme/app_theme.dart';
+import 'package:cashback_audit/features/credits/domain/credit_entities.dart';
+import 'package:cashback_audit/features/credits/presentation/credits_controller.dart';
 import 'package:cashback_audit/features/subscription/data/revenuecat_billing_service.dart';
 import 'package:cashback_audit/features/subscription/data/subscription_repository_impl.dart';
 import 'package:cashback_audit/features/subscription/domain/subscription_entities.dart';
@@ -20,6 +22,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import '../../support/fake_adapter.dart';
+import '../../support/fake_credits_repository.dart';
 import '../../support/fakes.dart';
 
 const _active = SubscriptionStatus(
@@ -47,8 +50,21 @@ class _Billing implements BillingService {
   final bool configured;
   final Object? purchaseError;
   final pkgs = const [
-    PaywallPackage(id: 'monthly', title: 'Mensual', priceString: r'\$49.00'),
-    PaywallPackage(id: 'annual', title: 'Anual', priceString: r'\$399.00'),
+    PaywallPackage(id: 'monthly', title: 'Mensual', priceString: r'$4.99'),
+    PaywallPackage(
+      id: 'pack3',
+      title: '3',
+      priceString: r'$2.99',
+      kind: PaywallPackageKind.creditPack,
+      credits: 3,
+    ),
+    PaywallPackage(
+      id: 'pack10',
+      title: '10',
+      priceString: r'$7.99',
+      kind: PaywallPackageKind.creditPack,
+      credits: 10,
+    ),
   ];
   final log = <String>[];
 
@@ -174,41 +190,66 @@ void main() {
   group('PaywallController', () {
     late _Billing billing;
     late FakeNavigator nav;
+    late CreditsController credits;
+    late SubscriptionController sub;
 
-    PaywallController build(_Repo repo, {_Billing? b}) {
+    PaywallController build(
+      List<CreditBalance> balances, {
+      _Billing? b,
+      _Repo? subRepo,
+    }) {
       billing = b ?? _Billing();
       nav = FakeNavigator();
+      credits = CreditsController(
+        repository: FakeCreditsRepository(balances),
+        pollDelays: List.filled(3, const Duration(seconds: 1)),
+        wait: (_) async {},
+      );
+      sub = _sub(subRepo ?? _Repo(activeAfter: 1), billing);
       return PaywallController(
         billing: billing,
-        subscription: _sub(repo, billing),
+        credits: credits,
+        subscription: sub,
         navigator: nav,
       );
     }
 
-    test('loads packages and preselects the first', () async {
-      final c = build(_Repo());
+    test('loads packages, preselects the subscription, sorts packs', () async {
+      final c = build([balance()]);
       await c.loadPackages();
-      expect(c.packages, hasLength(2));
+      expect(c.packages, hasLength(3));
       expect(c.selectedId.value, 'monthly');
+      expect(c.subscriptionPackage?.id, 'monthly');
+      expect(c.packs.map((p) => p.credits), [3, 10]);
     });
 
-    test('purchase confirms with the backend and closes the paywall', () async {
-      final c = build(_Repo(activeAfter: 2));
+    test('buying a pack polls the balance until credits appear', () async {
+      // before: 0; webhook lag: still 0 once; then 3 credits.
+      final c = build([balance(), balance(), balance(), balance(purchased: 3)]);
       await c.loadPackages();
-      c.select('annual');
+      c.select('pack3');
       await c.purchase();
-      expect(billing.log, ['purchase:annual']);
+      expect(billing.log, ['purchase:pack3']);
+      expect(credits.balance.value?.purchased, 3);
       expect(nav.pops, 1);
       expect(nav.notices, [S.paywallSuccessTitle]);
       expect(c.pending.value, isFalse);
       expect(c.busy.value, PaywallBusy.none);
     });
 
+    test('subscribing is confirmed by the plan credits arriving', () async {
+      final c = build([balance(), balance(plan: 5, subscriptionActive: true)]);
+      await c.loadPackages();
+      await c.purchase();
+      expect(billing.log, ['purchase:monthly']);
+      expect(credits.balance.value?.plan, 5);
+      expect(nav.pops, 1);
+    });
+
     test('user cancellation is silent', () async {
-      final c = build(
-        _Repo(),
-        b: _Billing(purchaseError: const PurchaseCancelled()),
-      );
+      final c = build([
+        balance(),
+      ], b: _Billing(purchaseError: const PurchaseCancelled()));
       await c.loadPackages();
       await c.purchase();
       expect(c.errorMessage.value, isNull);
@@ -217,33 +258,39 @@ void main() {
     });
 
     test('store failures show an error', () async {
-      final c = build(
-        _Repo(),
-        b: _Billing(purchaseError: const BillingException('x')),
-      );
+      final c = build([
+        balance(),
+      ], b: _Billing(purchaseError: const BillingException('x')));
       await c.loadPackages();
       await c.purchase();
       expect(c.errorMessage.value, S.paywallPurchaseFailed);
     });
 
     test('webhook lag leaves a pending state that can be re-checked', () async {
-      final repo = _Repo(activeAfter: 99);
-      final c = build(repo);
+      final c = build([balance()]); // never changes
       await c.loadPackages();
+      c.select('pack10');
       await c.purchase();
       expect(c.pending.value, isTrue);
       expect(nav.pops, 0);
     });
 
-    test('restore goes through the same confirmation', () async {
-      final c = build(_Repo());
+    test('restore refreshes what the backend knows', () async {
+      final c = build([balance(plan: 5, subscriptionActive: true)]);
       await c.restore();
       expect(billing.log, ['restore']);
       expect(nav.pops, 1);
     });
 
+    test('restore with nothing to restore says so', () async {
+      final c = build([balance()], subRepo: _Repo(activeAfter: 99));
+      await c.restore();
+      expect(nav.pops, 0);
+      expect(c.errorMessage.value, S.restoreNothing);
+    });
+
     test('unconfigured builds do not load packages', () async {
-      final c = build(_Repo(), b: _Billing(configured: false));
+      final c = build([balance()], b: _Billing(configured: false));
       await c.loadPackages();
       expect(c.configured, isFalse);
       expect(c.packages, isEmpty);
@@ -279,40 +326,84 @@ void main() {
       PaywallBusy busy = PaywallBusy.none,
       bool pending = false,
       String? selected = 'monthly',
+      int freeCredits = 0,
       ValueChanged<String>? onSelect,
-      VoidCallback? onSubscribe,
+      VoidCallback? onPurchase,
       VoidCallback? onCheckAgain,
     }) => PaywallView(
       configured: configured,
-      packages: const [
-        PaywallPackage(id: 'monthly', title: 'Mensual', priceString: r'$49.00'),
-        PaywallPackage(id: 'annual', title: 'Anual', priceString: r'$399.00'),
-      ],
+      subscription: _Billing().pkgs[0],
+      packs: _Billing().pkgs.sublist(1),
       selectedId: selected,
       onSelect: onSelect ?? (_) {},
       busy: busy,
       pending: pending,
-      onSubscribe: onSubscribe ?? () {},
+      freeCredits: freeCredits,
+      onPurchase: onPurchase ?? () {},
       onRestore: () {},
       onCheckAgain: onCheckAgain ?? () {},
       onClose: () {},
     );
 
-    testWidgets('lists packages and subscribes', (tester) async {
+    testWidgets('shows the subscription and the credit packs', (tester) async {
       String? picked;
-      var subscribed = 0;
+      var purchased = 0;
+      await tester.binding.setSurfaceSize(const Size(500, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         wrap(
-          view(onSelect: (id) => picked = id, onSubscribe: () => subscribed++),
+          view(onSelect: (id) => picked = id, onPurchase: () => purchased++),
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text(r'$49.00'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('package-annual')));
-      expect(picked, 'annual');
-      await tester.ensureVisible(find.byKey(const Key('subscribe-button')));
+      expect(find.text(S.paywallSubscriptionTitle), findsOneWidget);
+      expect(find.text(S.paywallSubscriptionPerks), findsOneWidget);
+      expect(find.text(r'$4.99'), findsOneWidget);
+      expect(find.text(S.paywallPacksTitle), findsOneWidget);
+      expect(find.text(S.packTitle(3)), findsOneWidget);
+      expect(find.text(S.packTitle(10)), findsOneWidget);
+      expect(find.text(r'$2.99'), findsOneWidget);
+      expect(find.text(S.paywallSubscribe), findsOneWidget);
+      await tester.tap(find.byKey(const Key('package-pack10')));
+      expect(picked, 'pack10');
       await tester.tap(find.byKey(const Key('subscribe-button')));
-      expect(subscribed, 1);
+      expect(purchased, 1);
+    });
+
+    testWidgets('the button says Comprar when a pack is selected', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(500, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(wrap(view(selected: 'pack3')));
+      await tester.pumpAndSettle();
+      expect(find.text(S.paywallBuy), findsOneWidget);
+      expect(find.text(S.paywallSubscribe), findsNothing);
+    });
+
+    testWidgets('first-free messaging only with free credits', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(500, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(wrap(view()));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('paywall-free-banner')), findsNothing);
+      await tester.pumpWidget(wrap(view(freeCredits: 1)));
+      await tester.pumpAndSettle();
+      expect(find.text(S.paywallFreeBanner(1)), findsOneWidget);
+    });
+
+    testWidgets('no external or web payment is mentioned', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(500, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(wrap(view(freeCredits: 1, pending: true)));
+      await tester.pumpAndSettle();
+      final texts = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((t) => (t.data ?? '').toLowerCase())
+          .join(' ');
+      for (final banned in ['web', 'stripe', 'paddle', 'http', 'sitio']) {
+        expect(texts.contains(banned), isFalse, reason: banned);
+      }
     });
 
     testWidgets('shows a dev notice and disables purchase without a key', (
@@ -329,6 +420,8 @@ void main() {
     });
 
     testWidgets('pending purchase offers a re-check', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(500, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       var checked = 0;
       await tester.pumpWidget(
         wrap(view(pending: true, onCheckAgain: () => checked++)),

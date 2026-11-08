@@ -4,6 +4,7 @@ import '../../../../core/l10n/strings.dart';
 import '../../../../shared/widgets/molecules/empty_state.dart';
 import '../../../../shared/widgets/molecules/inline_message.dart';
 import '../../../cards/domain/card_entities.dart';
+import '../../../credits/domain/credit_entities.dart';
 import '../../domain/pdf_picker.dart';
 import '../upload_controller.dart' show UploadPhase;
 import 'analyzing_progress.dart';
@@ -22,6 +23,8 @@ class UploadView extends StatelessWidget {
     required this.canSubmit,
     required this.onSubmit,
     required this.onAddCard,
+    this.balance,
+    this.onSeePlans,
     this.errorMessage,
   });
 
@@ -35,6 +38,10 @@ class UploadView extends StatelessWidget {
   final bool canSubmit;
   final VoidCallback onSubmit;
   final VoidCallback onAddCard;
+
+  /// Credit balance (`null` while unknown) for the pre-upload notice.
+  final CreditBalance? balance;
+  final VoidCallback? onSeePlans;
   final String? errorMessage;
 
   bool get _busy => phase != UploadPhase.idle;
@@ -83,6 +90,10 @@ class UploadView extends StatelessWidget {
               if (errorMessage != null) ...[
                 const SizedBox(height: 16),
                 InlineMessage(message: errorMessage!),
+              ],
+              if (balance != null) ...[
+                const SizedBox(height: 16),
+                _CreditNotice(balance: balance!, onSeePlans: onSeePlans),
               ],
               const SizedBox(height: 24),
               FilledButton(
@@ -220,6 +231,39 @@ class _FileBox extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// What the analysis will cost: 1 credit, the free one, or nothing left.
+class _CreditNotice extends StatelessWidget {
+  const _CreditNotice({required this.balance, required this.onSeePlans});
+
+  final CreditBalance balance;
+  final VoidCallback? onSeePlans;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!balance.hasCredits) {
+      return InlineMessage(
+        key: const Key('upload-no-credits'),
+        message: S.uploadNoCredits,
+        tone: InlineMessageTone.warning,
+        actionLabel: S.seePlans,
+        onAction: onSeePlans,
+      );
+    }
+    if (balance.free > 0) {
+      return const InlineMessage(
+        key: Key('upload-free-notice'),
+        message: S.uploadFreeNotice,
+        tone: InlineMessageTone.info,
+      );
+    }
+    return InlineMessage(
+      key: const Key('upload-credit-notice'),
+      message: S.uploadCreditNotice(balance.total),
+      tone: InlineMessageTone.info,
     );
   }
 }

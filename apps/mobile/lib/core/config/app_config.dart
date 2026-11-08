@@ -1,3 +1,5 @@
+import 'credit_packs.dart';
+
 /// Build-time configuration injected with `--dart-define`.
 ///
 /// Example:
@@ -27,4 +29,13 @@ abstract final class AppConfig {
   static const String revenueCatAndroidKey = String.fromEnvironment(
     'REVENUECAT_ANDROID_KEY',
   );
+
+  /// Consumable credit packs sold through RevenueCat: `productId:credits`
+  /// pairs. Must mirror the backend `CREDIT_PACKS` setting.
+  static const String _creditPacksRaw = String.fromEnvironment(
+    'CREDIT_PACKS',
+    defaultValue: 'credits_3:3,credits_10:10',
+  );
+
+  static final Map<String, int> creditPacks = parseCreditPacks(_creditPacksRaw);
 }

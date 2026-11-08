@@ -12,13 +12,15 @@ class PaywallPage extends GetView<PaywallController> {
     return Obx(
       () => PaywallView(
         configured: controller.configured,
-        packages: controller.packages.toList(),
+        subscription: controller.subscriptionPackage,
+        packs: controller.packs,
         selectedId: controller.selectedId.value,
         onSelect: controller.select,
         busy: controller.busy.value,
         pending: controller.pending.value,
+        freeCredits: controller.credits.balance.value?.free ?? 0,
         errorMessage: controller.errorMessage.value,
-        onSubscribe: controller.purchase,
+        onPurchase: controller.purchase,
         onRestore: controller.restore,
         onCheckAgain: controller.checkAgain,
         onClose: Get.back,

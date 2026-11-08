@@ -381,13 +381,62 @@ abstract final class S {
   static const verifyAction = 'Verificar estado';
   static const historyAction = 'Historial';
 
+  // Credits
+  static String creditsAvailable(int n) =>
+      n == 1 ? '1 verificación disponible' : '$n verificaciones disponibles';
+  static const creditsNone = 'Sin verificaciones disponibles';
+  static String uploadCreditNotice(int n) =>
+      'Esta verificación usará 1 de tus $n disponibles.';
+  static const uploadFreeNotice = 'Tu primera verificación es gratis.';
+  static const uploadNoCredits =
+      'No tienes verificaciones disponibles para analizar otro estado de cuenta.';
+  static const seePlans = 'Ver planes';
+  static const creditsTitle = 'Verificaciones';
+  static const creditsHistoryTitle = 'Historial de verificaciones';
+  static const creditsHistoryEmptyTitle = 'Sin movimientos todavía';
+  static const creditsHistoryEmptyBody =
+      'Aquí verás cuándo recibes, usas o te devolvemos verificaciones.';
+  static const creditsBuy = 'Comprar verificaciones';
+  static String creditsBreakdown(int free, int plan, int purchased) =>
+      'Gratis $free · Plan $plan · Comprados $purchased';
+  static String creditsPlanExpires(String date) =>
+      'Las del plan vencen el $date';
+  static const creditReasonGrantFree = 'Verificación gratis';
+  static const creditReasonGrantPlan = 'Verificaciones de tu suscripción';
+  static const creditReasonGrantPack = 'Paquete comprado';
+  static const creditReasonConsume = 'Estado de cuenta analizado';
+  static const creditReasonRefund = 'Verificación devuelta';
+  static const creditReasonExpirePlan = 'Venció el saldo del plan';
+  static const creditReasonOther = 'Ajuste';
+  static const creditBucketFree = 'Gratis';
+  static const creditBucketPlan = 'Plan';
+  static const creditBucketPurchased = 'Comprada';
+
   // Paywall & subscription
   static const paywallTitle = 'Cashback Audit Pro';
-  static const paywallHeadline = 'Audita todos tus estados de cuenta';
+  static const paywallHeadline = 'Más verificaciones, cuando las necesites';
   static const paywallBenefit1 =
-      'Verificaciones ilimitadas de tus estados de cuenta';
-  static const paywallBenefit2 = 'Desglose por rubro y por movimiento';
-  static const paywallBenefit3 = 'Historial por tarjeta siempre disponible';
+      'Cada estado de cuenta que analizas usa 1 verificación';
+  static const paywallBenefit2 =
+      'Confirmar, recalcular y corregir movimientos no cuesta nada';
+  static const paywallBenefit3 = 'Tu historial siempre queda disponible';
+  static const paywallSubscriptionTitle = 'Suscripción mensual';
+  static const paywallSubscriptionPerks =
+      '5 verificaciones al mes · no se acumulan';
+  static const paywallPacksTitle = 'Paquetes de verificaciones';
+  static const paywallPacksSubtitle = 'Se compran una sola vez y no caducan.';
+  static String packTitle(int n) =>
+      n == 1 ? '1 verificación' : '$n verificaciones';
+  static String paywallFreeBanner(int n) => n == 1
+      ? 'Tienes 1 verificación gratis. Úsala antes de comprar nada.'
+      : 'Tienes $n verificaciones gratis. Úsalas antes de comprar nada.';
+  static const paywallBuy = 'Comprar';
+  static const paywallSuccessPack = 'Tus verificaciones ya están disponibles.';
+  static const paywallConfirmingPurchase = 'Confirmando tu compra…';
+  static const paywallPendingPack =
+      'Tu compra se está procesando. Las verificaciones pueden tardar unos segundos en aparecer.';
+  static const restoreNothing =
+      'No encontramos compras para restaurar en esta cuenta.';
   static const paywallSubscribe = 'Suscribirme';
   static const paywallRestore = 'Restaurar compras';
   static const paywallLegal =
@@ -400,7 +449,7 @@ abstract final class S {
       'No se pudo completar la compra. No se te cobró nada.';
   static const paywallRestoreFailed =
       'No pudimos restaurar tus compras. Inténtalo de nuevo.';
-  static const paywallConfirming = 'Confirmando tu suscripción…';
+  static const paywallConfirming = 'Confirmando tu compra…';
   static const paywallPending =
       'Tu compra se está procesando. Puede tardar unos segundos en reflejarse.';
   static const paywallCheckAgain = 'Verificar de nuevo';

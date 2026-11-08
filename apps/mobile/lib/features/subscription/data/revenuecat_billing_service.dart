@@ -10,10 +10,14 @@ import '../domain/subscription_repository.dart';
 /// platform the service reports `isConfigured == false` and every call is a
 /// no-op so development builds do not crash.
 class RevenueCatBillingService implements BillingService {
-  RevenueCatBillingService({String? apiKey})
-    : _apiKey = apiKey ?? _platformKey();
+  RevenueCatBillingService({String? apiKey, Map<String, int>? creditPacks})
+    : _apiKey = apiKey ?? _platformKey(),
+      _creditPacks = creditPacks ?? AppConfig.creditPacks;
 
   final String _apiKey;
+
+  /// Product id -> credits, mirroring the backend `CREDIT_PACKS`.
+  final Map<String, int> _creditPacks;
   bool _ready = false;
   final _packages = <String, Package>{};
 
@@ -62,13 +66,22 @@ class RevenueCatBillingService implements BillingService {
         ..addEntries(list.map((p) => MapEntry(p.identifier, p)));
       return [
         for (final p in list)
-          PaywallPackage(
-            id: p.identifier,
-            title: p.storeProduct.title,
-            priceString: p.storeProduct.priceString,
-            description: p.storeProduct.description,
-            period: p.storeProduct.subscriptionPeriod,
-          ),
+          if (classifyPackage(
+                productId: p.storeProduct.identifier,
+                hasSubscriptionPeriod:
+                    p.storeProduct.subscriptionPeriod != null,
+                creditPacks: _creditPacks,
+              )
+              case final c?)
+            PaywallPackage(
+              id: p.identifier,
+              title: p.storeProduct.title,
+              priceString: p.storeProduct.priceString,
+              description: p.storeProduct.description,
+              period: p.storeProduct.subscriptionPeriod,
+              kind: c.kind,
+              credits: c.credits,
+            ),
       ];
     } on PlatformException catch (e) {
       throw BillingException(e.message);
@@ -100,4 +113,24 @@ class RevenueCatBillingService implements BillingService {
       throw BillingException(e.message);
     }
   }
+}
+
+/// Decides what a store product is. Only the subscription and the products in
+/// [creditPacks] are sellable: any other product would not be credited by the
+/// backend, so it is hidden. Returns `null` for those.
+({PaywallPackageKind kind, int? credits})? classifyPackage({
+  required String productId,
+  required bool hasSubscriptionPeriod,
+  required Map<String, int> creditPacks,
+}) {
+  // Google Play subscriptions are `productId:basePlanId`.
+  final base = productId.split(':').first;
+  final credits = creditPacks[productId] ?? creditPacks[base];
+  if (credits != null) {
+    return (kind: PaywallPackageKind.creditPack, credits: credits);
+  }
+  if (hasSubscriptionPeriod) {
+    return (kind: PaywallPackageKind.subscription, credits: null);
+  }
+  return null;
 }

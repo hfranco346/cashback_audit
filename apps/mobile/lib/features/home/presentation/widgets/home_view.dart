@@ -24,6 +24,7 @@ class HomeView extends StatelessWidget {
     required this.onOpenCatalog,
     required this.onOpenSettings,
     this.errorMessage,
+    this.creditsChip,
     this.quickActions = const [],
     this.extraSections = const [],
   });
@@ -39,6 +40,9 @@ class HomeView extends StatelessWidget {
   final ValueChanged<CreditCard> onLongPressCard;
   final VoidCallback onOpenCatalog;
   final VoidCallback onOpenSettings;
+
+  /// Credits chip shown above the quick actions.
+  final Widget? creditsChip;
   final List<Widget> quickActions;
   final List<Widget> extraSections;
 
@@ -93,6 +97,13 @@ class HomeView extends StatelessWidget {
                     actionLabel: S.retry,
                     onAction: () => onRefresh(),
                   ),
+                ),
+              ),
+            if (creditsChip != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                  child: creditsChip,
                 ),
               ),
             if (quickActions.isNotEmpty)

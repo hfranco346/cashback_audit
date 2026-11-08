@@ -7,6 +7,7 @@ import '../../../core/l10n/strings.dart';
 import '../../../core/routing/app_navigator.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../cards/presentation/cards_controller.dart';
+import '../../credits/presentation/credits_controller.dart';
 import '../domain/pdf_picker.dart';
 import 'confirm_rates_controller.dart';
 import '../domain/verification_repository.dart';
@@ -18,6 +19,7 @@ class UploadController extends GetxController {
     required this._repository,
     required this._picker,
     required this._cards,
+    required this._credits,
     required this._navigator,
     this.onVerified,
     this.initialCardId,
@@ -28,6 +30,7 @@ class UploadController extends GetxController {
   final VerificationRepository _repository;
   final PdfPicker _picker;
   final CardsController _cards;
+  final CreditsController _credits;
   final AppNavigator _navigator;
   final VoidCallback? onVerified;
   final String? initialCardId;
@@ -39,6 +42,7 @@ class UploadController extends GetxController {
   final errorMessage = RxnString();
 
   CardsController get cards => _cards;
+  CreditsController get credits => _credits;
   bool get busy => phase.value != UploadPhase.idle;
 
   @override
@@ -57,6 +61,7 @@ class UploadController extends GetxController {
   @override
   void onReady() {
     super.onReady();
+    if (_credits.balance.value == null) _credits.fetch();
     if (!_cards.loaded.value) {
       _cards.load().then((_) => _autoSelectSingleCard());
     }
@@ -84,6 +89,11 @@ class UploadController extends GetxController {
   Future<void> submit() async {
     if (!canSubmit) return;
     errorMessage.value = null;
+    if (!await _hasCredits()) {
+      errorMessage.value = S.uploadNoCredits;
+      _navigator.push(Routes.paywall);
+      return;
+    }
     phase.value = UploadPhase.uploading;
     progress.value = 0;
     try {
@@ -97,6 +107,7 @@ class UploadController extends GetxController {
         },
       );
       onVerified?.call();
+      _credits.fetch(); // the analysis just spent one
       _navigator.replace(
         Routes.confirmRates,
         arguments: ConfirmRatesArgs.verification(verification),
@@ -108,8 +119,18 @@ class UploadController extends GetxController {
     }
   }
 
+  /// A known empty balance is re-checked once (it may be stale) before the
+  /// user is sent to the paywall; an unknown balance never blocks.
+  Future<bool> _hasCredits() async {
+    final known = _credits.balance.value;
+    if (known == null || known.hasCredits) return true;
+    final fresh = await _credits.fetch();
+    return fresh == null || fresh.hasCredits;
+  }
+
   void _handleError(AppException e) {
     if (e.isNoCredits) {
+      _credits.applyFromError(e);
       _navigator.push(Routes.paywall);
       errorMessage.value = userMessageFor(e);
       return;

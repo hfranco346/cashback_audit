@@ -4,6 +4,7 @@ import 'package:cashback_audit/core/utils/cached.dart';
 import 'package:cashback_audit/features/cards/domain/card_entities.dart';
 import 'package:cashback_audit/features/cards/domain/card_repository.dart';
 import 'package:cashback_audit/features/cards/presentation/cards_controller.dart';
+import 'package:cashback_audit/features/credits/presentation/credits_controller.dart';
 import 'package:cashback_audit/features/categories/domain/catalog_entities.dart';
 import 'package:cashback_audit/features/categories/presentation/catalog_controller.dart';
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
@@ -16,6 +17,7 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
 
+import '../../support/fake_credits_repository.dart';
 import '../../support/fake_verification_repository.dart';
 import '../../support/fakes.dart';
 import '../../support/fixtures.dart';
@@ -50,10 +52,14 @@ void main() {
     late _Picker picker;
     late FakeNavigator nav;
     late UploadController c;
+    late FakeCreditsRepository creditsRepo;
+    late CreditsController credits;
     var verified = 0;
 
     setUp(() {
       repo = FakeVerificationRepository();
+      creditsRepo = FakeCreditsRepository([balance(free: 1)]);
+      credits = CreditsController(repository: creditsRepo);
       picker = _Picker(_pdf);
       nav = FakeNavigator();
       verified = 0;
@@ -62,6 +68,7 @@ void main() {
         repository: repo,
         picker: picker,
         cards: cards,
+        credits: credits,
         navigator: nav,
         onVerified: () => verified++,
         initialCardId: 'c1',
@@ -101,16 +108,62 @@ void main() {
       expect(c.phase.value, UploadPhase.idle);
     });
 
+    test('a known empty balance sends the user to the paywall first', () async {
+      creditsRepo = FakeCreditsRepository([balance()]);
+      credits = CreditsController(repository: creditsRepo)
+        ..balance.value = balance();
+      c = UploadController(
+        repository: repo,
+        picker: picker,
+        cards: CardsController(_CardRepo([])),
+        credits: credits,
+        navigator: nav,
+        initialCardId: 'c1',
+      )..onInit();
+      await c.pickFile();
+      await c.submit();
+      expect(nav.pushed, ['/paywall']);
+      expect(c.errorMessage.value, S.uploadNoCredits);
+      expect(nav.replaced, isEmpty); // nothing was uploaded
+    });
+
+    test('a stale empty balance is refreshed before blocking', () async {
+      credits.balance.value = balance(); // stale: backend says 1 free
+      await c.pickFile();
+      await c.submit();
+      expect(nav.pushed, isEmpty);
+      expect(nav.replaced, ['/confirm-rates']);
+    });
+
+    test(
+      'successful upload refreshes the balance (one credit spent)',
+      () async {
+        await c.pickFile();
+        final before = creditsRepo.calls;
+        await c.submit();
+        expect(creditsRepo.calls, greaterThan(before));
+      },
+    );
+
     test('402 routes to the paywall', () async {
       repo.verifyError = const AppException(
         kind: AppErrorKind.noCredits,
         statusCode: 402,
         code: 'NO_CREDITS',
+        details: {
+          'free': 0,
+          'plan': 0,
+          'purchased': 0,
+          'total': 0,
+          'subscriptionActive': false,
+        },
       );
       await c.pickFile();
       await c.submit();
       expect(nav.pushed, ['/paywall']);
       expect(c.errorMessage.value, S.errNoCredits);
+      // The balance carried by the error is applied.
+      expect(credits.balance.value?.total, 0);
     });
 
     test('timeouts tell the user to check history before retrying', () async {

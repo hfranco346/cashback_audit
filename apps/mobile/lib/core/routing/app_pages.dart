@@ -23,6 +23,10 @@ import '../../features/verifications/presentation/result_controller.dart';
 import '../../features/verifications/presentation/result_page.dart';
 import '../../features/verifications/presentation/upload_controller.dart';
 import '../../features/verifications/presentation/upload_page.dart';
+import '../../features/credits/domain/credits_repository.dart';
+import '../../features/credits/presentation/credit_history_controller.dart';
+import '../../features/credits/presentation/credit_history_page.dart';
+import '../../features/credits/presentation/credits_controller.dart';
 import '../../features/subscription/domain/subscription_repository.dart';
 import '../../features/subscription/presentation/paywall_controller.dart';
 import '../../features/subscription/presentation/paywall_page.dart';
@@ -88,6 +92,7 @@ abstract final class AppPages {
           HomeController(
             session: Get.find<SessionController>(),
             subscription: Get.find<SubscriptionController>(),
+            credits: Get.find<CreditsController>(),
           ),
         );
       }),
@@ -117,6 +122,7 @@ abstract final class AppPages {
             repository: Get.find<VerificationRepository>(),
             picker: Get.find<PdfPicker>(),
             cards: Get.find<CardsController>(),
+            credits: Get.find<CreditsController>(),
             navigator: Get.find<AppNavigator>(),
             onVerified: () => Get.find<LatestVerificationsController>().load(),
             initialCardId: Get.arguments is String
@@ -182,8 +188,20 @@ abstract final class AppPages {
         Get.lazyPut(
           () => PaywallController(
             billing: Get.find<BillingService>(),
+            credits: Get.find<CreditsController>(),
             subscription: Get.find<SubscriptionController>(),
             navigator: Get.find<AppNavigator>(),
+          ),
+        );
+      }),
+    ),
+    GetPage(
+      name: Routes.creditHistory,
+      page: () => const CreditHistoryPage(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(
+          () => CreditHistoryController(
+            repository: Get.find<CreditsRepository>(),
           ),
         );
       }),

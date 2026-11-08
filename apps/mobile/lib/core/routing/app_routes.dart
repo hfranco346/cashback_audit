@@ -10,5 +10,6 @@ abstract final class Routes {
   static const result = '/result';
   static const history = '/history';
   static const paywall = '/paywall';
+  static const creditHistory = '/credits/history';
   static const settings = '/settings';
 }

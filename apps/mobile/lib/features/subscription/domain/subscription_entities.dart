@@ -56,7 +56,10 @@ class SubscriptionStatus extends Equatable {
   ];
 }
 
-/// A purchasable package of the current offering, store-agnostic.
+enum PaywallPackageKind { subscription, creditPack }
+
+/// A purchasable package of the current offering, store-agnostic: the
+/// monthly subscription or a consumable credit pack.
 class PaywallPackage extends Equatable {
   const PaywallPackage({
     required this.id,
@@ -64,9 +67,17 @@ class PaywallPackage extends Equatable {
     required this.priceString,
     this.description = '',
     this.period,
+    this.kind = PaywallPackageKind.subscription,
+    this.credits,
   });
 
   final String id;
+
+  /// How many verifications a [PaywallPackageKind.creditPack] grants.
+  final int? credits;
+  final PaywallPackageKind kind;
+
+  bool get isPack => kind == PaywallPackageKind.creditPack;
   final String title;
   final String priceString;
   final String description;
@@ -75,7 +86,15 @@ class PaywallPackage extends Equatable {
   final String? period;
 
   @override
-  List<Object?> get props => [id, title, priceString, description, period];
+  List<Object?> get props => [
+    id,
+    title,
+    priceString,
+    description,
+    period,
+    kind,
+    credits,
+  ];
 }
 
 class PurchaseCancelled implements Exception {

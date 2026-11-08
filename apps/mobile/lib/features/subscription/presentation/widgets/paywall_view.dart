@@ -11,31 +11,48 @@ class PaywallView extends StatelessWidget {
   const PaywallView({
     super.key,
     required this.configured,
-    required this.packages,
+    required this.subscription,
+    required this.packs,
     required this.selectedId,
     required this.onSelect,
     required this.busy,
     required this.pending,
-    required this.onSubscribe,
+    required this.onPurchase,
     required this.onRestore,
     required this.onCheckAgain,
     required this.onClose,
+    this.freeCredits = 0,
     this.errorMessage,
   });
 
   final bool configured;
-  final List<PaywallPackage> packages;
+
+  /// The monthly subscription of the offering, if it has one.
+  final PaywallPackage? subscription;
+
+  /// Consumable credit packs, smallest first.
+  final List<PaywallPackage> packs;
+
+  /// Free verifications the user still has (first-free messaging).
+  final int freeCredits;
   final String? selectedId;
   final ValueChanged<String> onSelect;
   final PaywallBusy busy;
   final bool pending;
   final String? errorMessage;
-  final VoidCallback onSubscribe;
+  final VoidCallback onPurchase;
   final VoidCallback onRestore;
   final VoidCallback onCheckAgain;
   final VoidCallback onClose;
 
   bool get _busy => busy != PaywallBusy.none;
+
+  PaywallPackage? get _selected {
+    for (final p in [?subscription, ...packs]) {
+      if (p.id == selectedId) return p;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,6 +116,14 @@ class PaywallView extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 20),
+          if (freeCredits > 0) ...[
+            InlineMessage(
+              key: const Key('paywall-free-banner'),
+              message: S.paywallFreeBanner(freeCredits),
+              tone: InlineMessageTone.info,
+            ),
+            const SizedBox(height: 16),
+          ],
           if (!configured)
             const InlineMessage(
               key: Key('paywall-dev-notice'),
@@ -107,16 +132,38 @@ class PaywallView extends StatelessWidget {
             )
           else if (busy == PaywallBusy.loadingPackages)
             const Center(child: CircularProgressIndicator())
-          else
-            for (final p in packages)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _PackageTile(
-                  package: p,
-                  selected: p.id == selectedId,
-                  onTap: _busy ? null : () => onSelect(p.id),
+          else ...[
+            if (subscription != null)
+              _PackageTile(
+                package: subscription!,
+                title: S.paywallSubscriptionTitle,
+                subtitle: S.paywallSubscriptionPerks,
+                selected: subscription!.id == selectedId,
+                onTap: _busy ? null : () => onSelect(subscription!.id),
+              ),
+            if (packs.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Text(S.paywallPacksTitle, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 2),
+              Text(
+                S.paywallPacksSubtitle,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
+              const SizedBox(height: 10),
+              for (final p in packs)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _PackageTile(
+                    package: p,
+                    title: S.packTitle(p.credits ?? 0),
+                    selected: p.id == selectedId,
+                    onTap: _busy ? null : () => onSelect(p.id),
+                  ),
+                ),
+            ],
+          ],
           if (errorMessage != null) ...[
             const SizedBox(height: 8),
             InlineMessage(message: errorMessage!),
@@ -125,7 +172,9 @@ class PaywallView extends StatelessWidget {
             const SizedBox(height: 8),
             InlineMessage(
               key: const Key('paywall-pending'),
-              message: S.paywallPending,
+              message: (_selected?.isPack ?? false)
+                  ? S.paywallPendingPack
+                  : S.paywallPending,
               tone: InlineMessageTone.info,
               actionLabel: S.paywallCheckAgain,
               onAction: _busy ? null : onCheckAgain,
@@ -134,9 +183,9 @@ class PaywallView extends StatelessWidget {
           const SizedBox(height: 20),
           FilledButton(
             key: const Key('subscribe-button'),
-            onPressed: (!configured || _busy || selectedId == null)
+            onPressed: (!configured || _busy || _selected == null)
                 ? null
-                : onSubscribe,
+                : onPurchase,
             child: switch (busy) {
               PaywallBusy.purchasing ||
               PaywallBusy.confirming ||
@@ -156,7 +205,11 @@ class PaywallView extends StatelessWidget {
                   ),
                 ],
               ),
-              _ => const Text(S.paywallSubscribe),
+              _ => Text(
+                (_selected?.isPack ?? false)
+                    ? S.paywallBuy
+                    : S.paywallSubscribe,
+              ),
             },
           ),
           const SizedBox(height: 8),
@@ -181,11 +234,15 @@ class PaywallView extends StatelessWidget {
 class _PackageTile extends StatelessWidget {
   const _PackageTile({
     required this.package,
+    required this.title,
     required this.selected,
     required this.onTap,
+    this.subtitle,
   });
 
   final PaywallPackage package;
+  final String title;
+  final String? subtitle;
   final bool selected;
   final VoidCallback? onTap;
 
@@ -220,9 +277,9 @@ class _PackageTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(package.title, style: theme.textTheme.titleSmall),
-                  if (package.description.isNotEmpty)
-                    Text(package.description, style: theme.textTheme.bodySmall),
+                  Text(title, style: theme.textTheme.titleSmall),
+                  if (subtitle != null)
+                    Text(subtitle!, style: theme.textTheme.bodySmall),
                 ],
               ),
             ),

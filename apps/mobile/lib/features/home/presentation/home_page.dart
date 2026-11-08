@@ -6,6 +6,8 @@ import '../../../core/routing/app_routes.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../cards/domain/card_entities.dart';
 import '../../cards/presentation/cards_controller.dart';
+import '../../credits/presentation/credits_controller.dart';
+import '../../credits/presentation/widgets/credits_chip.dart';
 import '../../../shared/widgets/molecules/quick_action_button.dart';
 import '../../../core/routing/app_navigator.dart';
 import '../../verifications/presentation/history_controller.dart';
@@ -44,6 +46,7 @@ class HomePage extends GetView<CardsController> {
   Widget build(BuildContext context) {
     final session = Get.find<SessionController>();
     final latest = Get.find<LatestVerificationsController>();
+    final credits = Get.find<CreditsController>();
     return Obx(
       () => HomeView(
         greeting: S.greeting(session.user.value?.firstName),
@@ -54,12 +57,17 @@ class HomePage extends GetView<CardsController> {
         onRefresh: () async {
           await controller.load();
           await latest.load();
+          await credits.fetch();
         },
         onAddCard: () => Get.toNamed<void>(Routes.cardForm),
         onOpenCard: (c) => Get.toNamed<void>(Routes.cardForm, arguments: c),
         onLongPressCard: _confirmDelete,
         onOpenCatalog: () => Get.toNamed<void>(Routes.catalog),
         onOpenSettings: () => Get.toNamed<void>(Routes.settings),
+        creditsChip: CreditsChip(
+          balance: credits.balance.value,
+          onTap: () => Get.toNamed<void>(Routes.paywall),
+        ),
         quickActions: [
           QuickActionButton(
             key: const Key('action-verify'),

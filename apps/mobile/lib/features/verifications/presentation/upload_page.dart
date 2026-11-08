@@ -22,6 +22,8 @@ class UploadPage extends GetView<UploadController> {
         canSubmit: controller.canSubmit,
         onSubmit: controller.submit,
         onAddCard: () => Get.toNamed<void>(Routes.cardForm),
+        balance: controller.credits.balance.value,
+        onSeePlans: () => Get.toNamed<void>(Routes.paywall),
         errorMessage: controller.errorMessage.value,
       ),
     );
