@@ -10,6 +10,7 @@ import {
   Query,
   UnsupportedMediaTypeException,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -19,6 +20,7 @@ import type { AuthenticatedUser } from '../../auth/domain/authenticated-user.js'
 import { CurrentUser } from '../../auth/infrastructure/current-user.decorator.js';
 import { IdParam } from '../../shared/http/id.param.js';
 import { StrictThrottle } from '../../shared/http/throttling.js';
+import { SubscriptionGuard } from '../../subscriptions/infrastructure/subscription.guard.js';
 import { CreateVerificationUseCase } from '../application/create-verification.use-case.js';
 import {
   DeleteVerificationUseCase,
@@ -71,6 +73,7 @@ export class VerificationsController {
   ) {}
 
   @Post()
+  @UseGuards(SubscriptionGuard)
   @StrictThrottle()
   @UseInterceptors(FileInterceptor('file', pdfUploadOptions))
   @ApiConsumes('multipart/form-data')

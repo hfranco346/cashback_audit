@@ -28,6 +28,7 @@ model User {
   verifications Verification[]
   categories    MerchantCategory[]
   merchants     Merchant[]
+  subscriptions Subscription[]
 
   @@unique([provider, providerSubject])
 }
@@ -168,4 +169,45 @@ model Verification {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([cardId, createdAt(sort: Desc)])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  /// Auto-renew turned off; access continues until expiresAt.
+  CANCELLED
+  /// Payment failed; access continues until expiresAt (grace period).
+  BILLING_ISSUE
+  EXPIRED
+}
+
+/// One row per (user, entitlement), kept in sync by RevenueCat webhooks.
+model Subscription {
+  id            String             @id @default(uuid()) @db.Uuid
+  userId        String             @db.Uuid
+  entitlementId String
+  status        SubscriptionStatus
+  /// Null for lifetime / non-expiring entitlements.
+  expiresAt     DateTime?
+  store         String?
+  productId     String?
+  /// The RevenueCat app user id (must equal our user id).
+  rcAppUserId   String
+  willRenew     Boolean            @default(true)
+  /// Timestamp of the last applied RevenueCat event (orders out-of-order events).
+  lastEventAt   DateTime
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entitlementId])
+}
+
+/// Processed RevenueCat events; the primary key makes webhook delivery idempotent.
+model RevenueCatEvent {
+  id         String   @id
+  type       String
+  userId     String?  @db.Uuid
+  outcome    String
+  receivedAt DateTime @default(now())
 }

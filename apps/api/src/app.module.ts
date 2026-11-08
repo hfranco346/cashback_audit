@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/infrastructure/jwt-auth.guard.js';
 import { CardsModule } from './cards/cards.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module.js';
 import { UsersModule } from './users/users.module.js';
 import { HealthController } from './health/health.controller.js';
 import {
@@ -45,6 +46,7 @@ import { PrismaModule } from './shared/prisma/prisma.module.js';
     AuthModule,
     CategoriesModule,
     CardsModule,
+    SubscriptionsModule,
     VerificationsModule,
   ],
   controllers: [HealthController],
