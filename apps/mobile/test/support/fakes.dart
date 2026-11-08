@@ -19,8 +19,24 @@ class FakeNavigator implements AppNavigator {
   @override
   void showNotice(String title, String message) => notices.add(title);
   int pops = 0;
+  Object? lastPopResult;
   @override
-  void pop() => pops++;
+  void pop({Object? result}) {
+    pops++;
+    lastPopResult = result;
+  }
+
+  /// Value `pushForResult` completes with (scripted by the test).
+  Object? nextResult;
+  final pushedForResult = <String>[];
+  final pushedForResultArgs = <Object?>[];
+  @override
+  Future<T?> pushForResult<T>(String route, {Object? arguments}) async {
+    pushedForResult.add(route);
+    pushedForResultArgs.add(arguments);
+    return nextResult as T?;
+  }
+
   final pushed = <String>[];
   final pushedArgs = <Object?>[];
   final replaced = <String>[];

@@ -15,6 +15,8 @@ import '../../features/settings/presentation/settings_page.dart';
 import '../../features/verifications/domain/pdf_picker.dart';
 import '../../features/verifications/domain/verification_entities.dart';
 import '../../features/verifications/domain/verification_repository.dart';
+import '../../features/verifications/presentation/confirm_rates_controller.dart';
+import '../../features/verifications/presentation/confirm_rates_page.dart';
 import '../../features/verifications/presentation/history_controller.dart';
 import '../../features/verifications/presentation/history_page.dart';
 import '../../features/verifications/presentation/result_controller.dart';
@@ -120,6 +122,23 @@ abstract final class AppPages {
             initialCardId: Get.arguments is String
                 ? Get.arguments as String
                 : null,
+          ),
+        );
+      }),
+    ),
+    GetPage(
+      name: Routes.confirmRates,
+      page: () => const ConfirmRatesPage(),
+      binding: BindingsBuilder(() {
+        final args = Get.arguments;
+        Get.lazyPut(
+          () => ConfirmRatesController(
+            repository: Get.find<VerificationRepository>(),
+            cards: Get.find<CardsController>(),
+            navigator: Get.find<AppNavigator>(),
+            args: args is ConfirmRatesArgs
+                ? args
+                : ConfirmRatesArgs.byId(args as String),
           ),
         );
       }),

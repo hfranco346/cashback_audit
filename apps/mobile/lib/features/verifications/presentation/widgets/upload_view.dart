@@ -6,6 +6,7 @@ import '../../../../shared/widgets/molecules/inline_message.dart';
 import '../../../cards/domain/card_entities.dart';
 import '../../domain/pdf_picker.dart';
 import '../upload_controller.dart' show UploadPhase;
+import 'analyzing_progress.dart';
 
 /// Pure presentational "upload statement" screen.
 class UploadView extends StatelessWidget {
@@ -137,12 +138,15 @@ class UploadView extends StatelessWidget {
                           minHeight: 6,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        const SizedBox(height: 14),
-                        Text(
-                          S.analyzingHint,
-                          style: theme.textTheme.bodySmall,
-                          textAlign: TextAlign.center,
-                        ),
+                        const SizedBox(height: 20),
+                        if (phase == UploadPhase.analyzing)
+                          const AnalyzingProgress()
+                        else
+                          Text(
+                            S.analyzingHint,
+                            style: theme.textTheme.bodySmall,
+                            textAlign: TextAlign.center,
+                          ),
                       ],
                     ),
                   ),

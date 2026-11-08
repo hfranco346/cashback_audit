@@ -359,6 +359,9 @@ void main() {
         ),
       );
       expect(find.text(S.analyzing), findsOneWidget);
+      // The analyzing state sets expectations with its steps.
+      expect(find.byKey(const Key('analyzing-progress')), findsOneWidget);
+      expect(find.text(S.analyzingStepRead), findsOneWidget);
       expect(
         tester
             .widget<LinearProgressIndicator>(

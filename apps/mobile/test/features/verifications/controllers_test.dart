@@ -8,7 +8,7 @@ import 'package:cashback_audit/features/categories/domain/catalog_entities.dart'
 import 'package:cashback_audit/features/categories/presentation/catalog_controller.dart';
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
 import 'package:cashback_audit/features/verifications/domain/pdf_picker.dart';
-import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
+import 'package:cashback_audit/features/verifications/presentation/confirm_rates_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/history_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/upload_controller.dart';
@@ -91,8 +91,10 @@ void main() {
       await c.pickFile();
       expect(c.canSubmit, isTrue);
       await c.submit();
-      expect(nav.replaced, ['/result']);
-      expect(nav.replacedArgs.single, isA<Verification>());
+      // Step 1 only produced the rate proposal: the user confirms it next.
+      expect(nav.replaced, ['/confirm-rates']);
+      final args = nav.replacedArgs.single as ConfirmRatesArgs;
+      expect(args.verification?.isAwaitingRates, isTrue);
       expect(verified, 1);
       expect(c.phase.value, UploadPhase.idle);
     });
@@ -199,6 +201,19 @@ void main() {
       c.open(c.items.first);
       expect(nav.pushed, ['/result']);
       expect(nav.pushedArgs.single, 'v0');
+      // A statement still waiting for its rates resumes in the confirmation.
+      c.open(
+        VerificationMapper.summary({
+          ...summaryJson('pending'),
+          'status': 'AWAITING_RATES',
+          'verdict': null,
+        }),
+      );
+      expect(nav.pushed.last, '/confirm-rates');
+      expect(
+        (nav.pushedArgs.last as ConfirmRatesArgs).verificationId,
+        'pending',
+      );
       expect(await c.delete(c.items.first), isNull);
       expect(repo.deleted, ['v0']);
       expect(c.items, hasLength(2));

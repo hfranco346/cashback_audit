@@ -6,6 +6,7 @@ abstract final class Routes {
   static const cardForm = '/cards/form';
   static const catalog = '/catalog';
   static const upload = '/upload';
+  static const confirmRates = '/confirm-rates';
   static const result = '/result';
   static const history = '/history';
   static const paywall = '/paywall';

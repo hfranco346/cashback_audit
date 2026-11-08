@@ -8,6 +8,7 @@ import '../../../core/routing/app_navigator.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../cards/presentation/cards_controller.dart';
 import '../domain/pdf_picker.dart';
+import 'confirm_rates_controller.dart';
 import '../domain/verification_repository.dart';
 
 enum UploadPhase { idle, uploading, analyzing }
@@ -96,7 +97,10 @@ class UploadController extends GetxController {
         },
       );
       onVerified?.call();
-      _navigator.replace(Routes.result, arguments: verification);
+      _navigator.replace(
+        Routes.confirmRates,
+        arguments: ConfirmRatesArgs.verification(verification),
+      );
     } on AppException catch (e) {
       _handleError(e);
     } finally {

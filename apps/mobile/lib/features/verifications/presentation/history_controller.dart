@@ -3,9 +3,9 @@ import 'package:get/get.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/routing/app_navigator.dart';
-import '../../../core/routing/app_routes.dart';
 import '../domain/verification_entities.dart';
 import '../domain/verification_repository.dart';
+import 'verification_navigation.dart';
 
 class HistoryController extends GetxController {
   HistoryController({
@@ -86,9 +86,10 @@ class HistoryController extends GetxController {
     }
   }
 
-  /// Opens the full result; the detail is fetched (or served from cache).
+  /// Opens the result (or the rate confirmation when still pending); the
+  /// detail is fetched (or served from cache).
   void open(VerificationSummary summary) =>
-      _navigator.push(Routes.result, arguments: summary.id);
+      openVerificationSummary(_navigator, summary);
 
   Future<String?> delete(VerificationSummary summary) async {
     try {

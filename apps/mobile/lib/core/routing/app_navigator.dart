@@ -11,8 +11,12 @@ abstract class AppNavigator {
   /// Replaces the current page with [route].
   void replace(String route, {Object? arguments});
 
-  /// Pops the current page.
-  void pop();
+  /// Pushes [route] and completes with the value the page pops with.
+  Future<T?> pushForResult<T>(String route, {Object? arguments});
+
+  /// Pops the current page, optionally handing [result] to the caller of
+  /// [pushForResult].
+  void pop({Object? result});
 
   void showNotice(String title, String message);
 }
@@ -30,7 +34,11 @@ class GetAppNavigator implements AppNavigator {
       Get.offNamed<void>(route, arguments: arguments);
 
   @override
-  void pop() => Get.back<void>();
+  Future<T?> pushForResult<T>(String route, {Object? arguments}) async =>
+      Get.toNamed<T>(route, arguments: arguments);
+
+  @override
+  void pop({Object? result}) => Get.back<Object?>(result: result);
 
   @override
   void showNotice(String title, String message) => Get.snackbar(title, message);

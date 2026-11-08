@@ -214,6 +214,49 @@ abstract final class S {
   static const overrideInvalid = 'Escribe un monto válido (hasta 2 decimales)';
   static const selectCardFirst = 'Elige una tarjeta';
 
+  static const analyzingStepUpload = 'Archivo recibido';
+  static const analyzingStepRead = 'Leyendo tu estado de cuenta';
+  static const analyzingStepClassify = 'Clasificando movimientos';
+  static const analyzingExpect =
+      'Este paso suele tardar cerca de 1 minuto. Después podrás confirmar los porcentajes.';
+
+  // Rate confirmation
+  static const confirmRatesTitle = 'Confirma los porcentajes';
+  static const recalcRatesTitle = 'Recalcular con otros %';
+  static const confirmRatesIntro =
+      'Los bancos cambian sus políticas seguido. Revisa con qué porcentajes vamos a calcular lo que deberías haber recibido.';
+  static const confirmRatesNoCharge =
+      'Calcular y recalcular no consume verificaciones.';
+  static const rateBaseTitle = 'Tasa base';
+  static const rateBaseSubtitle = 'Se aplica a todo gasto fuera de tus rubros.';
+  static const rateFieldLabel = 'Porcentaje';
+  static const rateCapLabel = 'Tope mensual (opcional)';
+  static const badgeStatement = 'Detectado en tu estado de cuenta';
+  static const badgeCardRule = 'De las reglas de tu tarjeta';
+  static const badgePrevious = 'Los que usaste antes';
+  static const badgeRequired = 'Obligatorio';
+  static const rateRequiredError = 'Escribe el porcentaje para continuar';
+  static String evidenceQuote(String text) => '“$text”';
+  static const saveToCardTitle = 'Guardar estos % en la tarjeta';
+  static const saveToCardSubtitle =
+      'Reemplaza la tasa base y las reglas por rubro de tu tarjeta.';
+  static const exchangeRateTitle = 'Tipo de cambio (opcional)';
+  static String exchangeRateHelper(String primary) =>
+      'Cuántos $primary vale 1 unidad de la moneda extranjera. Sin él, las compras en otra moneda no cuentan para la recompensa.';
+  static String exchangeRateStatement(String from, String to, String rate) =>
+      'Tu estado de cuenta indica 1 $from = $rate $to.';
+  static const exchangeRateMissing =
+      'Hay compras en moneda extranjera. Sin tipo de cambio quedarán fuera del cálculo.';
+  static const exchangeRateInvalid =
+      'Escribe un número mayor a 0 (máximo 6 decimales)';
+  static const programChooserTitle = 'Elige el programa a auditar';
+  static const programChooserHelper =
+      'Tu estado de cuenta lista varios programas de recompensa.';
+  static const programRequired = 'Elige un programa para continuar';
+  static const calculateResult = 'Calcular resultado';
+  static const calculating = 'Calculando…';
+  static const confirmLoadError = 'No pudimos cargar esta verificación.';
+
   // Verdicts and result
   static const resultTitle = 'Resultado';
   static const resultNotConfirmed =

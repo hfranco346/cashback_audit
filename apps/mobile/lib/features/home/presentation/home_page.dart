@@ -7,7 +7,9 @@ import '../../auth/presentation/session_controller.dart';
 import '../../cards/domain/card_entities.dart';
 import '../../cards/presentation/cards_controller.dart';
 import '../../../shared/widgets/molecules/quick_action_button.dart';
+import '../../../core/routing/app_navigator.dart';
 import '../../verifications/presentation/history_controller.dart';
+import '../../verifications/presentation/verification_navigation.dart';
 import '../../verifications/presentation/widgets/latest_verifications_section.dart';
 import 'widgets/home_view.dart';
 
@@ -80,7 +82,7 @@ class HomePage extends GetView<CardsController> {
               final c = controller.byId(id);
               return c == null ? '—' : '${c.alias} · ${c.last4}';
             },
-            onOpen: (s) => Get.toNamed<void>(Routes.result, arguments: s.id),
+            onOpen: (s) => openVerificationSummary(Get.find<AppNavigator>(), s),
             onSeeAll: () => Get.toNamed<void>(Routes.history),
           ),
         ],
