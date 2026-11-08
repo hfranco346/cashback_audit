@@ -100,12 +100,14 @@ describe('Verifications (e2e)', () => {
     },
   };
   const classifierStub = {
-    classify: async (descriptors: string[]) =>
-      descriptors.map((descriptor) => ({
+    classify: async (descriptors: string[]) => ({
+      model: 'stub-classifier',
+      guesses: descriptors.map((descriptor) => ({
         descriptor,
         merchantId: descriptor === 'WM SUPERCENTER' ? aiMerchantId : null,
         confidence: 0.85,
       })),
+    }),
   };
   let aiMerchantId: string;
 
@@ -225,6 +227,7 @@ describe('Verifications (e2e)', () => {
       tolerance: '1',
       verdict: 'MATCH',
       model: 'stub-model',
+      models: { extraction: 'stub-model', classification: 'stub-classifier' },
       warnings: [],
     });
     expect(

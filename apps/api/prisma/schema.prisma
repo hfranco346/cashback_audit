@@ -173,7 +173,10 @@ model Verification {
   breakdown      Json
   transactions   Json
   warnings       Json
+  /// Deprecated mirror of models.extraction.
   model          String
+  /// Model used per step: { extraction, classification }.
+  models         Json           @default("{}")
   createdAt      DateTime       @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

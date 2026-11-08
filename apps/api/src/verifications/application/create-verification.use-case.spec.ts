@@ -144,7 +144,7 @@ function setup(opts: {
       classify: async (descriptors: string[]) => {
         classifierCalls.push(descriptors);
         if (opts.guesses instanceof Error) throw opts.guesses;
-        return opts.guesses ?? [];
+        return { guesses: opts.guesses ?? [], model: 'test-classifier' };
       },
     } as unknown as MerchantClassifier,
     {

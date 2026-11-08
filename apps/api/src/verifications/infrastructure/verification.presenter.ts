@@ -133,7 +133,8 @@ export function presentVerification(v: Verification) {
       expectedReward: t.expectedReward.toString(),
     })),
     warnings: v.warnings,
-    model: v.model,
+    model: v.models.extraction,
+    models: v.models,
     createdAt: v.createdAt.toISOString(),
   };
 }

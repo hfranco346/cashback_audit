@@ -114,6 +114,7 @@ export class CreateVerificationUseCase {
 
     const { statement, model } = await this.extractor.extract(input.pdf);
     const warnings: VerificationWarning[] = [];
+    let classificationModel: string | null = null;
 
     // --- loyalty program + reported reward -------------------------------
     const selection = selectLoyaltyProgram(
@@ -217,10 +218,12 @@ export class CreateVerificationUseCase {
           keywords: m.keywords,
           categoryName: categoryName.get(m.categoryId) ?? '',
         }));
-        const guesses = await this.classifier.classify(
+        const classified = await this.classifier.classify(
           unmatchedDescriptors,
           candidates,
         );
+        classificationModel = classified.model;
+        const guesses = classified.guesses;
         const byDescriptor = new Map(guesses.map((g) => [g.descriptor, g]));
         statement.transactions.forEach((tx, i) => {
           if (!eligible[i] || matches[i]!.merchantId !== null) return;
@@ -424,6 +427,7 @@ export class CreateVerificationUseCase {
       transactions,
       warnings,
       model,
+      models: { extraction: model, classification: classificationModel },
     });
   }
 }

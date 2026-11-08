@@ -720,6 +720,7 @@ and carries the warning `AI_MATCHING_UNAVAILABLE`.
   ],
   "warnings": [],
   "model": "claude-sonnet-5-5",
+  "models": { "extraction": "claude-sonnet-5-5", "classification": "claude-haiku-5-5" },
   "createdAt": "2026-02-01T10:00:00.000Z"
 }
 ```
@@ -803,7 +804,10 @@ Field semantics:
     figure (some may be missing; the result may be unreliable).
   - `NO_TRANSACTIONS`: no transactions found.
   - `AI_MATCHING_UNAVAILABLE`: fuzzy matching failed; keyword matches only.
-- `model`: the Claude model used for the extraction.
+- `models`: `{ "extraction": string, "classification": string | null }` - the
+  model that performed each step; `classification` is `null` when no
+  classification call was made or it failed. `model` is deprecated and equals
+  `models.extraction`.
 
 Errors specific to this endpoint:
 
@@ -1029,3 +1033,9 @@ Clients built against the previous contract must change:
 - **Existing data**: stored verifications were migrated (every old transaction
   got `currency` = card currency, `kind` `PURCHASE`/`REFUND`, no reference;
   `loyalty.programs` is empty and `conversion.currencies` is empty for them).
+
+### Model routing
+
+- `GET/POST /verifications` responses gained `models` (see section 8).
+  `model` is kept as a deprecated alias of `models.extraction`; read `models`.
+- Existing stored verifications report `classification: null`.

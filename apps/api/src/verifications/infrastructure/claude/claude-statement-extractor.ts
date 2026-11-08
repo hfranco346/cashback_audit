@@ -40,6 +40,7 @@ export class ClaudeStatementExtractor extends StatementExtractor {
     pdf: Buffer,
   ): Promise<{ statement: ExtractedStatement; model: string }> {
     const raw = await this.claude.requestJson({
+      task: 'extraction',
       schema: extractionOutputSchema,
       system: EXTRACTION_SYSTEM_PROMPT,
       maxTokens: 32000,
@@ -60,6 +61,6 @@ export class ClaudeStatementExtractor extends StatementExtractor {
       throw new UnreadableStatementError(
         'The file is not a readable credit card statement.',
       );
-    return { statement, model: this.claude.model };
+    return { statement, model: this.claude.models.extraction };
   }
 }

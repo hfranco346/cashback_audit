@@ -16,5 +16,5 @@ export abstract class MerchantClassifier {
   abstract classify(
     descriptors: string[],
     merchants: MerchantCandidate[],
-  ): Promise<MerchantGuess[]>;
+  ): Promise<{ guesses: MerchantGuess[]; model: string }>;
 }

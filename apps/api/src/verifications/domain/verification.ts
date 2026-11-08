@@ -79,6 +79,12 @@ export interface VerificationLoyalty {
   programs: LoyaltyProgram[];
 }
 
+/** Which model performed each step; classification is null when skipped/failed. */
+export interface VerificationModels {
+  extraction: string;
+  classification: string | null;
+}
+
 export interface Verification {
   id: string;
   userId: string;
@@ -107,7 +113,9 @@ export interface Verification {
   breakdown: VerificationBreakdownLine[];
   transactions: VerificationTransaction[];
   warnings: VerificationWarning[];
+  /** @deprecated Same as models.extraction. */
   model: string;
+  models: VerificationModels;
   createdAt: Date;
 }
 

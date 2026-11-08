@@ -4,7 +4,24 @@ const booleanString = z
   .enum(['true', 'false'])
   .transform((value) => value === 'true');
 
-export const envSchema = z.object({
+export const DEFAULT_EXTRACTION_MODEL = 'claude-sonnet-5-5';
+export const DEFAULT_CLASSIFICATION_MODEL = 'claude-haiku-5-5';
+
+/** Empty values (`KEY=`) count as unset; ids are plain tokens, no spaces. */
+const modelId = z.preprocess(
+  (value) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  z
+    .string()
+    .trim()
+    .regex(
+      /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,99}$/,
+      'must be a model id such as claude-sonnet-5-5',
+    )
+    .optional(),
+);
+
+const baseSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
     .default('development'),
@@ -25,7 +42,12 @@ export const envSchema = z.object({
   APPLE_BUNDLE_ID: z.string().default(''),
 
   ANTHROPIC_API_KEY: z.string().default(''),
-  ANTHROPIC_MODEL: z.string().default('claude-sonnet-5-5'),
+  /** Model used to read the statement PDF. */
+  ANTHROPIC_EXTRACTION_MODEL: modelId,
+  /** Model used for merchant/category classification (cheap and fast). */
+  ANTHROPIC_CLASSIFICATION_MODEL: modelId,
+  /** @deprecated Fallback for ANTHROPIC_EXTRACTION_MODEL only. */
+  ANTHROPIC_MODEL: modelId,
 
   REVENUECAT_WEBHOOK_AUTH: z.string().default(''),
   REVENUECAT_ENTITLEMENT_ID: z.string().default('pro'),
@@ -35,6 +57,21 @@ export const envSchema = z.object({
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(120),
   VERIFICATION_THROTTLE_LIMIT: z.coerce.number().int().positive().default(5),
 });
+
+/**
+ * Resolves the per-task models: extraction = ANTHROPIC_EXTRACTION_MODEL, else
+ * the deprecated ANTHROPIC_MODEL, else the default; classification =
+ * ANTHROPIC_CLASSIFICATION_MODEL, else the default.
+ */
+export const envSchema = baseSchema.transform((env) => ({
+  ...env,
+  ANTHROPIC_EXTRACTION_MODEL:
+    env.ANTHROPIC_EXTRACTION_MODEL ??
+    env.ANTHROPIC_MODEL ??
+    DEFAULT_EXTRACTION_MODEL,
+  ANTHROPIC_CLASSIFICATION_MODEL:
+    env.ANTHROPIC_CLASSIFICATION_MODEL ?? DEFAULT_CLASSIFICATION_MODEL,
+}));
 
 export type Env = z.infer<typeof envSchema>;
 

@@ -13,7 +13,11 @@ import {
 
 export const ANTHROPIC_CLIENT = Symbol('ANTHROPIC_CLIENT');
 
+export type ClaudeTask = 'extraction' | 'classification';
+
 export interface JsonRequest<T extends z.ZodType> {
+  /** Selects the configured model for this kind of work. */
+  task: ClaudeTask;
   schema: T;
   system: string;
   content: Anthropic.MessageParam['content'];
@@ -28,14 +32,19 @@ export interface JsonRequest<T extends z.ZodType> {
 @Injectable()
 export class ClaudeJsonClient {
   private readonly logger = new Logger(ClaudeJsonClient.name);
-  readonly model: string;
+  readonly models: Record<ClaudeTask, string>;
   private readonly hasKey: boolean;
 
   constructor(
     @Inject(ANTHROPIC_CLIENT) private readonly client: Anthropic,
     config: ConfigService<Env, true>,
   ) {
-    this.model = config.get('ANTHROPIC_MODEL', { infer: true });
+    this.models = {
+      extraction: config.get('ANTHROPIC_EXTRACTION_MODEL', { infer: true }),
+      classification: config.get('ANTHROPIC_CLASSIFICATION_MODEL', {
+        infer: true,
+      }),
+    };
     this.hasKey = config.get('ANTHROPIC_API_KEY', { infer: true }).length > 0;
   }
 
@@ -51,7 +60,7 @@ export class ClaudeJsonClient {
     try {
       message = await this.client.messages
         .stream({
-          model: this.model,
+          model: this.models[request.task],
           max_tokens: request.maxTokens,
           system: request.system,
           messages: [{ role: 'user', content: request.content }],

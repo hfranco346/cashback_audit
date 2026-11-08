@@ -6,9 +6,13 @@ import { ClaudeMerchantClassifier } from './claude-merchant-classifier.js';
 import { ClaudeStatementExtractor } from './claude-statement-extractor.js';
 import { parseExtraction } from './extraction-schema.js';
 
-const config = (key = 'sk-ant-secret-key') =>
+const config = (
+  key = 'sk-ant-secret-key',
+  extra: Record<string, string> = {},
+) =>
   new ConfigService(
     validateEnv({
+      ...extra,
       DATABASE_URL: 'x',
       JWT_ACCESS_SECRET: 'a'.repeat(32),
       JWT_REFRESH_SECRET: 'b'.repeat(32),
@@ -260,6 +264,26 @@ describe('ClaudeStatementExtractor', () => {
     expect(text.type).toBe('text');
   });
 
+  it('routes extraction and classification to their configured models', async () => {
+    const cfg = config('sk-ant-secret-key', {
+      ANTHROPIC_EXTRACTION_MODEL: 'claude-opus-5-5',
+      ANTHROPIC_CLASSIFICATION_MODEL: 'claude-sonnet-5-5',
+    });
+    const ext = fakeClient(textMessage(validOutput));
+    const extracted = await new ClaudeStatementExtractor(
+      new ClaudeJsonClient(ext.client, cfg),
+    ).extract(Buffer.from('%PDF-'));
+    expect(extracted.model).toBe('claude-opus-5-5');
+    expect(ext.calls[0].model).toBe('claude-opus-5-5');
+
+    const cls = fakeClient(textMessage({ matches: [] }));
+    const classified = await new ClaudeMerchantClassifier(
+      new ClaudeJsonClient(cls.client, cfg),
+    ).classify(['X'], []);
+    expect(classified.model).toBe('claude-sonnet-5-5');
+    expect(cls.calls[0].model).toBe('claude-sonnet-5-5');
+  });
+
   it('rejects documents that are not statements with 422', async () => {
     const { client } = fakeClient(
       textMessage({ ...validOutput, isCreditCardStatement: false }),
@@ -383,10 +407,12 @@ describe('ClaudeMerchantClassifier', () => {
     const classifier = new ClaudeMerchantClassifier(
       new ClaudeJsonClient(client, config()),
     );
-    const guesses = await classifier.classify(
+    const { guesses, model } = await classifier.classify(
       ['WM SUPERCENTER 55', 'UBER TRIP'],
       merchants,
     );
+    expect(model).toBe('claude-haiku-5-5');
+    expect(calls[0].model).toBe('claude-haiku-5-5');
 
     expect(guesses).toEqual([
       { descriptor: 'WM SUPERCENTER 55', merchantId: 'm1', confidence: 1 },

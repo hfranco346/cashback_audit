@@ -9,10 +9,61 @@ const base = {
 describe('validateEnv', () => {
   it('applies defaults', () => {
     const env = validateEnv(base);
-    expect(env.ANTHROPIC_MODEL).toBe('claude-sonnet-5-5');
+    expect(env.ANTHROPIC_EXTRACTION_MODEL).toBe('claude-sonnet-5-5');
+    expect(env.ANTHROPIC_CLASSIFICATION_MODEL).toBe('claude-haiku-5-5');
     expect(env.REVENUECAT_ENTITLEMENT_ID).toBe('pro');
     expect(env.SUBSCRIPTION_GATE_ENABLED).toBe(true);
     expect(env.PORT).toBe(3000);
+  });
+
+  describe('model routing', () => {
+    it('uses the explicit per-task models', () => {
+      const env = validateEnv({
+        ...base,
+        ANTHROPIC_EXTRACTION_MODEL: 'claude-opus-5-5',
+        ANTHROPIC_CLASSIFICATION_MODEL: 'claude-sonnet-5-5',
+      });
+      expect(env.ANTHROPIC_EXTRACTION_MODEL).toBe('claude-opus-5-5');
+      expect(env.ANTHROPIC_CLASSIFICATION_MODEL).toBe('claude-sonnet-5-5');
+    });
+
+    it('falls back to the deprecated ANTHROPIC_MODEL for extraction only', () => {
+      const env = validateEnv({ ...base, ANTHROPIC_MODEL: 'claude-opus-5' });
+      expect(env.ANTHROPIC_EXTRACTION_MODEL).toBe('claude-opus-5');
+      expect(env.ANTHROPIC_CLASSIFICATION_MODEL).toBe('claude-haiku-5-5');
+    });
+
+    it('lets ANTHROPIC_EXTRACTION_MODEL win over the deprecated variable', () => {
+      const env = validateEnv({
+        ...base,
+        ANTHROPIC_MODEL: 'claude-opus-5',
+        ANTHROPIC_EXTRACTION_MODEL: 'claude-sonnet-5',
+      });
+      expect(env.ANTHROPIC_EXTRACTION_MODEL).toBe('claude-sonnet-5');
+    });
+
+    it('treats empty values as unset', () => {
+      const env = validateEnv({
+        ...base,
+        ANTHROPIC_EXTRACTION_MODEL: '',
+        ANTHROPIC_CLASSIFICATION_MODEL: '  ',
+        ANTHROPIC_MODEL: '',
+      });
+      expect(env.ANTHROPIC_EXTRACTION_MODEL).toBe('claude-sonnet-5-5');
+      expect(env.ANTHROPIC_CLASSIFICATION_MODEL).toBe('claude-haiku-5-5');
+    });
+
+    it.each(['claude sonnet', 'bad;id', '-x'])(
+      'rejects the invalid model id %j',
+      (value) => {
+        expect(() =>
+          validateEnv({ ...base, ANTHROPIC_CLASSIFICATION_MODEL: value }),
+        ).toThrow(/ANTHROPIC_CLASSIFICATION_MODEL/);
+        expect(() =>
+          validateEnv({ ...base, ANTHROPIC_EXTRACTION_MODEL: value }),
+        ).toThrow(/ANTHROPIC_EXTRACTION_MODEL/);
+      },
+    );
   });
 
   it('parses the gate flag', () => {

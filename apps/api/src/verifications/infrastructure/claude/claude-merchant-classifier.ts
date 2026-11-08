@@ -27,7 +27,7 @@ export class ClaudeMerchantClassifier extends MerchantClassifier {
   async classify(
     descriptors: string[],
     merchants: MerchantCandidate[],
-  ): Promise<MerchantGuess[]> {
+  ): Promise<{ guesses: MerchantGuess[]; model: string }> {
     const knownIds = new Set(merchants.map((m) => m.id));
     const asked = new Set(descriptors);
     const guesses: MerchantGuess[] = [];
@@ -35,6 +35,7 @@ export class ClaudeMerchantClassifier extends MerchantClassifier {
     for (let i = 0; i < descriptors.length; i += BATCH_SIZE) {
       const batch = descriptors.slice(i, i + BATCH_SIZE);
       const result = await this.claude.requestJson({
+        task: 'classification',
         schema: classificationOutputSchema,
         system: CLASSIFICATION_SYSTEM_PROMPT,
         maxTokens: 8000,
@@ -71,6 +72,6 @@ export class ClaudeMerchantClassifier extends MerchantClassifier {
         });
       }
     }
-    return guesses;
+    return { guesses, model: this.claude.models.classification };
   }
 }

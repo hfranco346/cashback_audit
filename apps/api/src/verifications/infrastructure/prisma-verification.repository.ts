@@ -161,6 +161,10 @@ const deserializeLine = (
     monthlyCap: j.monthlyCap ? new Decimal(j.monthlyCap as string) : null,
   }) as VerificationBreakdownLine;
 
+const asRecord = (value: unknown): Json =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Json)
+    : {};
 function toSummary(row: PrismaVerification): VerificationSummary {
   return {
     id: row.id,
@@ -183,14 +187,14 @@ function toSummary(row: PrismaVerification): VerificationSummary {
     tolerance: dec(row.tolerance),
     verdict: row.verdict,
     model: row.model,
+    models: {
+      extraction: (asRecord(row.models).extraction as string) ?? row.model,
+      classification: (asRecord(row.models).classification as string) ?? null,
+    },
     createdAt: row.createdAt,
   };
 }
 
-const asRecord = (value: unknown): Json =>
-  value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Json)
-    : {};
 const asArray = (value: unknown): Json[] =>
   Array.isArray(value) ? (value as Json[]) : [];
 
@@ -250,6 +254,7 @@ export class PrismaVerificationRepository extends VerificationRepository {
         ) as Prisma.InputJsonValue,
         warnings: input.warnings as unknown as Prisma.InputJsonValue,
         model: input.model,
+        models: input.models as unknown as Prisma.InputJsonValue,
       },
     });
     return toDomain(row);
