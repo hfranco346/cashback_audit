@@ -1,14 +1,31 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'features/settings/data/theme_preference_repository_impl.dart';
+import 'features/settings/domain/theme_preference.dart';
+import 'features/settings/presentation/theme_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_MX');
   _registerFontLicenses();
+  // Registered before the first frame so the app never flashes the wrong theme.
+  final themeRepository = ThemePreferenceRepositoryImpl(
+    SharedPreferencesAsync(),
+  );
+  Get.put<ThemePreferenceRepository>(themeRepository, permanent: true);
+  Get.put<ThemeController>(
+    ThemeController(
+      repository: themeRepository,
+      initial: await ThemeController.loadInitial(themeRepository),
+    ),
+    permanent: true,
+  );
   runApp(const CashbackAuditApp());
 }
 

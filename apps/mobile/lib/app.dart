@@ -7,6 +7,7 @@ import 'core/l10n/strings.dart';
 import 'core/routing/app_pages.dart';
 import 'core/routing/app_routes.dart';
 import 'core/theme/app_theme.dart';
+import 'features/settings/presentation/theme_controller.dart';
 
 class CashbackAuditApp extends StatelessWidget {
   const CashbackAuditApp({super.key});
@@ -18,7 +19,8 @@ class CashbackAuditApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      // Initial mode only; later changes go through Get.changeThemeMode.
+      themeMode: Get.find<ThemeController>().themeMode,
       locale: const Locale('es', 'MX'),
       fallbackLocale: const Locale('es', 'MX'),
       supportedLocales: const [Locale('es', 'MX'), Locale('es')],

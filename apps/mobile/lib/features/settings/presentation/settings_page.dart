@@ -8,6 +8,8 @@ import '../../credits/presentation/credits_controller.dart';
 import '../../credits/presentation/widgets/credits_summary_card.dart';
 import '../../subscription/presentation/subscription_controller.dart';
 import '../../subscription/presentation/widgets/subscription_status_card.dart';
+import 'theme_controller.dart';
+import 'widgets/appearance_section.dart';
 
 /// Profile, subscription and sign-out.
 class SettingsPage extends StatelessWidget {
@@ -27,6 +29,7 @@ class SettingsPage extends StatelessWidget {
     final session = Get.find<SessionController>();
     final sub = Get.find<SubscriptionController>();
     final credits = Get.find<CreditsController>();
+    final themeController = Get.find<ThemeController>();
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text(S.settingsTitle)),
@@ -81,7 +84,14 @@ class SettingsPage extends StatelessWidget {
             icon: const Icon(Icons.restore_rounded),
             label: const Text(S.paywallRestore),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+          Obx(
+            () => AppearanceSection(
+              selected: themeController.preference.value,
+              onChanged: themeController.select,
+            ),
+          ),
+          const SizedBox(height: 24),
           OutlinedButton.icon(
             key: const Key('logout'),
             onPressed: session.signOut,

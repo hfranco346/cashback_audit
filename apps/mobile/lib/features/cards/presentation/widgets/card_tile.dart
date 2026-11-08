@@ -38,7 +38,12 @@ class CardTile extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 scheme.primary,
-                Color.lerp(scheme.primary, Colors.black, 0.35)!,
+                Color.lerp(
+                  scheme.primary,
+                  Colors.black,
+                  // Dark mode primary is light: shade less to keep text contrast.
+                  scheme.brightness == Brightness.dark ? 0.2 : 0.35,
+                )!,
               ],
             ),
           ),

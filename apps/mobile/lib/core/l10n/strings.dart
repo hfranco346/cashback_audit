@@ -186,6 +186,10 @@ abstract final class S {
   static String merchantCount(int n) => n == 1 ? '1 comercio' : '$n comercios';
 
   static const settingsTitle = 'Perfil y ajustes';
+  static const appearanceTitle = 'Apariencia';
+  static const themeSystem = 'Sistema';
+  static const themeLight = 'Claro';
+  static const themeDark = 'Oscuro';
   static const longPressHint = 'Mantén presionada una tarjeta para eliminarla';
 
   // Upload
