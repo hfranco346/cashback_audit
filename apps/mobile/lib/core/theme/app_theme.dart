@@ -223,22 +223,31 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       brightness: scheme.brightness,
+      fontFamily: AppFonts.text,
     );
     const figures = [FontFeature.tabularFigures()];
+    // Display roles use the high-contrast serif (the banknote/cheque voice);
+    // everything people read or compare at small sizes stays in the sans.
     final text = base.textTheme
         .copyWith(
           displaySmall: base.textTheme.displaySmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -1.2,
+            fontFamily: AppFonts.display,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.6,
+            height: 1.1,
             fontFeatures: figures,
           ),
           headlineMedium: base.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.8,
+            fontFamily: AppFonts.display,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.4,
+            height: 1.15,
           ),
           headlineSmall: base.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
+            fontFamily: AppFonts.display,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
+            height: 1.2,
           ),
           titleLarge: base.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w700,
@@ -319,4 +328,13 @@ abstract final class AppTheme {
       ),
     );
   }
+}
+
+/// Typeface families bundled in `assets/fonts`.
+abstract final class AppFonts {
+  /// High-contrast serif for headlines, verdicts and hero figures.
+  static const display = 'BodoniModa';
+
+  /// Geometric sans for UI and body text; has tabular figures for amounts.
+  static const text = 'Manrope';
 }

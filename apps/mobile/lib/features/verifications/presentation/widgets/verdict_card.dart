@@ -2,6 +2,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/l10n/strings.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/verification_entities.dart';
 import 'verdict_style.dart';
 
@@ -150,6 +151,8 @@ class _FigureRow extends StatelessWidget {
     final valueStyle =
         (emphasized ? theme.textTheme.titleLarge : theme.textTheme.titleMedium)
             ?.copyWith(
+              fontFamily: emphasized ? AppFonts.display : null,
+              fontSize: emphasized ? 30 : null,
               color: color ?? theme.colorScheme.onSurface,
               fontWeight: emphasized ? FontWeight.w700 : FontWeight.w600,
               fontFeatures: const [FontFeature.tabularFigures()],

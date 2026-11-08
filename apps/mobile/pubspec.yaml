@@ -80,6 +80,32 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Bundled (not fetched at runtime): works offline, no third-party requests.
+  # Both families are SIL Open Font License 1.1 (see assets/fonts/OFL-*.txt).
+  assets:
+    - assets/fonts/OFL-BodoniModa.txt
+    - assets/fonts/OFL-Manrope.txt
+
+  fonts:
+    - family: BodoniModa
+      fonts:
+        - asset: assets/fonts/BodoniModa-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/BodoniModa-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/BodoniModa-Bold.ttf
+          weight: 700
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Manrope-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Manrope-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-Bold.ttf
+          weight: 700
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
