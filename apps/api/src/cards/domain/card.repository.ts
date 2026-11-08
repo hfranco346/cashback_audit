@@ -12,6 +12,7 @@ export interface NewCard {
   baseRatePercent: Decimal;
   currency: string;
   rewardProgramName: string | null;
+  rewardCurrency: string | null;
   rules: CardRule[];
 }
 

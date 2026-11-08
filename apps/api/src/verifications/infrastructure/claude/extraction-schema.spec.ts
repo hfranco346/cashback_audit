@@ -17,7 +17,7 @@ function baseOutput(overrides: Record<string, unknown> = {}) {
         totalBalance: '',
       },
     ],
-    exchangeRate: { from: '', to: '', rate: '' },
+    exchangeRates: [],
     loyaltyPrograms: [],
     detectedRates: [],
     transactions: [],
@@ -49,7 +49,7 @@ describe('parseExtraction', () => {
   it('maps empty-string sentinels to null', () => {
     const result = parseExtraction(baseOutput());
     expect(result?.cardLast4).toBeNull();
-    expect(result?.exchangeRate).toBeNull();
+    expect(result?.exchangeRates).toEqual([]);
     expect(result?.summaries[0]?.previousBalance).toBeNull();
     expect(result?.summaries[0]?.purchasesAndCharges?.toString()).toBe(
       '1234.5',
@@ -96,5 +96,17 @@ describe('parseExtraction', () => {
     );
     expect(result?.transactions[0]?.amount.toString()).toBe('68531.56');
     expect(result?.transactions[0]?.reference).toBeNull();
+  });
+});
+
+describe('requested output schema size', () => {
+  it('stays free of nullable fields and anyOf (the API grammar limit)', async () => {
+    const { zodOutputFormat } = await import('@anthropic-ai/sdk/helpers/zod');
+    const { extractionOutputSchema } = await import('./extraction-schema.js');
+    const json = JSON.stringify(zodOutputFormat(extractionOutputSchema));
+    expect(json).not.toContain('anyOf');
+    expect(json).not.toContain('oneOf');
+    expect(json).not.toContain('"null"');
+    expect(json).not.toContain('nullable');
   });
 });

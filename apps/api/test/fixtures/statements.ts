@@ -44,6 +44,7 @@ export const program = (
   expiring: null,
   forfeited: null,
   unit: 'CURRENCY',
+  currency: null,
   ...over,
 });
 
@@ -65,7 +66,7 @@ const base = (over: Partial<ExtractedStatement>): ExtractedStatement => ({
   periodEnd: '2026-01-31',
   currency: 'MXN',
   summaries: [],
-  exchangeRate: null,
+  exchangeRates: [],
   loyaltyPrograms: [],
   detectedRates: [],
   transactions: [],
@@ -199,6 +200,42 @@ export const usdMilesStatement = (
     transactions: [
       line('AIRLINE TICKETS', 600, { currency: 'USD' }),
       line('HOTEL STAY', 200, { currency: 'USD' }),
+    ],
+    ...over,
+  });
+
+/**
+ * Local currency CRC with USD and EUR purchase lines, and a cashback program
+ * denominated in USD (the reward currency differs from the spend currency).
+ */
+export const crcUsdEurStatement = (
+  over: Partial<ExtractedStatement> = {},
+): ExtractedStatement =>
+  base({
+    bank: 'Example Bank CR',
+    currency: 'CRC',
+    summaries: [
+      {
+        currency: 'CRC',
+        previousBalance: d(0),
+        purchasesAndCharges: d(56000),
+        totalBalance: d(56000),
+      },
+    ],
+    loyaltyPrograms: [
+      program('Cashback USD', '2.6', { currency: 'USD', available: d('2.6') }),
+    ],
+    detectedRates: [
+      detected({
+        scope: 'BASE',
+        ratePercent: d(1),
+        evidence: '1% de cashback',
+      }),
+    ],
+    transactions: [
+      line('SUPER LOCAL', 56000, { currency: 'CRC' }),
+      line('STREAMING SERVICE', 100, { currency: 'USD' }),
+      line('HOTEL EUROPA', 50, { currency: 'EUR' }),
     ],
     ...over,
   });

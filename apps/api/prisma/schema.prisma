@@ -72,6 +72,8 @@ model Card {
   currency              String     @db.Char(3)
   /// Loyalty program to audit when a statement lists several.
   rewardProgramName     String?
+  /// Currency the reward is paid in when it differs from `currency`; overrides detection.
+  rewardCurrency        String?    @db.Char(3)
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 
@@ -161,17 +163,19 @@ model Verification {
   currency       String?        @db.Char(3)
   /// Card currency at verification time.
   primaryCurrency String        @db.Char(3)
-  totalSpent     Decimal?       @db.Decimal(16, 2)
-  totalToPay     Decimal?       @db.Decimal(16, 2)
+  totalSpent     Decimal?       @db.Decimal(16, 3)
+  totalToPay     Decimal?       @db.Decimal(16, 3)
   status         VerificationStatus @default(COMPLETED)
   /// Reward figures are null while AWAITING_RATES.
-  reportedAmount Decimal?       @db.Decimal(16, 2)
+  reportedAmount Decimal?       @db.Decimal(16, 3)
   reportedUnit   RewardUnit
+  /// Currency of reported/expected/difference/tolerance (null for points).
+  rewardCurrency String?        @db.Char(3)
   reportedLabel  String?
   reportedSource ReportedSource?
-  expectedAmount Decimal?       @db.Decimal(16, 2)
-  difference     Decimal?       @db.Decimal(16, 2)
-  tolerance      Decimal?       @db.Decimal(16, 2)
+  expectedAmount Decimal?       @db.Decimal(16, 3)
+  difference     Decimal?       @db.Decimal(16, 3)
+  tolerance      Decimal?       @db.Decimal(16, 3)
   verdict        Verdict?
   /// Statement summary per currency column.
   summaries      Json           @default("[]")

@@ -17,6 +17,7 @@ const program = (
   expiring: null,
   forfeited: null,
   unit: 'POINTS',
+  currency: null,
   ...over,
 });
 

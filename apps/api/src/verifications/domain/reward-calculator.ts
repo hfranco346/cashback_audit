@@ -1,4 +1,5 @@
 import { Decimal } from 'decimal.js';
+import { roundMoney } from '../../shared/domain/money.js';
 import { REWARD_ELIGIBLE_KINDS, type TransactionKind } from './statement.js';
 
 export type CalculatorRewardUnit = 'CASHBACK_CURRENCY' | 'POINTS';
@@ -95,7 +96,10 @@ export interface BreakdownLine {
 }
 
 export interface RewardCalculation {
+  /** In the card (primary) currency, rounded to its minor units. */
   expectedTotal: Decimal;
+  /** Same figure before rounding (input to the reward-currency conversion). */
+  expectedTotalExact: Decimal;
   breakdown: BreakdownLine[];
   transactions: TransactionReward[];
   currencies: CurrencySubtotal[];
@@ -112,6 +116,19 @@ export interface RewardComparison {
 
 const round2 = (value: Decimal) =>
   value.toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+
+/**
+ * Converts a reward computed in the primary currency to the reward currency.
+ * `rate` is primary-currency units per 1 reward-currency unit (e.g. 25.80 HNL
+ * per USD). Rounded to the reward currency minor units, only at the end.
+ */
+export function convertRewardToCurrency(
+  amountInPrimary: Decimal,
+  rate: Decimal,
+  rewardCurrency: string,
+): Decimal {
+  return roundMoney(amountInPrimary.div(rate), rewardCurrency);
+}
 
 /**
  * Pure computation of the reward a card should have earned.
@@ -131,6 +148,11 @@ export function calculateExpectedReward(
 ): RewardCalculation {
   const multiplier =
     card.rewardUnit === 'POINTS' ? card.pointsPerCurrencyUnit : new Decimal(1);
+  // Amounts in the card currency round to its minor units; rewards too unless
+  // they are points (2 decimals).
+  const roundPrimary = (v: Decimal) => roundMoney(v, card.currency);
+  const roundReward = (v: Decimal) =>
+    card.rewardUnit === 'POINTS' ? round2(v) : roundPrimary(v);
   const rulesByCategory = new Map(
     card.rules.map((rule) => [rule.categoryId, rule]),
   );
@@ -183,7 +205,7 @@ export function calculateExpectedReward(
       appliedRatePercent: new Decimal(0),
       ruleApplied: false,
       expectedReward: new Decimal(0),
-      convertedAmount: rate ? round2(signed.mul(rate.rate)) : null,
+      convertedAmount: rate ? roundPrimary(signed.mul(rate.rate)) : null,
       exchangeRate: rate?.rate ?? null,
       rateSource: rate && tx.currency !== card.currency ? rate.source : null,
       excludedReason: reason,
@@ -236,8 +258,8 @@ export function calculateExpectedReward(
       categoryId: tx.categoryId,
       appliedRatePercent: ratePercent,
       ruleApplied: rule !== null,
-      expectedReward: round2(reward),
-      convertedAmount: round2(converted),
+      expectedReward: roundReward(reward),
+      convertedAmount: roundPrimary(converted),
       exchangeRate: rate.rate,
       rateSource: tx.currency === card.currency ? null : rate.source,
       excludedReason: null,
@@ -255,9 +277,9 @@ export function calculateExpectedReward(
       categoryId,
       ratePercent: group.ratePercent,
       transactionCount: group.count,
-      spend: round2(group.spend),
-      uncappedReward: round2(group.reward),
-      expectedReward: round2(applied),
+      spend: roundPrimary(group.spend),
+      uncappedReward: roundReward(group.reward),
+      expectedReward: roundReward(applied),
       monthlyCap: cap,
       capped,
     });
@@ -272,15 +294,16 @@ export function calculateExpectedReward(
   const currencies = [...subtotals.values()]
     .map((sub) => ({
       ...sub,
-      spent: round2(sub.spent),
-      eligibleSpent: round2(sub.eligibleSpent),
-      convertedEligibleSpent: round2(sub.convertedEligibleSpent),
-      expectedReward: round2(sub.expectedReward),
+      spent: roundMoney(sub.spent, sub.currency),
+      eligibleSpent: roundMoney(sub.eligibleSpent, sub.currency),
+      convertedEligibleSpent: roundPrimary(sub.convertedEligibleSpent),
+      expectedReward: roundReward(sub.expectedReward),
     }))
     .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
 
   return {
-    expectedTotal: round2(total),
+    expectedTotal: roundReward(total),
+    expectedTotalExact: total,
     breakdown,
     transactions: details,
     currencies,
@@ -295,12 +318,15 @@ export function calculateExpectedReward(
 export function compareReward(
   reported: Decimal,
   expected: Decimal,
+  /** Reward currency (minor units used for rounding); null for points. */
+  currency: string | null = null,
 ): RewardComparison {
-  const difference = round2(reported.minus(expected));
+  const round = (v: Decimal) => roundMoney(v, currency);
+  const difference = round(reported.minus(expected));
   const tolerance = Decimal.max(new Decimal(1), expected.abs().mul('0.01'));
   let verdict: Verdict = 'MATCH';
   if (difference.abs().gt(tolerance)) {
     verdict = difference.isNegative() ? 'UNDERPAID' : 'OVERPAID';
   }
-  return { verdict, difference, tolerance: round2(tolerance) };
+  return { verdict, difference, tolerance: round(tolerance) };
 }

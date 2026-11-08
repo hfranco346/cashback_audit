@@ -71,6 +71,11 @@ export interface LoyaltyProgram {
   /** "Castigados". */
   forfeited: Decimal | null;
   unit: LoyaltyUnit;
+  /**
+   * ISO 4217 code the reward is denominated in, when the statement shows it
+   * (cashback programs); null for points/miles or when unknown.
+   */
+  currency: string | null;
 }
 
 /** A reward rate the statement itself states (promotion, program terms). */
@@ -103,7 +108,8 @@ export interface ExtractedStatement {
   /** Main currency of the statement when it can be told, else null. */
   currency: string | null;
   summaries: CurrencySummary[];
-  exchangeRate: StatementExchangeRate | null;
+  /** Every exchange rate printed on the statement (any currency pair). */
+  exchangeRates: StatementExchangeRate[];
   loyaltyPrograms: LoyaltyProgram[];
   detectedRates: DetectedRate[];
   transactions: ExtractedTransaction[];

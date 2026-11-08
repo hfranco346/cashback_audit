@@ -11,6 +11,7 @@ import {
   ValidateIf,
   IsInt,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -86,7 +87,11 @@ export class ConfirmVerificationDto {
   @DecimalField({ min: '0', max: '1000000000000', maxDecimals: 2 })
   reportedRewardOverride?: string;
 
-  @ApiPropertyOptional({ example: '26.35' })
+  @ApiPropertyOptional({
+    example: '26.35',
+    description:
+      'Legacy single rate applied to ANY foreign currency. Prefer exchangeRates.',
+  })
   @IsOptional()
   @DecimalField({
     min: '0',
@@ -95,6 +100,29 @@ export class ConfirmVerificationDto {
     maxDecimals: 6,
   })
   exchangeRate?: string;
+
+  @ApiPropertyOptional({
+    example: { USD: '25.80', EUR: '28.10' },
+    description:
+      'Rate per foreign spend currency (ISO 4217 key). Value = units of the PRIMARY (card) currency per 1 unit of that currency (card HNL: USD "25.80" means 1 USD = 25.80 HNL). Merged over rates sent earlier.',
+  })
+  @IsOptional()
+  @IsObject()
+  exchangeRates?: Record<string, string>;
+
+  @ApiPropertyOptional({
+    example: '25.80',
+    description:
+      'Needed when the reward currency differs from the primary currency. Units of the PRIMARY (card) currency per 1 unit of the REWARD currency (card HNL, reward USD: "25.80").',
+  })
+  @IsOptional()
+  @DecimalField({
+    min: '0',
+    max: '1000000',
+    minInclusive: false,
+    maxDecimals: 6,
+  })
+  rewardExchangeRate?: string;
 
   @ApiPropertyOptional({ example: 'CASH BAC CREDOMATIC' })
   @IsOptional()

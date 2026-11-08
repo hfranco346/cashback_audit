@@ -39,7 +39,7 @@ export interface CreateVerificationInput {
   cardId: string;
   /** The uploaded PDF; held in memory only. */
   pdf: Buffer;
-  /** Decimal string: 1 unit of the foreign currency in the card currency. */
+  /** Decimal string: card-currency units per 1 unit of the foreign currency. */
   exchangeRate?: string;
   /** Loyalty program to audit; overrides the card's `rewardProgramName`. */
   rewardProgramName?: string;
@@ -343,8 +343,11 @@ export class CreateVerificationUseCase {
         requestedRate: input.exchangeRate
           ? new Decimal(input.exchangeRate)
           : null,
-        statementRate: statement.exchangeRate,
+        requestedRates: {},
+        requestedRewardRate: null,
+        statementRates: statement.exchangeRates,
         currencies: [],
+        reward: null,
       },
       loyalty: {
         requestedProgramName: input.rewardProgramName ?? null,
@@ -355,6 +358,7 @@ export class CreateVerificationUseCase {
       },
       reportedAmount: null,
       reportedUnit: card.rewardUnit,
+      rewardCurrency: null,
       reportedLabel: null,
       reportedSource: null,
       expectedAmount: null,

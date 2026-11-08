@@ -427,3 +427,40 @@ describe('compareReward', () => {
     });
   });
 });
+
+describe('minor units of the currencies', () => {
+  it('rounds a zero-decimal primary currency to whole units, at the end', () => {
+    const jpy: RewardCardConfig = {
+      ...card({ baseRatePercent: d('1.5') }),
+      currency: 'JPY',
+      rules: [],
+    };
+    const lines: RewardTransactionInput[] = [
+      { ...tx(999), currency: 'JPY' },
+      { ...tx(999), currency: 'JPY' },
+    ];
+    const result = calculateExpectedReward(jpy, lines);
+    // each line 14.985 -> 15; total 29.97 -> 30 (rounded once, not 15 + 15)
+    expect(result.transactions[0]!.expectedReward.toString()).toBe('15');
+    expect(result.expectedTotal.toString()).toBe('30');
+    expect(result.expectedTotalExact.toString()).toBe('29.97');
+    expect(result.currencies[0]!.spent.toString()).toBe('1998');
+  });
+
+  it('converts foreign lines to a zero-decimal card currency', () => {
+    const jpy: RewardCardConfig = { ...card(), currency: 'JPY', rules: [] };
+    const result = calculateExpectedReward(
+      jpy,
+      [{ ...usd(10), currency: 'USD' }],
+      [statementRate('USD', '149.55')],
+    );
+    expect(result.transactions[0]!.convertedAmount!.toString()).toBe('1496');
+  });
+
+  it('compares in the reward currency decimals', () => {
+    const cmp = compareReward(d('1000'), d('1004.6'), 'JPY');
+    expect(cmp.difference.toString()).toBe('-5');
+    expect(cmp.tolerance.toString()).toBe('10');
+    expect(cmp.verdict).toBe('MATCH');
+  });
+});

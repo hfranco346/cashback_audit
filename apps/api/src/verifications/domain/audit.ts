@@ -7,8 +7,11 @@ import {
 import {
   calculateExpectedReward,
   compareReward,
+  convertRewardToCurrency,
   type ConversionRate,
 } from './reward-calculator.js';
+import { statementRatesToPrimary } from './exchange-rates.js';
+import { resolveRewardCurrency } from './reward-currency.js';
 import type {
   CalculatorRewardUnit,
   RewardRuleConfig,
@@ -17,9 +20,11 @@ import type { LoyaltyProgram, StatementExchangeRate } from './statement.js';
 import type { AuditFacts } from './statement-extractor.js';
 import {
   ReportedRewardMissingError,
+  RewardExchangeRateRequiredError,
   RewardProgramAmbiguousError,
 } from './verification-errors.js';
 import type {
+  AppliedRewardRate,
   Verification,
   VerificationBreakdownLine,
   VerificationConversion,
@@ -42,6 +47,8 @@ export interface AuditInput {
     currency: string;
     rewardUnit: CalculatorRewardUnit;
     pointsPerCurrencyUnit: Decimal;
+    /** Explicit reward currency; wins over the program's currency. */
+    rewardCurrency: string | null;
   };
   /** Rates to audit with; they replace the card rules entirely. */
   rates: { baseRatePercent: Decimal; rules: RewardRuleConfig[] };
@@ -52,11 +59,21 @@ export interface AuditInput {
   requestedProgramName: string | null;
   cardProgramName: string | null;
   reportedOverride: Decimal | null;
+  /** Rate without a currency: applied to any foreign currency. */
   requestedRate: Decimal | null;
-  statementRate: StatementExchangeRate | null;
+  /** Per foreign currency: primary units per 1 foreign unit. */
+  requestedRates: Record<string, Decimal>;
+  /** Primary units per 1 reward-currency unit. */
+  requestedRewardRate: Decimal | null;
+  statementRates: StatementExchangeRate[];
 }
 
 export interface AuditResult {
+  /** Currency of reported/expected/difference/tolerance; null for points. */
+  rewardCurrency: string | null;
+  /** Expected reward in the primary currency (== expectedAmount if no conversion). */
+  expectedInPrimary: Decimal;
+  rewardExchangeRate: AppliedRewardRate | null;
   reportedAmount: Decimal;
   reportedLabel: string | null;
   reportedSource: 'STATEMENT' | 'OVERRIDE';
@@ -69,27 +86,6 @@ export interface AuditResult {
   conversion: VerificationConversion;
   loyalty: VerificationLoyalty;
   warnings: VerificationWarning[];
-}
-
-/** Rates usable to reach `primary`, from the statement (inverted if needed). */
-function statementRates(
-  printed: StatementExchangeRate | null,
-  primary: string,
-): ConversionRate[] {
-  if (!printed || printed.rate.lte(0)) return [];
-  if (printed.to === primary && printed.from !== primary) {
-    return [{ from: printed.from, rate: printed.rate, source: 'STATEMENT' }];
-  }
-  if (printed.from === primary && printed.to !== primary) {
-    return [
-      {
-        from: printed.to,
-        rate: new Decimal(1).div(printed.rate),
-        source: 'STATEMENT',
-      },
-    ];
-  }
-  return [];
 }
 
 /**
@@ -142,7 +138,65 @@ export function computeAudit(input: AuditInput): AuditResult {
   }
 
   // --- conversion + reward ---------------------------------------------
+  const printedRates = statementRatesToPrimary(
+    input.statementRates,
+    card.currency,
+  );
+  const rewardCurrency = resolveRewardCurrency({
+    rewardUnit: card.rewardUnit,
+    cardRewardCurrency: card.rewardCurrency,
+    programCurrency: program?.currency ?? null,
+    primaryCurrency: card.currency,
+  });
+  const needsRewardConversion =
+    rewardCurrency !== null && rewardCurrency !== card.currency;
+
+  // Reward rate: explicit > the user's spend rate for that currency > printed.
+  let rewardRate: AppliedRewardRate | null = null;
+  if (needsRewardConversion) {
+    const printed = printedRates.find((r) => r.from === rewardCurrency);
+    const chosen =
+      input.requestedRewardRate ?? input.requestedRates[rewardCurrency] ?? null;
+    let rate: Decimal | null = null;
+    let source: AppliedRewardRate['source'] = 'USER_ENTERED';
+    if (chosen) {
+      rate = chosen;
+      if (
+        printed &&
+        chosen.toDecimalPlaces(6).eq(printed.rate.toDecimalPlaces(6))
+      ) {
+        source = 'STATEMENT_CONFIRMED';
+      }
+    } else if (printed) {
+      rate = printed.rate;
+      source = 'STATEMENT_CONFIRMED';
+    }
+    if (!rate) {
+      throw new RewardExchangeRateRequiredError(card.currency, rewardCurrency);
+    }
+    rewardRate = {
+      fromCurrency: card.currency,
+      toCurrency: rewardCurrency,
+      rate,
+      source,
+    };
+  }
+
   const rates: ConversionRate[] = [
+    ...Object.entries(input.requestedRates).map(([from, rate]) => ({
+      from,
+      rate,
+      source: 'REQUEST' as const,
+    })),
+    ...(input.requestedRewardRate && rewardCurrency
+      ? [
+          {
+            from: rewardCurrency,
+            rate: input.requestedRewardRate,
+            source: 'REQUEST' as const,
+          },
+        ]
+      : []),
     ...(input.requestedRate
       ? [
           {
@@ -152,7 +206,7 @@ export function computeAudit(input: AuditInput): AuditResult {
           },
         ]
       : []),
-    ...statementRates(input.statementRate, card.currency),
+    ...printedRates,
   ];
   const calculation = calculateExpectedReward(
     {
@@ -172,13 +226,20 @@ export function computeAudit(input: AuditInput): AuditResult {
     })),
     rates,
   );
+  const expectedAmount = rewardRate
+    ? convertRewardToCurrency(
+        calculation.expectedTotalExact,
+        rewardRate.rate,
+        rewardRate.toCurrency,
+      )
+    : calculation.expectedTotal;
 
   const missingRate = calculation.currencies.filter((c) => c.excludedCount > 0);
   if (missingRate.length > 0) {
     const count = missingRate.reduce((n, c) => n + c.excludedCount, 0);
     warnings.push({
       code: 'NO_EXCHANGE_RATE',
-      message: `No exchange rate to ${card.currency} was available for ${missingRate.map((c) => c.currency).join(', ')}; ${count} line(s) were left out of the expected reward. Send exchangeRate to include them.`,
+      message: `No exchange rate to ${card.currency} was available for ${missingRate.map((c) => c.currency).join(', ')}; ${count} line(s) were left out of the expected reward. Send exchangeRates ({ "<CURRENCY>": "<${card.currency} per 1 unit>" }) to include them.`,
     });
   }
   const foreignWithRate = calculation.currencies.filter(
@@ -191,15 +252,19 @@ export function computeAudit(input: AuditInput): AuditResult {
     });
   }
 
-  const comparison = compareReward(reportedAmount, calculation.expectedTotal);
+  const comparison = compareReward(
+    reportedAmount,
+    expectedAmount,
+    card.rewardUnit === 'POINTS' ? null : (rewardCurrency ?? card.currency),
+  );
   if (
     reportedSource === 'STATEMENT' &&
     program &&
-    looksCumulative(program, calculation.expectedTotal)
+    looksCumulative(program, expectedAmount)
   ) {
     warnings.push({
       code: 'REPORTED_VALUE_MAY_BE_CUMULATIVE',
-      message: `"${program.name}" reports ${reportedAmount.toString()} accumulated, which looks like a running balance (available + redeemed + forfeited) well above the ${calculation.expectedTotal.toString()} expected for this period. Send reportedRewardOverride with the amount earned this period to audit it.`,
+      message: `"${program.name}" reports ${reportedAmount.toString()} accumulated, which looks like a running balance (available + redeemed + forfeited) well above the ${expectedAmount.toString()} expected for this period. Send reportedRewardOverride with the amount earned this period to audit it.`,
     });
   }
 
@@ -224,10 +289,13 @@ export function computeAudit(input: AuditInput): AuditResult {
   }));
 
   return {
+    rewardCurrency,
+    expectedInPrimary: calculation.expectedTotal,
+    rewardExchangeRate: rewardRate,
     reportedAmount,
     reportedLabel: program?.name ?? null,
     reportedSource,
-    expectedAmount: calculation.expectedTotal,
+    expectedAmount,
     difference: comparison.difference,
     tolerance: comparison.tolerance,
     verdict: comparison.verdict,
@@ -235,8 +303,16 @@ export function computeAudit(input: AuditInput): AuditResult {
     transactions,
     conversion: {
       requestedRate: input.requestedRate,
-      statementRate: input.statementRate,
+      requestedRates: input.requestedRates,
+      requestedRewardRate: input.requestedRewardRate,
+      statementRates: input.statementRates,
       currencies: calculation.currencies,
+      reward: rewardRate
+        ? {
+            ...rewardRate,
+            expectedInPrimary: calculation.expectedTotal,
+          }
+        : null,
     },
     loyalty: {
       requestedProgramName: input.requestedProgramName,
@@ -261,6 +337,10 @@ export function buildAuditFacts(
     verdict: audit.verdict,
     rewardUnit: context.rewardUnit,
     primaryCurrency: context.primaryCurrency,
+    rewardCurrency: audit.rewardCurrency,
+    expectedInPrimaryCurrency: audit.rewardExchangeRate
+      ? audit.expectedInPrimary.toString()
+      : null,
     reported: audit.reportedAmount.toString(),
     expected: audit.expectedAmount.toString(),
     difference: audit.difference.toString(),

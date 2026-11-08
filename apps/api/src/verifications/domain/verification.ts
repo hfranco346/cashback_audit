@@ -89,20 +89,47 @@ export interface AppliedCategoryRate {
   source: AppliedRateSource;
 }
 
+/**
+ * Primary -> reward currency rate used for a completed audit. `rate` is
+ * primary-currency units per 1 reward-currency unit (25.80 = 25.80 HNL per
+ * USD when the card is HNL and the reward is USD).
+ */
+export interface AppliedRewardRate {
+  fromCurrency: string;
+  toCurrency: string;
+  rate: Decimal;
+  source: 'STATEMENT_CONFIRMED' | 'USER_ENTERED';
+}
+
 /** Exactly the rates a verification was audited with. */
 export interface AppliedRates {
   baseRatePercent: Decimal;
   baseSource: AppliedRateSource;
   categoryRates: AppliedCategoryRate[];
   savedToCard: boolean;
+  /** Null when the reward is not converted to another currency. */
+  rewardExchangeRate: AppliedRewardRate | null;
 }
 
 export interface VerificationConversion {
-  /** Rate sent with the request (foreign -> primary), if any. */
+  /** Single rate sent without a currency (applied to any foreign currency). */
   requestedRate: Decimal | null;
-  /** Rate printed on the statement, if any. */
-  statementRate: StatementExchangeRate | null;
+  /** Rates sent per foreign currency (primary units per 1 foreign unit). */
+  requestedRates: Record<string, Decimal>;
+  /** Primary -> reward currency rate sent by the user, if any. */
+  requestedRewardRate: Decimal | null;
+  /** Every rate printed on the statement. */
+  statementRates: StatementExchangeRate[];
   currencies: CurrencySubtotal[];
+  /** Reward-currency conversion of the last audit; null if none was needed. */
+  reward: {
+    fromCurrency: string;
+    toCurrency: string;
+    rate: Decimal;
+    source: AppliedRewardRate['source'];
+    /** Expected reward in the primary currency, before conversion. */
+    expectedInPrimary: Decimal;
+  } | null;
 }
 
 export interface VerificationLoyalty {
@@ -141,6 +168,8 @@ export interface Verification {
   /** Reward figures are null while AWAITING_RATES. */
   reportedAmount: Decimal | null;
   reportedUnit: RewardUnit;
+  /** Currency of reported/expected/difference/tolerance; null for points. */
+  rewardCurrency: string | null;
   reportedLabel: string | null;
   reportedSource: 'STATEMENT' | 'OVERRIDE' | null;
   expectedAmount: Decimal | null;

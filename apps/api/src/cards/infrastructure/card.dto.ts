@@ -20,6 +20,9 @@ const trim = ({ value }: { value: unknown }) =>
 const upper = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim().toUpperCase() : value;
 
+const upperOrNull = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim().toUpperCase() || null : value;
+
 const RATE = { min: '0', max: '100', maxDecimals: 4 } as const;
 const CAP = {
   min: '0',
@@ -128,6 +131,17 @@ export class CreateCardDto {
   @MaxLength(80)
   rewardProgramName?: string | null;
 
+  @ApiPropertyOptional({
+    example: 'USD',
+    nullable: true,
+    description:
+      'ISO 4217 currency the reward is paid in when it differs from `currency` (e.g. spend in HNL, cashback in USD). Overrides what the statement indicates; null = detect from the statement.',
+  })
+  @IsOptional()
+  @Transform(upperOrNull)
+  @IsISO4217CurrencyCode()
+  rewardCurrency?: string | null;
+
   @ApiPropertyOptional({ type: [CardRuleDto] })
   @IsOptional()
   @IsArray()
@@ -193,6 +207,17 @@ export class UpdateCardDto {
   @IsString()
   @MaxLength(80)
   rewardProgramName?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'USD',
+    nullable: true,
+    description:
+      'ISO 4217 currency the reward is paid in when it differs from `currency` (e.g. spend in HNL, cashback in USD). Overrides what the statement indicates; null = detect from the statement.',
+  })
+  @IsOptional()
+  @Transform(upperOrNull)
+  @IsISO4217CurrencyCode()
+  rewardCurrency?: string | null;
 
   @ApiPropertyOptional({
     type: [CardRuleDto],

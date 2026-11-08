@@ -18,6 +18,7 @@ import {
 } from '../domain/rate-proposal.js';
 import { ResultExplainer } from '../domain/statement-extractor.js';
 import {
+  InvalidExchangeRateError,
   RatesRequiredError,
   VerificationNotFoundError,
 } from '../domain/verification-errors.js';
@@ -37,8 +38,26 @@ export interface ConfirmVerificationInput {
   /** Also store the confirmed rates as the card's rates. */
   saveToCard?: boolean;
   reportedRewardOverride?: string;
+  /** Legacy: one rate for any foreign currency. */
   exchangeRate?: string;
+  /** Per foreign currency: primary-currency units per 1 unit of it. */
+  exchangeRates?: Record<string, string>;
+  /** Primary-currency units per 1 unit of the reward currency. */
+  rewardExchangeRate?: string;
   rewardProgramName?: string;
+}
+
+const CURRENCY_CODE = /^[A-Z]{3}$/;
+
+/** Parses a user-sent rate: positive, at most 6 decimals. */
+function parseRate(raw: string, label: string): Decimal {
+  const text = String(raw).trim();
+  if (!/^\d{1,9}(\.\d{1,6})?$/.test(text) || new Decimal(text).lte(0)) {
+    throw new InvalidExchangeRateError(
+      `${label} must be a positive decimal with at most 6 decimals`,
+    );
+  }
+  return new Decimal(text);
 }
 
 /**
@@ -80,7 +99,7 @@ export class ConfirmVerificationUseCase {
       input.userId,
       verification,
     );
-    const missing = findMissingRates(proposal, seen);
+    const missing = findMissingRates(proposal.entries, seen);
     if (missing.length > 0) {
       throw new RatesRequiredError(
         missing.map((m) => ({
@@ -97,7 +116,7 @@ export class ConfirmVerificationUseCase {
       ratePercent: new Decimal(r.ratePercent),
       monthlyCap: r.monthlyCap ? new Decimal(r.monthlyCap) : null,
     }));
-    const byCategory = new Map(proposal.map((e) => [e.categoryId, e]));
+    const byCategory = new Map(proposal.entries.map((e) => [e.categoryId, e]));
     const appliedRates: AppliedRates = {
       baseRatePercent: base,
       baseSource: appliedRateSource(byCategory.get(null), base),
@@ -106,7 +125,20 @@ export class ConfirmVerificationUseCase {
         source: appliedRateSource(byCategory.get(r.categoryId), r.ratePercent),
       })),
       savedToCard: input.saveToCard === true,
+      rewardExchangeRate: null,
     };
+
+    // Exchange rates: what the user sends now replaces what was sent before.
+    const requestedRates = { ...verification.conversion.requestedRates };
+    for (const [code, raw] of Object.entries(input.exchangeRates ?? {})) {
+      const currency = code.trim().toUpperCase();
+      if (!CURRENCY_CODE.test(currency) || currency === card.currency) {
+        throw new InvalidExchangeRateError(
+          `exchangeRates keys must be ISO 4217 codes other than ${card.currency}`,
+        );
+      }
+      requestedRates[currency] = parseRate(raw, `exchangeRates.${currency}`);
+    }
 
     // --- audit with stored data + the new inputs --------------------------
     const audit = computeAudit({
@@ -131,8 +163,13 @@ export class ConfirmVerificationUseCase {
       requestedRate: input.exchangeRate
         ? new Decimal(input.exchangeRate)
         : verification.conversion.requestedRate,
-      statementRate: verification.conversion.statementRate,
+      requestedRates,
+      requestedRewardRate: input.rewardExchangeRate
+        ? parseRate(input.rewardExchangeRate, 'rewardExchangeRate')
+        : verification.conversion.requestedRewardRate,
+      statementRates: verification.conversion.statementRates,
     });
+    appliedRates.rewardExchangeRate = audit.rewardExchangeRate;
 
     // One short narrative; optional and failure-tolerant. It only receives the
     // numbers computed above and never feeds anything back into them.
@@ -176,6 +213,7 @@ export class ConfirmVerificationUseCase {
       verification.id,
       {
         status: 'COMPLETED',
+        rewardCurrency: audit.rewardCurrency,
         reportedAmount: audit.reportedAmount,
         reportedLabel: audit.reportedLabel,
         reportedSource: audit.reportedSource,

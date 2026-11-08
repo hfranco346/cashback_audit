@@ -8,6 +8,7 @@ import {
 } from '../src/verifications/domain/statement-extractor.js';
 import type { ExtractedStatement } from '../src/verifications/domain/statement.js';
 import {
+  crcUsdEurStatement,
   d,
   detected,
   hnlUsdTwoProgramsStatement,
@@ -812,6 +813,161 @@ describe('Verifications (e2e)', () => {
       expect(res.loyalty.selectedBy).toBe('CARD');
       expect(res.reported.label).toBe('PUNTOS BAC CREDOMATIC');
       expect(res.transactions[2].convertedAmount).toBe('800');
+    });
+  });
+
+  describe('reward currency and several exchange rates', () => {
+    beforeEach(async () => {
+      await http()
+        .patch(`/api/v1/cards/${cardId}`)
+        .set(alice.auth)
+        .send({ currency: 'CRC', rules: [] })
+        .expect(200);
+      extraction.statement = crcUsdEurStatement();
+    });
+    const none = { baseRatePercent: '1', categoryRates: [] };
+
+    it('exposes the conversions to collect and then audits in the reward currency', async () => {
+      const started = (await upload(alice).expect(201)).body;
+      expect(started.rewardConversion).toMatchObject({
+        fromCurrency: 'CRC',
+        toCurrency: 'USD',
+        rate: null,
+        source: 'NONE',
+        required: true,
+      });
+      expect(started.exchangeRateProposal).toEqual([
+        { currency: 'EUR', rate: null, source: 'NONE', required: false },
+        { currency: 'USD', rate: null, source: 'NONE', required: false },
+      ]);
+
+      const missing = await confirm(alice, started.id, none).expect(422);
+      expect(missing.body).toMatchObject({
+        code: 'REWARD_EXCHANGE_RATE_REQUIRED',
+        details: { fromCurrency: 'CRC', toCurrency: 'USD' },
+      });
+
+      const res = (
+        await confirm(alice, started.id, {
+          ...none,
+          exchangeRates: { USD: '520', EUR: '560' },
+          rewardExchangeRate: '520',
+        }).expect(200)
+      ).body;
+      expect(res).toMatchObject({
+        status: 'COMPLETED',
+        rewardCurrency: 'USD',
+        reported: { amount: '2.6', currency: 'USD' },
+        expected: { amount: '2.62', currency: 'USD' },
+        expectedInPrimaryCurrency: '1360',
+        difference: '-0.02',
+        tolerance: '1',
+        verdict: 'MATCH',
+        appliedRates: {
+          rewardExchangeRate: {
+            fromCurrency: 'CRC',
+            toCurrency: 'USD',
+            rate: '520',
+            source: 'USER_ENTERED',
+          },
+        },
+      });
+      expect(res.transactions[1]).toMatchObject({
+        convertedAmount: '52000',
+        exchangeRate: '520',
+        exchangeRateSource: 'REQUEST',
+      });
+      expect(res.conversion.requestedRates).toEqual({
+        USD: '520',
+        EUR: '560',
+      });
+
+      // Re-confirm changes the rate without a new Claude call.
+      const calls = extraction.calls;
+      const again = (
+        await confirm(alice, started.id, {
+          ...none,
+          rewardExchangeRate: '500',
+        }).expect(200)
+      ).body;
+      expect(again.expected.amount).toBe('2.72');
+      expect(extraction.calls).toBe(calls);
+    });
+
+    it('leaves out only the foreign currency without a rate', async () => {
+      const started = (await upload(alice).expect(201)).body;
+      const res = (
+        await confirm(alice, started.id, {
+          ...none,
+          exchangeRates: { USD: '520' },
+        }).expect(200)
+      ).body;
+      expect(res.transactions.map((t: any) => t.excludedReason)).toEqual([
+        null,
+        null,
+        'NO_EXCHANGE_RATE',
+      ]);
+      expect(
+        res.currencies.map((c: any) => [c.currency, c.excludedCount]),
+      ).toEqual([
+        ['CRC', 0],
+        ['USD', 0],
+        ['EUR', 1],
+      ]);
+    });
+
+    it('prefills from statement-printed rates and the card override wins', async () => {
+      extraction.statement = crcUsdEurStatement({
+        exchangeRates: [
+          { from: 'USD', to: 'CRC', rate: d(520), source: 'STATEMENT' },
+        ],
+      });
+      const started = (await upload(alice).expect(201)).body;
+      expect(started.rewardConversion).toMatchObject({
+        rate: '520',
+        source: 'STATEMENT',
+        required: false,
+      });
+      expect(started.exchangeRateProposal[1]).toMatchObject({
+        currency: 'USD',
+        rate: '520',
+        source: 'STATEMENT',
+      });
+      const ok = (await confirm(alice, started.id, none).expect(200)).body;
+      expect(ok.appliedRates.rewardExchangeRate.source).toBe(
+        'STATEMENT_CONFIRMED',
+      );
+
+      await http()
+        .patch(`/api/v1/cards/${cardId}`)
+        .set(alice.auth)
+        .send({ rewardCurrency: 'EUR' })
+        .expect(200);
+      const second = (await upload(alice).expect(201)).body;
+      expect(second.rewardConversion).toMatchObject({ toCurrency: 'EUR' });
+    });
+
+    it('validates rates and rewardCurrency', async () => {
+      const started = (await upload(alice).expect(201)).body;
+      for (const body of [
+        { exchangeRates: { USD: '0' } },
+        { exchangeRates: { CRC: '1' } },
+        { exchangeRates: 'x' },
+        { rewardExchangeRate: 'abc' },
+      ]) {
+        await confirm(alice, started.id, { ...none, ...body }).expect(400);
+      }
+      await http()
+        .patch(`/api/v1/cards/${cardId}`)
+        .set(alice.auth)
+        .send({ rewardCurrency: 'XX' })
+        .expect(400);
+      const cleared = await http()
+        .patch(`/api/v1/cards/${cardId}`)
+        .set(alice.auth)
+        .send({ rewardCurrency: null })
+        .expect(200);
+      expect(cleared.body.rewardCurrency).toBeNull();
     });
   });
 

@@ -46,7 +46,7 @@ const validOutput = {
       totalBalance: '10.00',
     },
   ],
-  exchangeRate: null,
+  exchangeRates: [],
   detectedRates: [
     {
       scope: 'CATEGORY',
@@ -140,7 +140,7 @@ describe('parseExtraction', () => {
     expect(s.currency).toBe('HNL');
     expect(s.summaries.map((x) => x.currency)).toEqual(['HNL', 'USD']);
     expect(s.summaries[0]!.purchasesAndCharges!.toString()).toBe('1200');
-    expect(s.exchangeRate).toBeNull();
+    expect(s.exchangeRates).toEqual([]);
     expect(s.loyaltyPrograms).toHaveLength(2);
     expect(s.loyaltyPrograms[1]).toMatchObject({
       name: 'CASH BAC CREDOMATIC',
@@ -158,26 +158,42 @@ describe('parseExtraction', () => {
     expect(s.transactions[2]!.kind).toBe('INSURANCE');
   });
 
-  it('keeps a printed exchange rate and drops unusable ones', () => {
+  it('keeps every printed exchange rate and drops unusable ones', () => {
     const printed = parseExtraction({
       ...validOutput,
-      exchangeRate: { from: 'usd', to: 'HNL', rate: '26.3500' },
+      exchangeRates: [
+        { from: 'usd', to: 'HNL', rate: '26.3500' },
+        { from: 'eur', to: 'hnl', rate: '28.1' },
+        { from: 'USD', to: 'HNL', rate: '27' },
+      ],
     })!;
-    expect(printed.exchangeRate).toMatchObject({
+    expect(printed.exchangeRates).toHaveLength(2);
+    expect(printed.exchangeRates[0]).toMatchObject({
       from: 'USD',
       to: 'HNL',
       source: 'STATEMENT',
     });
-    expect(printed.exchangeRate!.rate.toString()).toBe('26.35');
+    expect(printed.exchangeRates[0]!.rate.toString()).toBe('26.35');
+    expect(printed.exchangeRates[1]!.from).toBe('EUR');
     for (const bad of [
       { from: 'USD', to: 'USD', rate: '1' },
       { from: 'USD', to: 'HNL', rate: 'abc' },
       { from: 'USD', to: 'HNL', rate: '0' },
     ]) {
       expect(
-        parseExtraction({ ...validOutput, exchangeRate: bad })!.exchangeRate,
-      ).toBeNull();
+        parseExtraction({ ...validOutput, exchangeRates: [bad] })!
+          .exchangeRates,
+      ).toEqual([]);
     }
+  });
+
+  it('still accepts the legacy single exchangeRate shape', () => {
+    const s = parseExtraction({
+      ...validOutput,
+      exchangeRates: undefined,
+      exchangeRate: { from: 'USD', to: 'HNL', rate: '26.35' },
+    })!;
+    expect(s.exchangeRates).toHaveLength(1);
   });
 
   it('keeps detected rates, maps only known categories and nulls bad percentages', () => {

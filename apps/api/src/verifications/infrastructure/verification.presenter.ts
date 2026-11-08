@@ -1,5 +1,11 @@
-import type { RateProposalEntry } from '../domain/rate-proposal.js';
-import type { LoyaltyProgram } from '../domain/statement.js';
+import type {
+  RateProposal,
+  RateProposalEntry,
+} from '../domain/rate-proposal.js';
+import type {
+  LoyaltyProgram,
+  StatementExchangeRate,
+} from '../domain/statement.js';
 import type {
   Verification,
   VerificationSummary,
@@ -15,6 +21,7 @@ const presentProgram = (p: LoyaltyProgram) => ({
   redeemedInPeriod: str(p.redeemedInPeriod),
   expiring: str(p.expiring),
   forfeited: str(p.forfeited),
+  currency: p.currency,
 });
 
 const presentProposalEntry = (e: RateProposalEntry) => ({
@@ -27,6 +34,16 @@ const presentProposalEntry = (e: RateProposalEntry) => ({
   unitNote: e.unitNote,
   required: e.required,
 });
+
+const presentStatementRate = (r: StatementExchangeRate) => ({
+  from: r.from,
+  to: r.to,
+  rate: r.rate.toString(),
+  source: r.source,
+});
+
+const REWARD_RATE_NOTE =
+  'rate = units of the primary (card) currency per 1 unit of the other currency';
 
 /** Decimals are strings; dates `YYYY-MM-DD`; timestamps ISO 8601 UTC. */
 export function presentSummary(v: VerificationSummary) {
@@ -43,6 +60,7 @@ export function presentSummary(v: VerificationSummary) {
     },
     primaryCurrency: v.primaryCurrency,
     rewardUnit: v.reportedUnit,
+    rewardCurrency: v.rewardCurrency,
     reportedAmount: str(v.reportedAmount),
     expectedAmount: str(v.expectedAmount),
     difference: str(v.difference),
@@ -56,10 +74,7 @@ export function presentSummary(v: VerificationSummary) {
  * is AWAITING_RATES; for COMPLETED ones it is the proposal that applies now,
  * which clients can use to prefill a recalculation.
  */
-export function presentVerification(
-  v: Verification,
-  rateProposal: RateProposalEntry[],
-) {
+export function presentVerification(v: Verification, proposal: RateProposal) {
   const done = v.status === 'COMPLETED';
   return {
     id: v.id,
@@ -81,16 +96,26 @@ export function presentVerification(
       })),
     },
     primaryCurrency: v.primaryCurrency,
+    rewardCurrency: v.rewardCurrency,
     reported: done
       ? {
           amount: str(v.reportedAmount),
           unit: v.reportedUnit,
+          currency: v.rewardCurrency,
           label: v.reportedLabel,
           source: v.reportedSource,
         }
       : null,
     expected: done
-      ? { amount: str(v.expectedAmount), unit: v.reportedUnit }
+      ? {
+          amount: str(v.expectedAmount),
+          unit: v.reportedUnit,
+          currency: v.rewardCurrency,
+        }
+      : null,
+    expectedInPrimaryCurrency: done
+      ? (str(v.conversion.reward?.expectedInPrimary ?? null) ??
+        str(v.expectedAmount))
       : null,
     difference: str(v.difference),
     tolerance: str(v.tolerance),
@@ -105,7 +130,23 @@ export function presentVerification(
       evidence: r.evidence,
       confidence: r.confidence,
     })),
-    rateProposal: rateProposal.map(presentProposalEntry),
+    rateProposal: proposal.entries.map(presentProposalEntry),
+    rewardConversion: proposal.rewardConversion
+      ? {
+          fromCurrency: proposal.rewardConversion.fromCurrency,
+          toCurrency: proposal.rewardConversion.toCurrency,
+          rate: str(proposal.rewardConversion.rate),
+          source: proposal.rewardConversion.source,
+          required: proposal.rewardConversion.required,
+          note: REWARD_RATE_NOTE,
+        }
+      : null,
+    exchangeRateProposal: proposal.spendConversions.map((c) => ({
+      currency: c.currency,
+      rate: str(c.rate),
+      source: c.source,
+      required: c.required,
+    })),
     appliedRates: v.appliedRates
       ? {
           baseRatePercent: v.appliedRates.baseRatePercent.toString(),
@@ -118,18 +159,30 @@ export function presentVerification(
             source: c.source,
           })),
           savedToCard: v.appliedRates.savedToCard,
+          rewardExchangeRate: v.appliedRates.rewardExchangeRate
+            ? {
+                fromCurrency: v.appliedRates.rewardExchangeRate.fromCurrency,
+                toCurrency: v.appliedRates.rewardExchangeRate.toCurrency,
+                rate: v.appliedRates.rewardExchangeRate.rate.toString(),
+                source: v.appliedRates.rewardExchangeRate.source,
+              }
+            : null,
         }
       : null,
     conversion: {
       primaryCurrency: v.primaryCurrency,
       requestedRate: str(v.conversion.requestedRate),
-      statementRate: v.conversion.statementRate
-        ? {
-            from: v.conversion.statementRate.from,
-            to: v.conversion.statementRate.to,
-            rate: v.conversion.statementRate.rate.toString(),
-            source: v.conversion.statementRate.source,
-          }
+      requestedRates: Object.fromEntries(
+        Object.entries(v.conversion.requestedRates).map(([k, r]) => [
+          k,
+          r.toString(),
+        ]),
+      ),
+      requestedRewardRate: str(v.conversion.requestedRewardRate),
+      statementRates: v.conversion.statementRates.map(presentStatementRate),
+      /** @deprecated first of statementRates. */
+      statementRate: v.conversion.statementRates[0]
+        ? presentStatementRate(v.conversion.statementRates[0])
         : null,
     },
     currencies: v.conversion.currencies.map((c) => ({

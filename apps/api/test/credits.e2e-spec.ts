@@ -376,7 +376,7 @@ describe('Credits (e2e)', () => {
   describe('consumption', () => {
     it('is concurrency safe: two parallel uploads with one credit -> one 402', async () => {
       const [a, b] = await Promise.all([verify(), verify()]);
-      expect([a.status, b.status].sort()).toEqual([201, 402]);
+      expect([a.status, b.status].sort((x, y) => x - y)).toEqual([201, 402]);
       expect((await credits()).total).toBe(0);
       expect(
         await ctx.prisma.creditLedger.count({

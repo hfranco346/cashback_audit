@@ -142,6 +142,8 @@ export class VerificationsController {
       saveToCard: dto.saveToCard,
       reportedRewardOverride: dto.reportedRewardOverride,
       exchangeRate: dto.exchangeRate,
+      exchangeRates: dto.exchangeRates,
+      rewardExchangeRate: dto.rewardExchangeRate,
       rewardProgramName: dto.rewardProgramName,
     });
     return presentVerification(

@@ -32,6 +32,11 @@ export interface Card {
    * "CASH BAC CREDOMATIC"); matched case/accent-insensitively by "contains".
    */
   rewardProgramName: string | null;
+  /**
+   * ISO 4217 currency the reward is paid in when it differs from `currency`
+   * (e.g. spend in HNL, cashback in USD). Overrides what the statement says.
+   */
+  rewardCurrency: string | null;
   rules: CardRule[];
   createdAt: Date;
   updatedAt: Date;

@@ -48,14 +48,16 @@ export const extractionOutputSchema = z.object({
       }),
     )
     .describe('One entry per currency column of the statement summary'),
-  exchangeRate: z
-    .object({
-      from: z.string().describe('ISO 4217 code converted from'),
-      to: z.string().describe('ISO 4217 code converted to'),
-      rate: z.string().describe('1 unit of `from` in `to`, plain decimal'),
-    })
+  exchangeRates: z
+    .array(
+      z.object({
+        from: z.string().describe('ISO 4217 code converted from'),
+        to: z.string().describe('ISO 4217 code converted to'),
+        rate: z.string().describe('1 unit of `from` in `to`, plain decimal'),
+      }),
+    )
     .describe(
-      'Exchange rate ONLY if printed on the statement; otherwise all fields are empty strings',
+      'Every exchange rate explicitly printed on the statement; empty if none',
     ),
   loyaltyPrograms: z
     .array(
@@ -71,6 +73,11 @@ export const extractionOutputSchema = z.object({
         expiring: z.string().describe('Expiring soon'),
         forfeited: z.string().describe('Forfeited / expired / written off'),
         unit: z.enum(LOYALTY_UNITS),
+        currency: z
+          .string()
+          .describe(
+            'ISO 4217 code the reward is denominated in (cashback); empty for points/miles or if unclear',
+          ),
       }),
     )
     .describe('Every row of any rewards/loyalty table; empty if none'),
@@ -127,6 +134,7 @@ const CURRENCY = /^[A-Z]{3}$/;
 const MAX_TRANSACTIONS = 2000;
 const MAX_PROGRAMS = 20;
 const MAX_DETECTED_RATES = 40;
+const MAX_EXCHANGE_RATES = 20;
 
 /**
  * Removes thousands separators only when the grouping is unambiguous
@@ -197,13 +205,25 @@ const strictSchema = extractionOutputSchema.extend({
       }),
     )
     .max(10),
+  exchangeRates: z
+    .array(
+      z.object({
+        from: optionalCurrency,
+        to: optionalCurrency,
+        rate: z.string().nullable(),
+      }),
+    )
+    .max(MAX_EXCHANGE_RATES)
+    .catch([]),
+  /** Legacy single-rate shape; still accepted from older stubs/outputs. */
   exchangeRate: z
     .object({
       from: optionalCurrency,
       to: optionalCurrency,
-      rate: z.string().trim().regex(DECIMAL),
+      rate: z.string().nullable(),
     })
     .nullable()
+    .optional()
     .catch(null),
   loyaltyPrograms: z
     .array(
@@ -215,6 +235,7 @@ const strictSchema = extractionOutputSchema.extend({
         expiring: optionalDecimal,
         forfeited: optionalDecimal,
         unit: z.enum(LOYALTY_UNITS).catch('UNKNOWN'),
+        currency: optionalCurrency.optional().catch(null),
       }),
     )
     .max(MAX_PROGRAMS)
@@ -309,16 +330,25 @@ export function parseExtraction(
     };
   });
 
-  const rate = data.exchangeRate;
-  const exchangeRate =
-    rate && rate.from && rate.to && rate.from !== rate.to
-      ? {
-          from: rate.from,
-          to: rate.to,
-          rate: new Decimal(rate.rate),
-          source: 'STATEMENT' as const,
-        }
-      : null;
+  const exchangeRates: ExtractedStatement['exchangeRates'] = [];
+  for (const rate of [
+    ...data.exchangeRates,
+    ...(data.exchangeRate ? [data.exchangeRate] : []),
+  ]) {
+    const text = rate.rate ? normalizeNumber(rate.rate) : '';
+    if (!rate.from || !rate.to || rate.from === rate.to || !DECIMAL.test(text))
+      continue;
+    const value = new Decimal(text);
+    if (value.lte(0)) continue;
+    if (exchangeRates.some((r) => r.from === rate.from && r.to === rate.to))
+      continue;
+    exchangeRates.push({
+      from: rate.from,
+      to: rate.to,
+      rate: value,
+      source: 'STATEMENT',
+    });
+  }
 
   return {
     bank: data.bank?.trim() || null,
@@ -327,8 +357,14 @@ export function parseExtraction(
     periodEnd: data.periodEnd,
     currency: fallbackCurrency,
     summaries,
-    exchangeRate: exchangeRate && exchangeRate.rate.gt(0) ? exchangeRate : null,
-    loyaltyPrograms: data.loyaltyPrograms,
+    exchangeRates,
+    loyaltyPrograms: data.loyaltyPrograms.map((p) => ({
+      ...p,
+      currency:
+        p.unit === 'CURRENCY' || p.unit === 'UNKNOWN'
+          ? (p.currency ?? null)
+          : null,
+    })),
     detectedRates: data.detectedRates.map((r) => {
       const percent =
         r.ratePercent && RATE_DECIMAL.test(r.ratePercent.trim())

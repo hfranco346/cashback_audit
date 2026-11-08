@@ -7,7 +7,11 @@ import {
 } from '../../shared/prisma/generated/client.js';
 import type { CurrencySubtotal } from '../domain/reward-calculator.js';
 import type { DetectedRate } from '../domain/statement.js';
-import type { CurrencySummary, LoyaltyProgram } from '../domain/statement.js';
+import type {
+  CurrencySummary,
+  LoyaltyProgram,
+  StatementExchangeRate,
+} from '../domain/statement.js';
 import type {
   AppliedRates,
   NewVerification,
@@ -84,6 +88,7 @@ const serializeProgram = (p: LoyaltyProgram) => ({
   redeemedInPeriod: decStr(p.redeemedInPeriod),
   expiring: decStr(p.expiring),
   forfeited: decStr(p.forfeited),
+  currency: p.currency,
 });
 const deserializeProgram = (j: Json): LoyaltyProgram => ({
   name: j.name as string,
@@ -93,6 +98,7 @@ const deserializeProgram = (j: Json): LoyaltyProgram => ({
   redeemedInPeriod: parseDec(j.redeemedInPeriod),
   expiring: parseDec(j.expiring),
   forfeited: parseDec(j.forfeited),
+  currency: (j.currency as string | null | undefined) ?? null,
 });
 
 const serializeSubtotal = (c: CurrencySubtotal) => ({
@@ -113,26 +119,57 @@ const deserializeSubtotal = (j: Json): CurrencySubtotal =>
     expectedReward: new Decimal(j.expectedReward as string),
   }) as CurrencySubtotal;
 
+const serializeStatementRate = (r: StatementExchangeRate) => ({
+  ...r,
+  rate: r.rate.toString(),
+});
+const deserializeStatementRate = (j: Json): StatementExchangeRate =>
+  ({ ...j, rate: new Decimal(j.rate as string) }) as StatementExchangeRate;
+
 const serializeConversion = (c: VerificationConversion) => ({
   requestedRate: decStr(c.requestedRate),
-  statementRate: c.statementRate
-    ? { ...c.statementRate, rate: c.statementRate.rate.toString() }
-    : null,
+  requestedRates: Object.fromEntries(
+    Object.entries(c.requestedRates).map(([k, v]) => [k, v.toString()]),
+  ),
+  requestedRewardRate: decStr(c.requestedRewardRate),
+  statementRates: c.statementRates.map(serializeStatementRate),
   currencies: c.currencies.map(serializeSubtotal),
+  reward: c.reward
+    ? {
+        ...c.reward,
+        rate: c.reward.rate.toString(),
+        expectedInPrimary: c.reward.expectedInPrimary.toString(),
+      }
+    : null,
 });
 const deserializeConversion = (j: Json): VerificationConversion => {
-  const rate = j.statementRate as Json | null | undefined;
+  // Rows written before multi-rate support carry a single `statementRate`.
+  const legacy = j.statementRate as Json | null | undefined;
+  const reward = j.reward as Json | null | undefined;
   return {
     requestedRate: parseDec(j.requestedRate),
-    statementRate: rate
-      ? ({
-          ...rate,
-          rate: new Decimal(rate.rate as string),
-        } as VerificationConversion['statementRate'])
-      : null,
+    requestedRates: Object.fromEntries(
+      Object.entries(asRecord(j.requestedRates)).map(([k, v]) => [
+        k,
+        new Decimal(v as string),
+      ]),
+    ),
+    requestedRewardRate: parseDec(j.requestedRewardRate),
+    statementRates: j.statementRates
+      ? asArray(j.statementRates).map(deserializeStatementRate)
+      : legacy
+        ? [deserializeStatementRate(legacy)]
+        : [],
     currencies: ((j.currencies as Json[] | undefined) ?? []).map(
       deserializeSubtotal,
     ),
+    reward: reward
+      ? ({
+          ...reward,
+          rate: new Decimal(reward.rate as string),
+          expectedInPrimary: new Decimal(reward.expectedInPrimary as string),
+        } as VerificationConversion['reward'])
+      : null,
   };
 };
 
@@ -162,6 +199,9 @@ const serializeApplied = (a: AppliedRates) => ({
   baseRatePercent: a.baseRatePercent.toString(),
   baseSource: a.baseSource,
   savedToCard: a.savedToCard,
+  rewardExchangeRate: a.rewardExchangeRate
+    ? { ...a.rewardExchangeRate, rate: a.rewardExchangeRate.rate.toString() }
+    : null,
   categoryRates: a.categoryRates.map((c) => ({
     ...c,
     ratePercent: c.ratePercent.toString(),
@@ -172,6 +212,12 @@ const deserializeApplied = (j: Json): AppliedRates => ({
   baseRatePercent: new Decimal(j.baseRatePercent as string),
   baseSource: j.baseSource as AppliedRates['baseSource'],
   savedToCard: Boolean(j.savedToCard),
+  rewardExchangeRate: j.rewardExchangeRate
+    ? ({
+        ...(j.rewardExchangeRate as Json),
+        rate: new Decimal((j.rewardExchangeRate as Json).rate as string),
+      } as AppliedRates['rewardExchangeRate'])
+    : null,
   categoryRates: asArray(j.categoryRates).map(
     (c) =>
       ({
@@ -222,6 +268,7 @@ function toSummary(row: PrismaVerification): VerificationSummary {
     status: row.status,
     reportedAmount: decOrNull(row.reportedAmount),
     reportedUnit: row.reportedUnit,
+    rewardCurrency: row.rewardCurrency,
     reportedLabel: row.reportedLabel,
     reportedSource: row.reportedSource,
     expectedAmount: decOrNull(row.expectedAmount),
@@ -286,6 +333,7 @@ function toData(input: VerificationUpdate): Record<string, unknown> {
   set('status', input.status);
   set('reportedAmount', dstr(input.reportedAmount));
   set('reportedUnit', input.reportedUnit);
+  set('rewardCurrency', input.rewardCurrency);
   set('reportedLabel', input.reportedLabel);
   set('reportedSource', input.reportedSource);
   set('expectedAmount', dstr(input.expectedAmount));

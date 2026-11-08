@@ -418,6 +418,7 @@ Card object:
   "baseRatePercent": "1.5",
   "currency": "MXN",
   "rewardProgramName": null,
+  "rewardCurrency": null,
   "rules": [
     { "categoryId": "6f1c...", "ratePercent": "5", "monthlyCap": "500" }
   ],
@@ -439,6 +440,7 @@ Field rules:
 | `baseRatePercent` | decimal | required, `0-100`, max 4 decimals. Rate for any spend with no matching rule |
 | `currency` | string | required, ISO 4217 code (`HNL`, `USD`...). Uppercased by the server. The card's **primary currency**: rates, caps, rewards and totals are expressed in it. Statement lines in other currencies are converted into it (see section 8) |
 | `rewardProgramName` | string or null | optional, max 80 chars, trimmed, `null`/`""` clears it. Name of the loyalty program to audit when the statement lists several (e.g. `"CASH BAC CREDOMATIC"`). Matched case/accent-insensitively with "contains" against the program names printed on the statement |
+| `rewardCurrency` | string or null | optional ISO 4217 code, `null`/`""` clears it. Currency the **reward is paid in** when it differs from `currency` (spend in `HNL`, cashback in `USD`). Overrides what the statement indicates. Effective reward currency = `rewardCurrency` ?? the chosen program's `currency` ?? `currency`. Ignored for `POINTS` cards (no conversion applies) |
 | `rules` | array | optional, max 50, **one rule per category** |
 
 Rule (`rules[]`):
@@ -456,8 +458,11 @@ transaction the rate is the card rule of the transaction's category if the
 card has one, otherwise `baseRatePercent`. Refunds/credits subtract. Lines in a
 foreign currency are first converted into the card currency. For
 `POINTS` cards the reward is multiplied by `pointsPerCurrencyUnit`. Each rule's
-total for the statement is then limited to its `monthlyCap`. The final amount is
-rounded to 2 decimals (half up).
+total for the statement is then limited to its `monthlyCap`. When the reward
+is paid in another currency than the card's, the total (computed in the card
+currency) is finally converted with the reward exchange rate. Money amounts are
+rounded **once, at the end**, to the ISO 4217 minor units of their currency
+(0 decimals for `JPY`/`CLP`/..., 3 for `KWD`/..., 2 for the rest), half up.
 
 ### POST /cards
 
@@ -658,13 +663,16 @@ rules and classification, so it also prefills a recalculation.
     { "scope": "BASE", "categoryHint": null, "suggestedCategoryId": null, "ratePercent": "1", "unitNote": null, "evidence": "1% cashback on all purchases", "confidence": 0.9 },
     { "scope": "CATEGORY", "categoryHint": "supermarkets", "suggestedCategoryId": "6f1c...", "ratePercent": "5", "unitNote": null, "evidence": "5% cashback at supermarkets", "confidence": 0.9 }
   ],
+  "rewardCurrency": null,
+  "rewardConversion": null,
+  "exchangeRateProposal": [],
   "rateProposal": [
     { "categoryId": null, "categoryName": null, "ratePercent": "1", "monthlyCap": null, "source": "STATEMENT", "evidence": "1% cashback on all purchases", "unitNote": null, "required": false },
     { "categoryId": "6f1c...", "categoryName": "Supermarkets", "ratePercent": "5", "monthlyCap": null, "source": "STATEMENT", "evidence": "5% cashback at supermarkets", "unitNote": null, "required": false },
     { "categoryId": "7a2d...", "categoryName": "Pharmacies", "ratePercent": null, "monthlyCap": null, "source": "NONE", "evidence": null, "unitNote": null, "required": true }
   ],
   "appliedRates": null,
-  "conversion": { "primaryCurrency": "MXN", "requestedRate": null, "statementRate": null },
+  "conversion": { "primaryCurrency": "MXN", "requestedRate": null, "requestedRates": {}, "requestedRewardRate": null, "statementRates": [], "statementRate": null },
   "currencies": [],
   "loyalty": { "selectedBy": "ONLY_PROGRAM", "requestedProgramName": null, "selectedProgram": { "name": "Bonificacion del periodo", "unit": "CURRENCY", "accumulated": "58", "available": null, "redeemedInPeriod": null, "expiring": null, "forfeited": null }, "programs": [ { "name": "Bonificacion del periodo", "unit": "CURRENCY", "accumulated": "58", "available": null, "redeemedInPeriod": null, "expiring": null, "forfeited": null } ] },
   "breakdown": [],
@@ -718,6 +726,8 @@ Claude, so it can be repeated freely (`200`). Allowed on `AWAITING_RATES` and
   "saveToCard": false,
   "reportedRewardOverride": "125.40",
   "exchangeRate": "26.35",
+  "exchangeRates": { "USD": "25.80", "EUR": "28.10" },
+  "rewardExchangeRate": "25.80",
   "rewardProgramName": "CASH BAC CREDOMATIC"
 }
 ```
@@ -728,7 +738,9 @@ Claude, so it can be repeated freely (`200`). Allowed on `AWAITING_RATES` and
 | `categoryRates[]` | yes (may be `[]`) | `{ categoryId, ratePercent (0-100), monthlyCap? (> 0, 2 decimals, in the card reward unit) }`. Max 50, one per category, categories must be yours (`404 CATEGORY_NOT_FOUND`; duplicates `400 DUPLICATE_RULE_CATEGORY`). It must include every `rateProposal` entry with `required: true` (else `422 RATES_REQUIRED`) |
 | `saveToCard` | no | When `true` the confirmed base rate and category rates **replace** the card's `baseRatePercent` and rules |
 | `reportedRewardOverride` | no | Decimal `>= 0`, 2 decimals. The reward the bank reported, in the card reward unit; wins over the statement. Kept for later recalculations |
-| `exchangeRate` | no | As in step 1; replaces the one given at upload |
+| `exchangeRate` | no | Legacy: one rate applied to **any** foreign currency (kept for compatibility; prefer `exchangeRates`). Replaces the one given at upload |
+| `exchangeRates` | no | Object `{ "<ISO 4217>": "<rate>" }`, one rate per foreign spend currency. **Direction: units of the primary (card) currency per 1 unit of that currency.** Examples: card `HNL`, `{ "USD": "25.80" }` means 1 USD = 25.80 HNL; card `CRC`, `{ "EUR": "560" }` means 1 EUR = 560 CRC. Each rate must be `> 0` with at most 6 decimals; keys cannot be the primary currency (`400 INVALID_EXCHANGE_RATE`). Merged over the rates sent earlier; a currency without a rate is left out (warning `NO_EXCHANGE_RATE` names only that currency) |
+| `rewardExchangeRate` | when `rewardConversion.required` | Same direction: **primary-currency units per 1 unit of the reward currency** (card `HNL`, reward `USD`: `"25.80"`). If the reward currency is also a foreign spend currency and `exchangeRates` has it, that rate is reused when this field is absent. Without any rate: `422 REWARD_EXCHANGE_RATE_REQUIRED`. Can be changed on every re-confirm (free recalculation) |
 | `rewardProgramName` | no | As in step 1; replaces the one given at upload |
 
 The confirmed rates **completely replace the card rules for this verification**
@@ -740,8 +752,10 @@ keep the ones stored earlier. The response is the full verification with
 ```json
 {
   "status": "COMPLETED",
-  "reported": { "amount": "58", "unit": "CASHBACK_CURRENCY", "label": "Bonificacion del periodo", "source": "STATEMENT" },
-  "expected": { "amount": "58", "unit": "CASHBACK_CURRENCY" },
+  "reported": { "amount": "58", "unit": "CASHBACK_CURRENCY", "currency": "MXN", "label": "Bonificacion del periodo", "source": "STATEMENT" },
+  "expected": { "amount": "58", "unit": "CASHBACK_CURRENCY", "currency": "MXN" },
+  "expectedInPrimaryCurrency": "58",
+  "rewardCurrency": "MXN",
   "difference": "0",
   "tolerance": "1",
   "verdict": "MATCH",
@@ -749,11 +763,12 @@ keep the ones stored earlier. The response is the full verification with
     "baseRatePercent": "1",
     "baseSource": "STATEMENT_CONFIRMED",
     "savedToCard": false,
+    "rewardExchangeRate": null,
     "categoryRates": [
       { "categoryId": "6f1c...", "categoryName": "Supermarkets", "ratePercent": "5", "monthlyCap": null, "source": "STATEMENT_CONFIRMED" }
     ]
   },
-  "conversion": { "primaryCurrency": "MXN", "requestedRate": null, "statementRate": null },
+  "conversion": { "primaryCurrency": "MXN", "requestedRate": null, "requestedRates": {}, "requestedRewardRate": null, "statementRates": [], "statementRate": null },
   "currencies": [
     { "currency": "MXN", "isPrimary": true, "spent": "1400", "eligibleSpent": "1400", "convertedEligibleSpent": "1400", "exchangeRate": null, "exchangeRateSource": null, "expectedReward": "58", "excludedCount": 0 }
   ],
@@ -783,6 +798,8 @@ keep the ones stored earlier. The response is the full verification with
 | 400 | `DUPLICATE_RULE_CATEGORY` | Same category twice in `categoryRates` |
 | 404 | `VERIFICATION_NOT_FOUND`, `CATEGORY_NOT_FOUND` | Missing or not yours |
 | 422 | `RATES_REQUIRED` | `details.missing` = `[{ categoryId, categoryName }]` required entries without a rate: ask the user and resend |
+| 400 | `INVALID_EXCHANGE_RATE` | A rate in `exchangeRates` / `rewardExchangeRate` is not a positive decimal (max 6 decimals), or a key is not an ISO 4217 code other than the primary currency |
+| 422 | `REWARD_EXCHANGE_RATE_REQUIRED` | The reward currency differs from the primary currency and no rate is known. `details` = `{ fromCurrency, toCurrency }` (primary, reward). Ask for `rewardExchangeRate` and resend |
 | 422 | `REWARD_PROGRAM_AMBIGUOUS` | `details.programs` = names; resend with `rewardProgramName` |
 | 422 | `REPORTED_REWARD_NOT_FOUND` | No usable reward figure for the chosen program (or none at all); resend with `reportedRewardOverride` |
 
@@ -799,6 +816,47 @@ be categorized (`422 TRANSACTION_NOT_CLASSIFIABLE`). The line becomes
 figures stay as they were until the client calls `POST /verifications/:id/confirm`
 again. Errors: `400` (bad body / negative index), `404 VERIFICATION_NOT_FOUND`,
 `404 TRANSACTION_NOT_FOUND`, `404 CATEGORY_NOT_FOUND`.
+
+### Reward currency and exchange rates
+
+Spend and reward can be in different currencies (spend in `HNL`, "Cash Back:
+$42" paid in `USD`) and a statement can mix several (`HNL` + `USD` + `EUR`).
+Nothing is hardcoded per country: the extraction infers currencies from
+symbols, labels and the statement's own conventions, and the server converts
+with rates.
+
+**Rate direction (everywhere): units of the PRIMARY (card) currency per 1 unit of
+the other currency.** Card `HNL`, USD `25.80` -> 1 USD = 25.80 HNL. Card `CRC`,
+EUR `560` -> 1 EUR = 560 CRC. Rates are `> 0`, at most 6 decimals. Rates printed
+on the statement in the opposite direction are inverted by the server.
+
+- `rewardCurrency` (verification and list items): currency of
+  `reported.amount`, `expected.amount`, `difference` and `tolerance`; `null` for
+  `POINTS` cards and while `AWAITING_RATES`. Effective reward currency =
+  `card.rewardCurrency` ?? the chosen program's `currency` ?? the primary currency.
+  For `POINTS` cards nothing is converted.
+- `rewardConversion` (top level, next to `rateProposal`; `null` when no
+  conversion is needed): `{ fromCurrency (primary), toCurrency (reward), rate
+  (string|null), source: "STATEMENT"|"NONE", required, note }`. `rate` is
+  prefilled from a rate printed on the statement; `required: true` means the app
+  must ask the user for `rewardExchangeRate` before confirming. Priority at
+  confirm: `rewardExchangeRate` sent > the `exchangeRates` entry of the reward
+  currency > statement-printed rate > `422 REWARD_EXCHANGE_RATE_REQUIRED`.
+- `exchangeRateProposal[]` (top level): one entry per foreign currency present in
+  purchase/refund lines: `{ currency, rate (string|null), source:
+  "STATEMENT"|"NONE", required: false }`. `required` is always `false`: a
+  missing rate does not block, it only leaves that currency's lines out
+  (`NO_EXCHANGE_RATE`); show the field anyway so the user can fill it.
+- After confirm: `expected` is in the reward currency; `expectedInPrimaryCurrency`
+  is the same figure before conversion (identical when no conversion);
+  `appliedRates.rewardExchangeRate` = `{ fromCurrency, toCurrency, rate, source:
+  "STATEMENT_CONFIRMED"|"USER_ENTERED" }` or `null`. `breakdown`, `currencies[]`
+  and per-line `expectedReward` stay in the **primary** currency (they are
+  computed before the reward conversion).
+- `conversion`: `requestedRate` (legacy single rate), `requestedRates` (per
+  currency, as sent), `requestedRewardRate`, `statementRates[]` (`{ from, to,
+  rate, source }`, every rate printed). `statementRate` is deprecated (first of
+  `statementRates` or `null`).
 
 ### Field semantics (both steps)
 
@@ -819,8 +877,7 @@ again. Errors: `400` (bad body / negative index), `404 VERIFICATION_NOT_FOUND`,
   (equal to the statement's rate), `CARD_RULE_CONFIRMED` (equal to the card's
   rate) or `USER_ENTERED`. Verifications created before this feature have
   `appliedRates: null`.
-- `conversion`: `requestedRate` (the `exchangeRate` you sent, or `null`) and
-  `statementRate` (`{ from, to, rate, source: "STATEMENT" }` or `null`).
+- `conversion`: see "Reward currency and exchange rates" above.
 - `currencies[]` (after confirm): one entry per statement currency that has
   purchases/refunds; primary first. `spent` = net purchases minus refunds in that
   currency; `eligibleSpent` = the part used in the calculation (0 when the rate
@@ -842,8 +899,9 @@ again. Errors: `400` (bad body / negative index), `404 VERIFICATION_NOT_FOUND`,
   calculates). `null` while `AWAITING_RATES` or if it could not be generated
   (then the warning `EXPLANATION_UNAVAILABLE` is present); it is regenerated on
   every confirm.
-- `expected.amount`: deterministic expected reward (after caps), 2 decimals.
-- `difference` = `reported - expected` (2 decimals). **Negative means the bank
+- `expected.amount`: deterministic expected reward (after caps), in the reward
+  currency's minor units (2 decimals for most currencies).
+- `difference` = `reported - expected` (same decimals). **Negative means the bank
   paid less than it should have.**
 - `tolerance` = `max(1, 1% of |expected|)`; differences up to and including the
   tolerance are `MATCH`.
@@ -1182,7 +1240,8 @@ consumable products in RevenueCat/the stores.
 | 409 | `CATEGORY_IN_USE` | Delete a category that still has merchants/card rules (`details.merchants`, `details.cardRules`) |
 | 413 | `PAYLOAD_TOO_LARGE` | PDF over 10 MB |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Upload is not a PDF |
-| 422 | `UNREADABLE_STATEMENT`, `REPORTED_REWARD_NOT_FOUND`, `REWARD_PROGRAM_AMBIGUOUS` | See verifications |
+| 400 | `INVALID_EXCHANGE_RATE` | See verifications |
+| 422 | `UNREADABLE_STATEMENT`, `REPORTED_REWARD_NOT_FOUND`, `REWARD_PROGRAM_AMBIGUOUS`, `REWARD_EXCHANGE_RATE_REQUIRED` | See verifications |
 | 429 | `TOO_MANY_REQUESTS` | Rate limit |
 | 500 | `INTERNAL_ERROR` | Unexpected; generic message, nothing leaked |
 | 502 | `EXTRACTION_FAILED` | Analysis returned an unusable response |
@@ -1193,6 +1252,34 @@ consumable products in RevenueCat/the stores.
 ---
 
 ## 12. Changelog (breaking changes)
+
+### Reward currency and several exchange rates
+
+Additive unless noted (clients that ignore the new fields keep working, except
+where marked **BREAKING**):
+
+- Cards gain `rewardCurrency` (nullable ISO 4217). Loyalty `programs[]` gain
+  `currency` (nullable; extraction infers it, e.g. a `$42` cash-back line next to
+  local-currency spend is `USD`).
+- Verification gains top-level `rewardCurrency`, `rewardConversion`,
+  `exchangeRateProposal[]` and `expectedInPrimaryCurrency`; `reported`/`expected`
+  gain `currency`; `appliedRates` gains `rewardExchangeRate`; `conversion` gains
+  `requestedRates`, `requestedRewardRate`, `statementRates[]`
+  (`conversion.statementRate` is deprecated). The list items gain
+  `rewardCurrency`. The rate proposal for category rates (`rateProposal`) is
+  unchanged: the new structures are siblings, not a change of its shape.
+- Confirm gains `exchangeRates` (map per foreign currency) and
+  `rewardExchangeRate`; `exchangeRate` stays as a legacy "any foreign currency"
+  rate. New errors `422 REWARD_EXCHANGE_RATE_REQUIRED`, `400 INVALID_EXCHANGE_RATE`.
+- **BREAKING (only when the reward currency differs from the card currency):**
+  `expected.amount`, `difference`, `tolerance` and `reported.amount` are in the
+  reward currency, no longer implicitly the card currency; read
+  `rewardCurrency` to format them, and `expectedInPrimaryCurrency` for the card
+  currency figure.
+- Amounts are now rounded to the ISO 4217 minor units of their currency
+  (previously always 2 decimals): `JPY`/`CLP` have none, `KWD` has 3.
+- Rate direction is documented as "primary-currency units per 1 unit of the
+  other currency" (unchanged behavior).
 
 ### Multi-currency and loyalty programs
 

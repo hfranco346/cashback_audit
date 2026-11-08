@@ -1,6 +1,10 @@
 import { Decimal } from 'decimal.js';
 import type { CardRule } from '../../cards/domain/card.js';
 import type { DetectedRate } from './statement.js';
+import type {
+  RewardConversionProposal,
+  SpendConversionProposal,
+} from './reward-currency.js';
 
 export type RateSource = 'STATEMENT' | 'CARD_RULE' | 'NONE';
 
@@ -18,6 +22,16 @@ export interface RateProposalEntry {
   unitNote: string | null;
   /** True when nothing proposes a rate: the client must make the user fill it. */
   required: boolean;
+}
+
+/** Everything the client needs to prefill the confirmation screen. */
+export interface RateProposal {
+  /** Category rates (null categoryId = base). */
+  entries: RateProposalEntry[];
+  /** Null when the reward is in the primary currency (or points). */
+  rewardConversion: RewardConversionProposal | null;
+  /** One entry per foreign spend currency present in eligible lines. */
+  spendConversions: SpendConversionProposal[];
 }
 
 export interface RateProposalInput {

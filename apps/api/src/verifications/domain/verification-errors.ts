@@ -97,3 +97,20 @@ export class TransactionNotClassifiableError extends DomainError {
     );
   }
 }
+
+export class RewardExchangeRateRequiredError extends DomainError {
+  constructor(fromCurrency: string, toCurrency: string) {
+    super(
+      'UNPROCESSABLE',
+      'REWARD_EXCHANGE_RATE_REQUIRED',
+      `The reward is paid in ${toCurrency} but spend is in ${fromCurrency}. Send rewardExchangeRate: ${fromCurrency} units per 1 ${toCurrency}.`,
+      { fromCurrency, toCurrency },
+    );
+  }
+}
+
+export class InvalidExchangeRateError extends DomainError {
+  constructor(message: string) {
+    super('VALIDATION', 'INVALID_EXCHANGE_RATE', message);
+  }
+}

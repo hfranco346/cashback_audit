@@ -6,6 +6,7 @@ import {
   CAT_PHARMACY,
   CAT_SUPER,
   d,
+  crcUsdEurStatement,
   hnlUsdTwoProgramsStatement,
   line,
   mxnCashbackStatement,
@@ -56,6 +57,7 @@ function world(
     baseRatePercent: d(1),
     currency: 'MXN',
     rewardProgramName: null,
+    rewardCurrency: null,
     rules: [{ categoryId: CAT_SUPER, ratePercent: d(5), monthlyCap: null }],
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -403,12 +405,9 @@ describe('ConfirmVerificationUseCase (step 2)', () => {
 
       const printed = world(
         hnlUsdTwoProgramsStatement({
-          exchangeRate: {
-            from: 'USD',
-            to: 'HNL',
-            rate: d(26),
-            source: 'STATEMENT',
-          },
+          exchangeRates: [
+            { from: 'USD', to: 'HNL', rate: d(26), source: 'STATEMENT' },
+          ],
         }),
         hnl,
         classify,
@@ -527,5 +526,141 @@ describe('ConfirmVerificationUseCase (step 2)', () => {
     expect(v).toMatchObject({ verdict: 'MATCH' });
     expect(v.expectedAmount!.toString()).toBe('0');
     expect(line('x', 1).kind).toBe('PURCHASE');
+  });
+});
+
+describe('ConfirmVerificationUseCase: reward currency and several rates', () => {
+  const crc = { currency: 'CRC', rules: [] };
+  const confirmBase = {
+    baseRatePercent: '1',
+    categoryRates: [] as { categoryId: string; ratePercent: string }[],
+  };
+
+  it('proposes a required reward rate when the program pays in another currency', async () => {
+    const w = world(crcUsdEurStatement(), crc);
+    const started = await w.start();
+    const proposal = await new RateProposalService(
+      { findById: async () => w.card } as unknown as CardRepository,
+      {
+        listWithCounts: async () => [],
+      } as unknown as CategoryRepository,
+    ).forVerification(USER, started);
+    expect(proposal.rewardConversion).toMatchObject({
+      fromCurrency: 'CRC',
+      toCurrency: 'USD',
+      rate: null,
+      source: 'NONE',
+      required: true,
+    });
+    expect(proposal.spendConversions.map((c) => c.currency)).toEqual([
+      'EUR',
+      'USD',
+    ]);
+  });
+
+  it('fails with REWARD_EXCHANGE_RATE_REQUIRED, then converts once the rate is sent', async () => {
+    const w = world(crcUsdEurStatement(), crc);
+    await w.start();
+    await expect(w.confirm(confirmBase)).rejects.toMatchObject({
+      code: 'REWARD_EXCHANGE_RATE_REQUIRED',
+      details: { fromCurrency: 'CRC', toCurrency: 'USD' },
+    });
+    const v = await w.confirm({
+      ...confirmBase,
+      exchangeRates: { USD: '520', EUR: '560' },
+      rewardExchangeRate: '520',
+    });
+    expect(v.rewardCurrency).toBe('USD');
+    // (56,000 + 52,000 + 28,000) * 1% = 1,360 CRC -> 2.62 USD
+    expect(v.expectedAmount!.toString()).toBe('2.62');
+    expect(v.conversion.reward!.expectedInPrimary.toString()).toBe('1360');
+    expect(v.appliedRates!.rewardExchangeRate).toMatchObject({
+      fromCurrency: 'CRC',
+      toCurrency: 'USD',
+      source: 'USER_ENTERED',
+    });
+    expect(v.verdict).toBe('MATCH');
+  });
+
+  it('re-confirm can change the rate and the stored ones carry over', async () => {
+    const w = world(crcUsdEurStatement(), crc);
+    await w.start();
+    await w.confirm({
+      ...confirmBase,
+      exchangeRates: { USD: '520', EUR: '560' },
+      rewardExchangeRate: '520',
+    });
+    const again = await w.confirm({
+      ...confirmBase,
+      rewardExchangeRate: '500',
+    });
+    expect(again.expectedAmount!.toString()).toBe('2.72');
+    expect(again.transactions[2]!.exchangeRate!.toString()).toBe('560');
+    expect(again.conversion.requestedRates.USD!.toString()).toBe('520');
+  });
+
+  it('leaves out only the currency whose rate is missing', async () => {
+    const w = world(crcUsdEurStatement(), crc);
+    await w.start();
+    const v = await w
+      .confirm({
+        ...confirmBase,
+        exchangeRates: { USD: '520' },
+      })
+      .catch((e: unknown) => e);
+    // USD spend rate is reused for the USD reward, so no 422 here.
+    expect(v).toMatchObject({ status: 'COMPLETED' });
+    const done = v as Verification;
+    expect(done.transactions[1]!.excludedReason).toBeNull();
+    expect(done.transactions[2]!.excludedReason).toBe('NO_EXCHANGE_RATE');
+    expect(done.warnings.map((x) => x.code)).toContain('NO_EXCHANGE_RATE');
+  });
+
+  it('the card rewardCurrency override beats the program currency', async () => {
+    const w = world(crcUsdEurStatement(), { ...crc, rewardCurrency: 'EUR' });
+    await w.start();
+    const v = await w.confirm({
+      ...confirmBase,
+      exchangeRates: { USD: '520', EUR: '560' },
+      reportedRewardOverride: '2.43',
+    });
+    expect(v.rewardCurrency).toBe('EUR');
+    expect(v.expectedAmount!.toString()).toBe('2.43');
+  });
+
+  it('rejects malformed rates with INVALID_EXCHANGE_RATE', async () => {
+    const w = world(crcUsdEurStatement(), crc);
+    await w.start();
+    for (const bad of [
+      { exchangeRates: { USD: '0' } },
+      { exchangeRates: { USD: 'abc' } },
+      { exchangeRates: { USD: '1.1234567' } },
+      { exchangeRates: { CRC: '1' } },
+      { exchangeRates: { usd1: '1' } },
+      { rewardExchangeRate: '-1' },
+    ]) {
+      await expect(w.confirm({ ...confirmBase, ...bad })).rejects.toMatchObject(
+        { code: 'INVALID_EXCHANGE_RATE' },
+      );
+    }
+  });
+
+  it('does not convert a points card, whatever the program currency says', async () => {
+    const w = world(
+      crcUsdEurStatement({
+        loyaltyPrograms: [
+          program('Puntos', '1360', { unit: 'POINTS', currency: null }),
+        ],
+      }),
+      { ...crc, rewardUnit: 'POINTS' },
+    );
+    await w.start();
+    const v = await w.confirm({
+      ...confirmBase,
+      exchangeRates: { USD: '520', EUR: '560' },
+    });
+    expect(v.rewardCurrency).toBeNull();
+    expect(v.appliedRates!.rewardExchangeRate).toBeNull();
+    expect(v.expectedAmount!.toString()).toBe('1360');
   });
 });
