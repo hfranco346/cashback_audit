@@ -28,6 +28,7 @@ VerificationTransaction _tx(
   String kind = 'PURCHASE',
   String? excludedReason,
   String? reason,
+  String? creditType,
 }) => VerificationMapper.detail(
   verificationJson(
     transactions: [
@@ -42,6 +43,7 @@ VerificationTransaction _tx(
         kind: kind,
         excludedReason: excludedReason,
         reason: reason,
+        creditType: creditType,
       ),
     ],
   ),
@@ -267,12 +269,24 @@ void main() {
           Column(
             children: [
               TransactionTile(
-                transaction: _tx(0, 'KEYWORD', credit: true, amount: '58'),
+                transaction: _tx(
+                  0,
+                  'KEYWORD',
+                  credit: true,
+                  amount: '58',
+                  creditType: 'REFUND',
+                ),
                 currency: 'MXN',
                 unit: RewardUnit.cashbackCurrency,
               ),
               TransactionTile(
-                transaction: _tx(1, 'NONE', credit: true, amount: '20'),
+                transaction: _tx(
+                  1,
+                  'NONE',
+                  credit: true,
+                  amount: '20',
+                  creditType: 'REFUND',
+                ),
                 currency: 'MXN',
                 unit: RewardUnit.cashbackCurrency,
               ),
@@ -284,7 +298,7 @@ void main() {
       expect(find.text('-MXN 20.00'), findsOneWidget);
       expect(find.byKey(const Key('tx-icon-counted')), findsOneWidget);
       expect(find.byKey(const Key('tx-icon-uncounted')), findsOneWidget);
-      expect(find.text(S.refund), findsNWidgets(2));
+      expect(find.text(S.creditRefund), findsNWidgets(2));
     });
 
     testWidgets('dark theme uses the dark semantic colors', (tester) async {

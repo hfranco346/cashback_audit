@@ -179,6 +179,21 @@ crashing, and purchases are disabled.
   Statements left unconfirmed appear in the history with a
   "Pendiente de confirmar %" chip and resume in the same screen (the server
   deletes them after 7 days).
+- **Reward currency and any-currency rates**: money is always printed with its
+  ISO 4217 code and the currency's minor units (`USD 22.68`, `JPY 1,500`,
+  `KWD 1.250`); there are no per-country currency assumptions. When
+  `rewardConversion` is present the confirmation screen asks (required) how many
+  card-currency units one reward-currency unit is worth ("¿Cuántos HNL vale
+  1 USD?", prefilled when the statement prints it) and sends
+  `rewardExchangeRate`; each `exchangeRateProposal` entry gets an optional field
+  sent in the `exchangeRates` map (empty = those purchases are left out). A card
+  can set the reward currency explicitly (empty = detected). Statement
+  categories the user lacks (`suggestedCategories`) can be created for free from
+  the same screen (`POST .../categories-from-suggestions`), refreshing the
+  proposal in place. The result shows reported/expected/difference in the reward
+  currency with an "Equivale a HNL 589.61" line, the applied conversion rate,
+  credit lines labelled by `creditType` (payment / refund / other credit) and a
+  "Tu banco lo considera: ..." hint on uncategorized lines.
 - **Uploads**: PDF only, max 10 MB (checked client side), multipart with upload
   progress (receive timeout 3 min). No automatic retry on timeout (the request
   consumes a credit); the UI tells the user to check history first.
@@ -207,7 +222,9 @@ crashing, and purchases are disabled.
   external or web payment is mentioned, App Store guideline 3.1.1).
 - **Cache**: Drift `schemaVersion` 2 drops verification payloads cached with the
   previous contract on upgrade; mappers also tolerate old rows (no `status`,
-  `currency`, `kind`, legacy `AI` match source).
+  `currency`, `kind`, `creditType`, `rewardCurrency`, legacy `AI` match source,
+  single `statementRate`). The reward-currency fields are optional on read, so
+  no schema bump was needed.
 
 ## Tests
 

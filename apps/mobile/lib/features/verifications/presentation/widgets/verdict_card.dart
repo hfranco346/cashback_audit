@@ -17,6 +17,7 @@ class VerdictCard extends StatelessWidget {
     required this.difference,
     this.reportedNote,
     this.reportedLabel,
+    this.expectedNote,
     this.heroTag,
   });
 
@@ -26,6 +27,10 @@ class VerdictCard extends StatelessWidget {
   final String reported;
   final String difference;
   final String? reportedNote;
+
+  /// Secondary line under the expected figure, e.g. "Equivale a HNL 589.61"
+  /// when the reward currency differs from the card's.
+  final String? expectedNote;
 
   /// Name of the audited loyalty program, shown under the reported figure.
   final String? reportedLabel;
@@ -97,7 +102,12 @@ class VerdictCard extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _FigureRow(label: S.expectedLabel, value: expected),
+                    _FigureRow(
+                      label: S.expectedLabel,
+                      value: expected,
+                      note: expectedNote,
+                      noteKey: const Key('expected-equivalent'),
+                    ),
                     const SizedBox(height: 10),
                     _FigureRow(
                       label: S.reportedLabel,
@@ -135,6 +145,7 @@ class _FigureRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.note,
+    this.noteKey,
     this.color,
     this.emphasized = false,
   });
@@ -142,6 +153,7 @@ class _FigureRow extends StatelessWidget {
   final String label;
   final String value;
   final String? note;
+  final Key? noteKey;
   final Color? color;
   final bool emphasized;
 
@@ -180,6 +192,7 @@ class _FigureRow extends StatelessWidget {
               if (note != null)
                 Text(
                   note!,
+                  key: noteKey,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(

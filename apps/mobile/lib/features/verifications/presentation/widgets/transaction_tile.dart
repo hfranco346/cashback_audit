@@ -154,15 +154,43 @@ class TransactionTile extends StatelessWidget {
                                     color: theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
-                              if (tx.isCredit)
+                              if (tx.creditType != null)
                                 Text(
-                                  S.refund,
+                                  creditTypeLabel(tx.creditType!),
+                                  key: Key('tx-credit-${tx.index}'),
                                   style: theme.textTheme.labelMedium?.copyWith(
                                     color: theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                             ],
                           ),
+                          if (tx.outOfCategory && tx.suggestedHint != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.lightbulb_outline_rounded,
+                                    size: 14,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      S.bankConsiders(tx.suggestedHint!),
+                                      key: Key('tx-hint-${tx.index}'),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           if (excluded && reason != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
@@ -174,7 +202,7 @@ class TransactionTile extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          if (counted && tx.matchReason != null)
+                          if (!excluded && tx.matchReason != null)
                             Tooltip(
                               message: tx.matchReason!,
                               child: Padding(
@@ -268,6 +296,13 @@ class TransactionTile extends StatelessWidget {
     );
   }
 }
+
+/// Spanish label of a credit line. A payment is never called a refund.
+String creditTypeLabel(CreditType type) => switch (type) {
+  CreditType.payment => S.creditPayment,
+  CreditType.refund => S.creditRefund,
+  CreditType.otherCredit => S.creditOther,
+};
 
 class _Chip extends StatelessWidget {
   const _Chip({super.key, required this.text, required this.tooltip});

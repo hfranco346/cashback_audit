@@ -42,7 +42,7 @@ class VerificationSummaryTile extends StatelessWidget {
       );
     }
     final style = VerdictStyle.of(context, verdict);
-    final currency = summary.currency;
+    final rewardCurrency = summary.resolvedRewardCurrency;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -92,7 +92,7 @@ class VerificationSummaryTile extends StatelessWidget {
                     formatReward(
                       summary.difference ?? Decimal.zero,
                       summary.unit,
-                      currency: currency,
+                      currency: rewardCurrency,
                     ),
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: style.color,
@@ -100,7 +100,7 @@ class VerificationSummaryTile extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${S.expectedLabel} ${formatReward(summary.expectedAmount ?? Decimal.zero, summary.unit, currency: currency)}',
+                    '${S.expectedLabel} ${formatReward(summary.expectedAmount ?? Decimal.zero, summary.unit, currency: rewardCurrency)}',
                     style: theme.textTheme.labelSmall,
                   ),
                 ],

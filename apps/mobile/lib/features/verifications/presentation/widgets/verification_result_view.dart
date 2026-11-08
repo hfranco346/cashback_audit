@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/l10n/strings.dart';
 import '../../../../shared/widgets/molecules/inline_message.dart';
 import '../../../../shared/widgets/atoms/staggered_entrance.dart';
+import '../../../../core/utils/decimal_utils.dart';
+import '../../../cards/domain/card_entities.dart';
 import '../../domain/verification_entities.dart';
 import '../excluded_reason_text.dart';
 import '../format_reward.dart';
@@ -59,7 +61,18 @@ class VerificationResultView extends StatelessWidget {
     if (!v.isCompleted || verdict == null || reported == null) {
       return const Center(child: Text(S.resultNotConfirmed));
     }
-    String reward(Decimal d) => formatReward(d, v.unit, currency: currency);
+    // Reported / expected / difference are in the reward currency, which can
+    // differ from the card currency; breakdown and lines stay in the card's.
+    final rewardCurrency = v.resolvedRewardCurrency;
+    String reward(Decimal d) =>
+        formatReward(d, v.unit, currency: rewardCurrency);
+    final inPrimary = v.expectedInPrimaryCurrency;
+    final equivalent =
+        v.rewardCurrencyDiffers &&
+            inPrimary != null &&
+            v.unit != RewardUnit.points
+        ? S.equivalentTo(formatMoney(inPrimary, currency: currency))
+        : null;
     final diff = v.difference ?? Decimal.zero;
     final hint = switch (verdict) {
       Verdict.match => S.verdictMatchHint,
@@ -88,6 +101,7 @@ class VerificationResultView extends StatelessWidget {
               expected: reward(v.expectedAmount ?? Decimal.zero),
               reported: reward(reported.amount),
               reportedLabel: reported.label,
+              expectedNote: equivalent,
               difference: diff > Decimal.zero ? '+$signed' : signed,
               reportedNote: reported.fromOverride
                   ? S.reportedOverrideNote
@@ -152,7 +166,7 @@ class VerificationResultView extends StatelessWidget {
               enter(
                 LoyaltyTable(
                   loyalty: v.loyalty,
-                  currency: currency,
+                  currency: rewardCurrency,
                   cumulativeWarning: v.hasWarning(
                     'REPORTED_VALUE_MAY_BE_CUMULATIVE',
                   ),

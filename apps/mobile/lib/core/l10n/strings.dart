@@ -336,7 +336,7 @@ abstract final class S {
   static const userChip = 'Tú';
   static const userChipTooltip = 'Rubro corregido por ti';
   static String convertedAs(String amount) => '≈ $amount';
-  static const excludedPayment = 'Pago a la tarjeta';
+  static const excludedPayment = 'Los pagos no generan recompensa';
   static const excludedFee = 'Comisión o cargo';
   static const excludedInterest = 'Intereses';
   static const excludedInsurance = 'Seguro';
@@ -396,7 +396,16 @@ abstract final class S {
       'Asignado a $category · aplicará en la próxima verificación';
   static String appliedRate(String rate) => 'Tasa $rate';
   static const baseOnly = 'Solo tasa base';
-  static const refund = 'Reembolso';
+  static const creditPayment = 'Pago a la tarjeta';
+  static const creditRefund = 'Devolución';
+  static const creditOther = 'Otro crédito / bonificación';
+  static String bankConsiders(String hint) => 'Tu banco lo considera: $hint';
+  static String equivalentTo(String money) => 'Equivale a $money';
+  static const rewardRateDetailTitle = 'Conversión de la recompensa';
+  static String rewardRateDetail(String reward, String rate, String primary) =>
+      '1 $reward = $rate $primary';
+  static const rewardRateFromStatement = 'Tomado de tu estado de cuenta';
+  static const rewardRateUserEntered = 'Lo escribiste tú';
   static const assignSheetTitle = 'Asignar comercio a un rubro';
   static const noCategoriesToAssign =
       'Crea un rubro primero para poder asignar este comercio.';

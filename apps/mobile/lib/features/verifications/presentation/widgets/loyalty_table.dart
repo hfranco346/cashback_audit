@@ -21,11 +21,12 @@ class LoyaltyTable extends StatelessWidget {
   final String currency;
   final bool cumulativeWarning;
 
-  String _value(Decimal? v, String? unit) {
+  String _value(Decimal? v, LoyaltyProgram p) {
+    final unit = p.unit;
     if (v == null) return '—';
     return switch (unit) {
       'POINTS' => formatPoints(v),
-      'CURRENCY' => formatMoney(v, currency: currency),
+      'CURRENCY' => formatMoney(v, currency: p.currency ?? currency),
       'MILES' => '${formatPoints(v).replaceAll(' pts', '')} mi',
       _ => formatPoints(v).replaceAll(' pts', ''),
     };
@@ -117,11 +118,11 @@ class LoyaltyTable extends StatelessWidget {
                           ],
                         ),
                       ),
-                      DataCell(Text(_value(p.accumulated, p.unit))),
-                      DataCell(Text(_value(p.available, p.unit))),
-                      DataCell(Text(_value(p.redeemedInPeriod, p.unit))),
-                      DataCell(Text(_value(p.expiring, p.unit))),
-                      DataCell(Text(_value(p.forfeited, p.unit))),
+                      DataCell(Text(_value(p.accumulated, p))),
+                      DataCell(Text(_value(p.available, p))),
+                      DataCell(Text(_value(p.redeemedInPeriod, p))),
+                      DataCell(Text(_value(p.expiring, p))),
+                      DataCell(Text(_value(p.forfeited, p))),
                     ],
                   ),
               ],

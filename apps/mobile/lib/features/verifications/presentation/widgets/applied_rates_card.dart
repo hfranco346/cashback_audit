@@ -45,6 +45,10 @@ class AppliedRatesCard extends StatelessWidget {
                   ),
               ],
             ),
+            if (applied.rewardExchangeRate != null) ...[
+              const SizedBox(height: 14),
+              _RewardRateDetail(rate: applied.rewardExchangeRate!),
+            ],
             if (onRecalculate != null) ...[
               const SizedBox(height: 8),
               OutlinedButton.icon(
@@ -57,6 +61,53 @@ class AppliedRatesCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// "Conversión de la recompensa: 1 USD = 25.9969 HNL" with where it came from.
+class _RewardRateDetail extends StatelessWidget {
+  const _RewardRateDetail({required this.rate});
+
+  final AppliedRewardRate rate;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final origin = switch (rate.source) {
+      'STATEMENT_CONFIRMED' => S.rewardRateFromStatement,
+      'USER_ENTERED' => S.rewardRateUserEntered,
+      _ => null,
+    };
+    return Column(
+      key: const Key('reward-rate-detail'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          S.rewardRateDetailTitle,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          S.rewardRateDetail(
+            rate.toCurrency,
+            decimalToApi(rate.rate),
+            rate.fromCurrency,
+          ),
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        if (origin != null)
+          Text(
+            origin,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+      ],
     );
   }
 }
