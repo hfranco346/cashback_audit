@@ -10,8 +10,10 @@ const LOYALTY_UNITS = ['POINTS', 'CURRENCY', 'MILES', 'UNKNOWN'] as const;
 
 /**
  * Shape requested from Claude (structured outputs). Kept deliberately simple
- * because the JSON-schema subset the API enforces is limited; the strict checks
- * live in `parseExtraction` below.
+ * because the API compiles the schema into a grammar with a size limit: no
+ * nullable fields (each one becomes an `anyOf`). Unknown values are requested
+ * as empty strings and normalized to null by `parseExtraction`, where the
+ * strict checks live.
  */
 export const extractionOutputSchema = z.object({
   isCreditCardStatement: z
@@ -19,22 +21,16 @@ export const extractionOutputSchema = z.object({
     .describe(
       'False when the document is not a readable credit card statement',
     ),
-  bank: z.string().nullable().describe('Issuing bank name'),
+  bank: z.string().describe('Issuing bank name'),
   cardLast4: z
     .string()
-    .nullable()
     .describe('Last four digits of the card number if printed'),
-  periodStart: z
-    .string()
-    .nullable()
-    .describe('Statement period start, YYYY-MM-DD'),
+  periodStart: z.string().describe('Statement period start, YYYY-MM-DD'),
   periodEnd: z
     .string()
-    .nullable()
     .describe('Statement period end (closing date), YYYY-MM-DD'),
   currency: z
     .string()
-    .nullable()
     .describe(
       'ISO 4217 code of the statement main (local) currency, null if unclear',
     ),
@@ -44,16 +40,11 @@ export const extractionOutputSchema = z.object({
         currency: z.string().describe('ISO 4217 code of this summary column'),
         previousBalance: z
           .string()
-          .nullable()
           .describe('Balance carried over from the previous statement'),
         purchasesAndCharges: z
           .string()
-          .nullable()
           .describe('Purchases plus other charges of the period'),
-        totalBalance: z
-          .string()
-          .nullable()
-          .describe('Total balance owed / total to pay'),
+        totalBalance: z.string().describe('Total balance owed / total to pay'),
       }),
     )
     .describe('One entry per currency column of the statement summary'),
@@ -63,29 +54,22 @@ export const extractionOutputSchema = z.object({
       to: z.string().describe('ISO 4217 code converted to'),
       rate: z.string().describe('1 unit of `from` in `to`, plain decimal'),
     })
-    .nullable()
-    .describe('Exchange rate ONLY if printed on the statement, else null'),
+    .describe(
+      'Exchange rate ONLY if printed on the statement; otherwise all fields are empty strings',
+    ),
   loyaltyPrograms: z
     .array(
       z.object({
         name: z.string().describe('Program name exactly as printed'),
         accumulated: z
           .string()
-          .nullable()
           .describe('Accumulated / earned column, as printed'),
-        available: z
-          .string()
-          .nullable()
-          .describe('Available / redeemable balance'),
+        available: z.string().describe('Available / redeemable balance'),
         redeemedInPeriod: z
           .string()
-          .nullable()
           .describe('Redeemed / used during the period'),
-        expiring: z.string().nullable().describe('Expiring soon'),
-        forfeited: z
-          .string()
-          .nullable()
-          .describe('Forfeited / expired / written off'),
+        expiring: z.string().describe('Expiring soon'),
+        forfeited: z.string().describe('Forfeited / expired / written off'),
         unit: z.enum(LOYALTY_UNITS),
       }),
     )
@@ -96,19 +80,15 @@ export const extractionOutputSchema = z.object({
         scope: z.enum(['BASE', 'CATEGORY']),
         categoryHint: z
           .string()
-          .nullable()
           .describe('Spending category as worded in the document'),
         suggestedCategoryId: z
           .string()
-          .nullable()
           .describe('Id of the matching category from the provided list'),
         ratePercent: z
           .string()
-          .nullable()
           .describe('Percent of spend as a plain decimal, e.g. "7"'),
         unitNote: z
           .string()
-          .nullable()
           .describe('Original wording when not a plain percentage'),
         evidence: z.string().describe('Short quote from the document'),
         confidence: z.number().describe('0 to 1'),
@@ -122,7 +102,6 @@ export const extractionOutputSchema = z.object({
       date: z.string().describe('YYYY-MM-DD'),
       reference: z
         .string()
-        .nullable()
         .describe('Reference / authorization number if printed'),
       description: z.string().describe('Concept text exactly as printed'),
       amount: z.string().describe('Positive plain decimal string'),
@@ -149,13 +128,34 @@ const MAX_TRANSACTIONS = 2000;
 const MAX_PROGRAMS = 20;
 const MAX_DETECTED_RATES = 40;
 
-const decimal = z.string().trim().regex(DECIMAL);
+/**
+ * Removes thousands separators only when the grouping is unambiguous
+ * ("8,942", "1,234.50", "1.234,50"). Anything else is returned unchanged and
+ * left to the DECIMAL check, so a lone "6,5" is never guessed.
+ */
+export function normalizeNumber(raw: string): string {
+  const value = raw.trim();
+  if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(value)) return value.replace(/,/g, '');
+  if (/^\d{1,3}(\.\d{3})+,\d+$/.test(value)) {
+    return value.replace(/\./g, '').replace(',', '.');
+  }
+  return value;
+}
+
+const decimal = z
+  .string()
+  .trim()
+  .transform(normalizeNumber)
+  .pipe(z.string().regex(DECIMAL));
 const optionalDecimal = z
   .string()
   .nullable()
-  .transform((value) =>
-    value && DECIMAL.test(value.trim()) ? new Decimal(value.trim()) : null,
-  );
+  .transform((value) => {
+    const normalized = value ? normalizeNumber(value) : null;
+    return normalized && DECIMAL.test(normalized)
+      ? new Decimal(normalized)
+      : null;
+  });
 const optionalDate = z
   .string()
   .nullable()
@@ -251,6 +251,18 @@ const strictSchema = extractionOutputSchema.extend({
     .max(MAX_TRANSACTIONS),
 });
 
+/** Recursively maps "" (the "unknown" sentinel requested from the model) to null. */
+function emptyStringsToNull(value: unknown): unknown {
+  if (typeof value === 'string') return value.trim() === '' ? null : value;
+  if (Array.isArray(value)) return value.map(emptyStringsToNull);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, emptyStringsToNull(v)]),
+    );
+  }
+  return value;
+}
+
 /**
  * Validates the model output at runtime. A readable-but-not-a-statement result
  * is returned as `null`; malformed data throws ExtractionFailedError because
@@ -263,7 +275,7 @@ export function parseExtraction(
   raw: unknown,
   validCategoryIds: ReadonlySet<string> = new Set(),
 ): ExtractedStatement | null {
-  const result = strictSchema.safeParse(raw);
+  const result = strictSchema.safeParse(emptyStringsToNull(raw));
   if (!result.success) throw new ExtractionFailedError();
   const data = result.data;
   if (!data.isCreditCardStatement) return null;

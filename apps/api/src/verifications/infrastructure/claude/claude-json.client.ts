@@ -19,6 +19,11 @@ export interface JsonRequest<T extends z.ZodType> {
   /** Selects the configured model for this kind of work. */
   task: ClaudeTask;
   schema: T;
+  /**
+   * Schema used to validate the parsed JSON. Defaults to `schema`; callers that
+   * run their own strict validation afterwards can pass a more lenient one.
+   */
+  validationSchema?: z.ZodType;
   system: string;
   content: Anthropic.MessageParam['content'];
   maxTokens: number;
@@ -70,6 +75,7 @@ export class ClaudeJsonClient {
     } catch (error) {
       throw this.mapError(error);
     }
+    this.logUsage(request.task, message);
 
     if (message.stop_reason === 'refusal') {
       throw new UnreadableStatementError(
@@ -89,9 +95,9 @@ export class ClaudeJsonClient {
     } catch {
       throw new ExtractionFailedError();
     }
-    const parsed = request.schema.safeParse(json);
+    const parsed = (request.validationSchema ?? request.schema).safeParse(json);
     if (!parsed.success) throw new ExtractionFailedError();
-    return parsed.data;
+    return parsed.data as z.infer<T>;
   }
 
   /** Plain-text answer (no structured output); same error mapping. */
@@ -118,6 +124,7 @@ export class ClaudeJsonClient {
     } catch (error) {
       throw this.mapError(error);
     }
+    this.logUsage(request.task, message);
     if (
       message.stop_reason === 'refusal' ||
       message.stop_reason === 'max_tokens'
@@ -131,6 +138,15 @@ export class ClaudeJsonClient {
     return text.text.trim();
   }
 
+  /** Token usage per call, for cost monitoring (no content is logged). */
+  private logUsage(task: ClaudeTask, message: Anthropic.Message): void {
+    const usage = message.usage as Anthropic.Usage | undefined;
+    if (!usage) return;
+    this.logger.log(
+      `Claude usage task=${task} model=${message.model} input=${usage.input_tokens} output=${usage.output_tokens} cacheRead=${usage.cache_read_input_tokens ?? 0} cacheWrite=${usage.cache_creation_input_tokens ?? 0}`,
+    );
+  }
+
   private mapError(error: unknown): DomainError {
     if (error instanceof DomainError) return error;
     if (error instanceof Anthropic.APIError) {
@@ -138,6 +154,15 @@ export class ClaudeJsonClient {
       this.logger.error(
         `Anthropic API error status=${error.status ?? 'n/a'} requestId=${error.requestID ?? 'n/a'}`,
       );
+      // Invalid-request errors describe the request shape (schema, model,
+      // limits), never credentials; log them to make 400s diagnosable.
+      if (error.status === 400) {
+        const body = error.error as
+          { error?: { type?: string; message?: string } } | undefined;
+        this.logger.error(
+          `Anthropic invalid request: type=${body?.error?.type ?? 'n/a'} message=${(body?.error?.message ?? 'n/a').slice(0, 500)}`,
+        );
+      }
       if (error instanceof Anthropic.APIConnectionError)
         return new ExtractionUnavailableError();
       switch (error.status) {
