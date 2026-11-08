@@ -128,6 +128,7 @@ export function presentVerification(v: Verification) {
       categoryName: t.categoryName,
       matchSource: t.matchSource,
       matchConfidence: t.matchConfidence,
+      matchReason: t.matchReason,
       appliedRatePercent: t.appliedRatePercent.toString(),
       ruleApplied: t.ruleApplied,
       expectedReward: t.expectedReward.toString(),

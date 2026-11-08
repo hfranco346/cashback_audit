@@ -49,6 +49,9 @@ const baseSchema = z.object({
   /** @deprecated Fallback for ANTHROPIC_EXTRACTION_MODEL only. */
   ANTHROPIC_MODEL: modelId,
 
+  /** Classifier results below this confidence (0-1) are ignored. */
+  CLASSIFICATION_MIN_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.7),
+
   REVENUECAT_WEBHOOK_AUTH: z.string().default(''),
   REVENUECAT_ENTITLEMENT_ID: z.string().default('pro'),
   SUBSCRIPTION_GATE_ENABLED: booleanString.default(true),

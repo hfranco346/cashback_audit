@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { ConfigService } from '@nestjs/config';
 import { validateEnv } from '../../../config/env.js';
 import { ClaudeJsonClient } from './claude-json.client.js';
-import { ClaudeMerchantClassifier } from './claude-merchant-classifier.js';
+import { ClaudeLineClassifier } from './claude-line-classifier.js';
 import { ClaudeStatementExtractor } from './claude-statement-extractor.js';
 import { parseExtraction } from './extraction-schema.js';
 
@@ -277,7 +277,7 @@ describe('ClaudeStatementExtractor', () => {
     expect(ext.calls[0].model).toBe('claude-opus-5-5');
 
     const cls = fakeClient(textMessage({ matches: [] }));
-    const classified = await new ClaudeMerchantClassifier(
+    const classified = await new ClaudeLineClassifier(
       new ClaudeJsonClient(cls.client, cfg),
     ).classify(['X'], []);
     expect(classified.model).toBe('claude-sonnet-5-5');
@@ -376,66 +376,124 @@ describe('ClaudeStatementExtractor', () => {
   });
 });
 
-describe('ClaudeMerchantClassifier', () => {
-  const merchants = [
+describe('ClaudeLineClassifier', () => {
+  const categories = [
     {
-      id: 'm1',
-      name: 'Walmart',
-      keywords: ['WAL MART'],
-      categoryName: 'Supermarkets',
+      id: 'c-super',
+      name: 'Supermercados',
+      description: 'supermercados, abarroterías, hipermercados',
+      merchants: [{ id: 'm1', name: 'Walmart' }],
     },
+    { id: 'c-pharm', name: 'Farmacia', description: null, merchants: [] },
   ];
+  const make = (client: Anthropic) =>
+    new ClaudeLineClassifier(new ClaudeJsonClient(client, config()));
 
-  it('returns guesses, clamping confidence and discarding unknown ids/descriptors', async () => {
+  it('sends categories (with description and merchant examples) and validates the answer', async () => {
     const { client, calls } = fakeClient(
       textMessage({
         matches: [
           {
-            descriptor: 'WM SUPERCENTER 55',
-            merchantId: 'm1',
+            descriptor: 'LA COLONIA 12',
+            categoryId: 'c-super',
+            matchedMerchantId: null,
             confidence: 1.7,
+            reason: ' supermarket chain ',
           },
           {
-            descriptor: 'UBER TRIP',
-            merchantId: 'made-up-id',
+            descriptor: 'WM SUPERCENTER',
+            categoryId: 'c-pharm',
+            matchedMerchantId: 'm1',
             confidence: 0.9,
+            reason: 'walmart',
           },
-          { descriptor: 'NOT ASKED', merchantId: 'm1', confidence: 0.9 },
+          {
+            descriptor: 'FARMACIA SIMAN',
+            categoryId: 'made-up',
+            matchedMerchantId: 'made-up-too',
+            confidence: 0.9,
+            reason: 'x',
+          },
+          {
+            descriptor: 'NOT ASKED',
+            categoryId: 'c-super',
+            matchedMerchantId: null,
+            confidence: 0.9,
+            reason: 'x',
+          },
         ],
       }),
     );
-    const classifier = new ClaudeMerchantClassifier(
-      new ClaudeJsonClient(client, config()),
+    const out = await make(client).classify(
+      ['LA COLONIA 12', 'WM SUPERCENTER', 'FARMACIA SIMAN'],
+      categories,
     );
-    const { guesses, model } = await classifier.classify(
-      ['WM SUPERCENTER 55', 'UBER TRIP'],
-      merchants,
-    );
-    expect(model).toBe('claude-haiku-5-5');
-    expect(calls[0].model).toBe('claude-haiku-5-5');
 
-    expect(guesses).toEqual([
-      { descriptor: 'WM SUPERCENTER 55', merchantId: 'm1', confidence: 1 },
-      { descriptor: 'UBER TRIP', merchantId: null, confidence: 0.9 },
+    expect(out.model).toBe('claude-haiku-5-5');
+    expect(out.unclassified).toEqual([]);
+    expect(out.results).toEqual([
+      {
+        descriptor: 'LA COLONIA 12',
+        categoryId: 'c-super',
+        matchedMerchantId: null,
+        confidence: 1,
+        reason: 'supermarket chain',
+      },
+      {
+        // a matched merchant decides the category
+        descriptor: 'WM SUPERCENTER',
+        categoryId: 'c-super',
+        matchedMerchantId: 'm1',
+        confidence: 0.9,
+        reason: 'walmart',
+      },
+      {
+        descriptor: 'FARMACIA SIMAN',
+        categoryId: null,
+        matchedMerchantId: null,
+        confidence: 0.9,
+        reason: 'x',
+      },
     ]);
-    const sent = JSON.parse(calls[0].messages[0].content[0].text);
-    expect(sent.descriptors).toEqual(['WM SUPERCENTER 55', 'UBER TRIP']);
-    expect(sent.merchants[0]).toMatchObject({
-      id: 'm1',
-      category: 'Supermarkets',
-    });
+    expect(calls[0].model).toBe('claude-haiku-5-5');
     expect(calls[0].system).toContain('untrusted');
+    const sent = JSON.parse(calls[0].messages[0].content[0].text);
+    expect(sent.descriptors).toHaveLength(3);
+    expect(sent.categories[0]).toMatchObject({
+      id: 'c-super',
+      description: 'supermercados, abarroterías, hipermercados',
+      merchants: [{ id: 'm1', name: 'Walmart' }],
+    });
+    expect(sent.categories[1].merchants).toEqual([]);
   });
 
-  it('batches large descriptor lists', async () => {
+  it('batches in groups of 100 descriptors', async () => {
     const { client, calls } = fakeClient(textMessage({ matches: [] }));
-    const classifier = new ClaudeMerchantClassifier(
-      new ClaudeJsonClient(client, config()),
-    );
-    await classifier.classify(
-      Array.from({ length: 170 }, (_, i) => `D${i}`),
-      merchants,
+    const out = await make(client).classify(
+      Array.from({ length: 230 }, (_, i) => `D${i}`),
+      categories,
     );
     expect(calls).toHaveLength(3);
+    expect(
+      JSON.parse(calls[0].messages[0].content[0].text).descriptors,
+    ).toHaveLength(100);
+    // nothing answered -> every descriptor is reported as unclassified
+    expect(out.unclassified).toHaveLength(230);
+    expect(out.model).toBe('claude-haiku-5-5');
+  });
+
+  it('degrades instead of throwing when a call fails or the schema is violated', async () => {
+    const bad = fakeClient(textMessage({ nope: true }));
+    const out = await make(bad.client).classify(['A', 'B'], categories);
+    expect(out).toEqual({
+      results: [],
+      unclassified: ['A', 'B'],
+      model: null,
+    });
+
+    const down = fakeClient(new Anthropic.APIConnectionError({ message: 'x' }));
+    expect(
+      (await make(down.client).classify(['A'], categories)).model,
+    ).toBeNull();
   });
 });

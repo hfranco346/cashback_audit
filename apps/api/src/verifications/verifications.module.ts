@@ -5,14 +5,17 @@ import { CardsModule } from '../cards/cards.module.js';
 import { CategoriesModule } from '../categories/categories.module.js';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
 import type { Env } from '../config/env.js';
-import { CreateVerificationUseCase } from './application/create-verification.use-case.js';
+import {
+  CLASSIFICATION_MIN_CONFIDENCE,
+  CreateVerificationUseCase,
+} from './application/create-verification.use-case.js';
 import {
   DeleteVerificationUseCase,
   GetVerificationUseCase,
   ListVerificationsUseCase,
 } from './application/verification.use-cases.js';
 import {
-  MerchantClassifier,
+  LineClassifier,
   StatementExtractor,
 } from './domain/statement-extractor.js';
 import { VerificationRepository } from './domain/verification.repository.js';
@@ -20,7 +23,7 @@ import {
   ANTHROPIC_CLIENT,
   ClaudeJsonClient,
 } from './infrastructure/claude/claude-json.client.js';
-import { ClaudeMerchantClassifier } from './infrastructure/claude/claude-merchant-classifier.js';
+import { ClaudeLineClassifier } from './infrastructure/claude/claude-line-classifier.js';
 import { ClaudeStatementExtractor } from './infrastructure/claude/claude-statement-extractor.js';
 import { PrismaVerificationRepository } from './infrastructure/prisma-verification.repository.js';
 import { VerificationsController } from './infrastructure/verifications.controller.js';
@@ -48,7 +51,13 @@ import { VerificationsController } from './infrastructure/verifications.controll
         }),
     },
     { provide: StatementExtractor, useClass: ClaudeStatementExtractor },
-    { provide: MerchantClassifier, useClass: ClaudeMerchantClassifier },
+    { provide: LineClassifier, useClass: ClaudeLineClassifier },
+    {
+      provide: CLASSIFICATION_MIN_CONFIDENCE,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) =>
+        config.get('CLASSIFICATION_MIN_CONFIDENCE', { infer: true }),
+    },
     { provide: VerificationRepository, useClass: PrismaVerificationRepository },
   ],
 })

@@ -16,6 +16,22 @@ describe('validateEnv', () => {
     expect(env.PORT).toBe(3000);
   });
 
+  describe('classification threshold', () => {
+    it('defaults to 0.7 and accepts 0-1', () => {
+      expect(validateEnv(base).CLASSIFICATION_MIN_CONFIDENCE).toBe(0.7);
+      expect(
+        validateEnv({ ...base, CLASSIFICATION_MIN_CONFIDENCE: '0.85' })
+          .CLASSIFICATION_MIN_CONFIDENCE,
+      ).toBe(0.85);
+    });
+
+    it.each(['1.5', '-0.1', 'high'])('rejects %s', (value) => {
+      expect(() =>
+        validateEnv({ ...base, CLASSIFICATION_MIN_CONFIDENCE: value }),
+      ).toThrow(/CLASSIFICATION_MIN_CONFIDENCE/);
+    });
+  });
+
   describe('model routing', () => {
     it('uses the explicit per-task models', () => {
       const env = validateEnv({

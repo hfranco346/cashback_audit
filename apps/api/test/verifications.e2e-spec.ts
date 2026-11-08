@@ -2,7 +2,7 @@ import request from 'supertest';
 import { Decimal } from 'decimal.js';
 import { ExtractionUnavailableError } from '../src/verifications/domain/verification-errors.js';
 import {
-  MerchantClassifier,
+  LineClassifier,
   StatementExtractor,
 } from '../src/verifications/domain/statement-extractor.js';
 import type {
@@ -102,19 +102,29 @@ describe('Verifications (e2e)', () => {
   const classifierStub = {
     classify: async (descriptors: string[]) => ({
       model: 'stub-classifier',
-      guesses: descriptors.map((descriptor) => ({
+      unclassified: [] as string[],
+      results: descriptors.map((descriptor) => ({
         descriptor,
-        merchantId: descriptor === 'WM SUPERCENTER' ? aiMerchantId : null,
+        categoryId: descriptor.includes('FARMACIA')
+          ? pharmacyCategoryId
+          : descriptor === 'WM SUPERCENTER'
+            ? superCategoryId
+            : null,
+        matchedMerchantId:
+          descriptor === 'WM SUPERCENTER' ? aiMerchantId : null,
         confidence: 0.85,
+        reason: 'stub',
       })),
     }),
   };
+  let superCategoryId: string;
+  let pharmacyCategoryId: string;
   let aiMerchantId: string;
 
   beforeAll(async () => {
     ctx = await createTestApp([
       { token: StatementExtractor, useValue: extractorStub },
-      { token: MerchantClassifier, useValue: classifierStub },
+      { token: LineClassifier, useValue: classifierStub },
     ]);
   });
   afterAll(() => ctx.close());
@@ -139,6 +149,7 @@ describe('Verifications (e2e)', () => {
         .send({ name: 'Walmart', keywords: ['WAL MART'], categoryId: cat.id })
     ).body;
     aiMerchantId = merchant.id;
+    superCategoryId = cat.id;
     cardId = (
       await http()
         .post('/api/v1/cards')
@@ -240,12 +251,13 @@ describe('Verifications (e2e)', () => {
       ]),
     ).toEqual([
       ['WAL MART SUC 123', 'KEYWORD', true, '5', '50'],
-      ['WM SUPERCENTER', 'AI', true, '5', '10'],
+      ['WM SUPERCENTER', 'AI_MERCHANT', true, '5', '10'],
       ['PEMEX 4455', 'NONE', false, '1', '3'],
       ['WAL MART SUC 123', 'KEYWORD', true, '5', '-5'],
     ]);
     expect(res.body.transactions[1]).toMatchObject({
       matchConfidence: 0.85,
+      matchReason: 'stub',
       categoryName: 'Supermarkets',
       matchedMerchantName: 'Walmart',
     });
@@ -265,6 +277,61 @@ describe('Verifications (e2e)', () => {
       .set(alice.auth)
       .expect(200);
     expect(stored.body).toEqual(res.body);
+  });
+
+  it('classifies lines into categories that have no merchants (AI_CATEGORY)', async () => {
+    pharmacyCategoryId = (
+      await http()
+        .post('/api/v1/categories')
+        .set(alice.auth)
+        .send({ name: 'Farmacia', description: 'farmacias y droguerías' })
+        .expect(201)
+    ).body.id;
+    await http()
+      .patch(`/api/v1/cards/${cardId}`)
+      .set(alice.auth)
+      .send({
+        rules: [
+          { categoryId: superCategoryId, ratePercent: 5 },
+          { categoryId: pharmacyCategoryId, ratePercent: 3 },
+        ],
+      })
+      .expect(200);
+    extraction.statement = sampleStatement({
+      loyaltyPrograms: [program('Bonificación', '3')],
+      transactions: [
+        line('FARMACIA SIMAN 22', 100),
+        line('SEGURO DE SALDO DE DEUDA', 50, { kind: 'INSURANCE' }),
+      ],
+    });
+    const res = await upload(alice).expect(201);
+    expect(res.body.transactions[0]).toMatchObject({
+      matchSource: 'AI_CATEGORY',
+      matchedMerchantId: null,
+      categoryName: 'Farmacia',
+      matchConfidence: 0.85,
+      appliedRatePercent: '3',
+      expectedReward: '3',
+    });
+    expect(res.body.transactions[1]).toMatchObject({
+      matchSource: 'NONE',
+      categoryId: null,
+      excludedReason: 'NON_PURCHASE_KIND',
+    });
+    expect(res.body.models.classification).toBe('stub-classifier');
+    expect(res.body.verdict).toBe('MATCH');
+  });
+
+  it('reads stored legacy AI matches as AI_MERCHANT', async () => {
+    const created = (await upload(alice).expect(201)).body;
+    await ctx.prisma.$executeRawUnsafe(
+      `UPDATE "Verification" SET transactions = replace(transactions::text, 'AI_MERCHANT', 'AI')::jsonb WHERE id = '${created.id}'`,
+    );
+    const stored = await http()
+      .get(`/api/v1/verifications/${created.id}`)
+      .set(alice.auth)
+      .expect(200);
+    expect(stored.body.transactions[1].matchSource).toBe('AI_MERCHANT');
   });
 
   it('flags an underpaid statement', async () => {

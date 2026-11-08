@@ -46,10 +46,12 @@ const serializeTransaction = (t: VerificationTransaction) => ({
 const deserializeTransaction = (j: Json): VerificationTransaction =>
   ({
     reference: null,
+    matchReason: null,
     kind: j.isCredit ? 'REFUND' : 'PURCHASE',
     rateSource: null,
     excludedReason: null,
     ...j,
+    matchSource: j.matchSource === 'AI' ? 'AI_MERCHANT' : j.matchSource,
     amount: new Decimal(j.amount as string),
     appliedRatePercent: new Decimal(j.appliedRatePercent as string),
     expectedReward: new Decimal(j.expectedReward as string),

@@ -1,7 +1,7 @@
 import type {
+  CategoryCandidate,
+  ClassificationResult,
   ExtractedStatement,
-  MerchantCandidate,
-  MerchantGuess,
 } from './statement.js';
 
 /** Port: turns a statement PDF (in memory only) into structured data. */
@@ -11,10 +11,15 @@ export abstract class StatementExtractor {
   ): Promise<{ statement: ExtractedStatement; model: string }>;
 }
 
-/** Port: fuzzy-matches unmatched statement descriptors to the user's merchants. */
-export abstract class MerchantClassifier {
+/**
+ * Port: classifies the statement lines that no registered merchant matched
+ * into one of the user's categories (and optionally to a registered merchant).
+ * Never throws for upstream failures of a batch: those descriptors come back in
+ * `unclassified`.
+ */
+export abstract class LineClassifier {
   abstract classify(
     descriptors: string[],
-    merchants: MerchantCandidate[],
-  ): Promise<{ guesses: MerchantGuess[]; model: string }>;
+    categories: CategoryCandidate[],
+  ): Promise<ClassificationResult>;
 }

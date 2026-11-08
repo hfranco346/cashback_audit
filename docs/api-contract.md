@@ -565,18 +565,33 @@ ambiguity does not block the request (`loyalty.selectedProgram` is then `null`).
 The value audited is the program's **`accumulated`** ("Acumulados") column unless
 overridden; the other columns are exposed in `loyalty.programs`.
 
-How merchants are matched to your categories:
+How lines are matched to your categories (only `PURCHASE`/`REFUND` lines take
+part; categories do **not** need registered merchants):
 
 1. **Keyword match** (`matchSource: "KEYWORD"`): the statement line is compared
    to every merchant's name and keywords (case/accent/punctuation/space
-   insensitive, "contains"); the longest matching term wins.
-2. **AI match** (`matchSource: "AI"`): only lines with no keyword match are sent
-   to Claude to be fuzzy-matched against your merchants. Matches under 0.6
-   confidence are discarded. `matchConfidence` is the model's 0-1 confidence.
+   insensitive, "contains"); the longest matching term wins. The line gets the
+   merchant's category.
+2. **AI classification** (one batched Claude call per up to 100 distinct
+   unmatched lines, cheap model): the model receives all your categories (name,
+   optional `description`, and your registered merchants as examples) and answers
+   per line a category, optionally a registered merchant, a 0-1 `confidence` and a
+   short `reason`. Results with confidence below the server threshold (default
+   0.7) are discarded.
+   - `matchSource: "AI_MERCHANT"`: the model matched one of your registered
+     merchants (`matchedMerchantId` set; category = that merchant's category).
+   - `matchSource: "AI_CATEGORY"`: the model chose a category only
+     (`matchedMerchantId: null`). This is what makes "everything that is a
+     supermarket/pharmacy counts" work without registering every merchant: give
+     the category a descriptive `description`.
+   `matchConfidence` is the 0-1 confidence and `matchReason` the short
+   explanation (both `null` for keyword/none).
 3. **No match** (`matchSource: "NONE"`): the line earns the card's base rate.
 
-If the AI step fails, the verification still succeeds using keyword matches only
-and carries the warning `AI_MATCHING_UNAVAILABLE`.
+Lines that are not purchases (`kind` other than `PURCHASE`/`REFUND`) are never
+classified. If classification fails (fully or for some lines) the verification
+still succeeds using keyword matches and carries the warning
+`AI_MATCHING_UNAVAILABLE`.
 
 `201` response (full verification object):
 
@@ -713,6 +728,7 @@ and carries the warning `AI_MATCHING_UNAVAILABLE`.
       "categoryName": "Supermarkets",
       "matchSource": "KEYWORD",
       "matchConfidence": null,
+      "matchReason": null,
       "appliedRatePercent": "5",
       "ruleApplied": true,
       "expectedReward": "50"
@@ -803,7 +819,8 @@ Field semantics:
     neither to the statement's "Compras + otros cargos" nor to the purchases-only
     figure (some may be missing; the result may be unreliable).
   - `NO_TRANSACTIONS`: no transactions found.
-  - `AI_MATCHING_UNAVAILABLE`: fuzzy matching failed; keyword matches only.
+  - `AI_MATCHING_UNAVAILABLE`: classification failed for all or some lines;
+    those lines keep keyword matches only.
 - `models`: `{ "extraction": string, "classification": string | null }` - the
   model that performed each step; `classification` is `null` when no
   classification call was made or it failed. `model` is deprecated and equals
@@ -1039,3 +1056,16 @@ Clients built against the previous contract must change:
 - `GET/POST /verifications` responses gained `models` (see section 8).
   `model` is kept as a deprecated alias of `models.extraction`; read `models`.
 - Existing stored verifications report `classification: null`.
+
+### Category-level classification
+
+- `transactions[].matchSource` is now `KEYWORD | AI_MERCHANT | AI_CATEGORY | NONE`.
+  **`AI` no longer exists**: it was split. Old stored rows are migrated to
+  `AI_MERCHANT`; clients must handle the two new values (an `AI_CATEGORY` line
+  has `matchedMerchantId: null` but a `categoryId`).
+- New `transactions[].matchReason` (string or null).
+- Categories with no merchants now receive AI-classified lines, so more lines get
+  a category than before; the confidence threshold moved from 0.6 to 0.7
+  (server setting `CLASSIFICATION_MIN_CONFIDENCE`).
+- `models.classification` identifies the model that classified (null if no call
+  succeeded).

@@ -8,10 +8,10 @@ import type {
   ExtractedStatement,
   ExtractedTransaction,
   LoyaltyProgram,
-  MerchantGuess,
+  LineClassification,
 } from '../domain/statement.js';
 import {
-  MerchantClassifier,
+  LineClassifier,
   StatementExtractor,
 } from '../domain/statement-extractor.js';
 import type { NewVerification, Verification } from '../domain/verification.js';
@@ -110,26 +110,36 @@ const statement = (
 function setup(opts: {
   statement?: ExtractedStatement;
   merchants?: Merchant[];
-  guesses?: MerchantGuess[] | Error;
+  guesses?: LineClassification[] | Error;
+  unclassified?: string[];
+  categories?: { id: string; name: string; description: string | null }[];
   card?: Card | null;
 }) {
   const saved: NewVerification[] = [];
   const classifierCalls: string[][] = [];
+  const categoryCalls: unknown[][] = [];
   const useCase = new CreateVerificationUseCase(
     {
       findById: async () => (opts.card === undefined ? card : opts.card),
     } as unknown as CardRepository,
     {
-      findManyByIds: async () => [
-        {
-          id: 'cat-super',
+      listWithCounts: async () =>
+        (
+          opts.categories ?? [
+            { id: 'cat-super', name: 'Supermarkets', description: null },
+            {
+              id: 'cat-pharmacy',
+              name: 'Pharmacies',
+              description: 'pharmacies and drugstores',
+            },
+          ]
+        ).map((c) => ({
+          ...c,
           userId: USER,
-          name: 'Supermarkets',
-          description: null,
+          merchantCount: 0,
           createdAt: new Date(),
           updatedAt: new Date(),
-        },
-      ],
+        })),
     } as unknown as CategoryRepository,
     {
       list: async () => opts.merchants ?? merchants,
@@ -141,20 +151,26 @@ function setup(opts: {
       }),
     } as unknown as StatementExtractor,
     {
-      classify: async (descriptors: string[]) => {
+      classify: async (descriptors: string[], categories: unknown[]) => {
         classifierCalls.push(descriptors);
+        categoryCalls.push(categories);
         if (opts.guesses instanceof Error) throw opts.guesses;
-        return { guesses: opts.guesses ?? [], model: 'test-classifier' };
+        return {
+          results: opts.guesses ?? [],
+          unclassified: opts.unclassified ?? [],
+          model: 'test-classifier',
+        };
       },
-    } as unknown as MerchantClassifier,
+    } as unknown as LineClassifier,
     {
       create: async (input: NewVerification) => {
         saved.push(input);
         return { ...input, id: 'v-1', createdAt: new Date() } as Verification;
       },
     } as unknown as VerificationRepository,
+    0.7,
   );
-  return { useCase, saved, classifierCalls };
+  return { useCase, saved, classifierCalls, categoryCalls };
 }
 
 describe('CreateVerificationUseCase', () => {
@@ -164,32 +180,42 @@ describe('CreateVerificationUseCase', () => {
     expect(classifierCalls).toEqual([['WM SUPERCENTER 9', 'UBER TRIP']]);
   });
 
-  it('applies AI guesses above the confidence threshold and ignores weak ones', async () => {
+  const verdict = (
+    descriptor: string,
+    over: Partial<LineClassification> = {},
+  ): LineClassification => ({
+    descriptor,
+    categoryId: 'cat-super',
+    matchedMerchantId: null,
+    confidence: 0.9,
+    reason: 'looks like a supermarket',
+    ...over,
+  });
+
+  it('maps classifier results to AI_MERCHANT / AI_CATEGORY and applies the threshold', async () => {
     const { useCase } = setup({
       guesses: [
-        {
-          descriptor: 'WM SUPERCENTER 9',
-          merchantId: 'm-wal',
-          confidence: 0.9,
-        },
-        { descriptor: 'UBER TRIP', merchantId: 'm-sor', confidence: 0.3 },
+        verdict('WM SUPERCENTER 9', { matchedMerchantId: 'm-wal' }),
+        verdict('UBER TRIP', { categoryId: 'cat-super', confidence: 0.69 }),
       ],
     });
     const v = await useCase.execute({ userId: USER, cardId: 'card-1', pdf });
-    const bySource = v.transactions.map((t) => [
-      t.merchant,
-      t.matchSource,
-      t.matchedMerchantId,
-    ]);
-    expect(bySource).toEqual([
-      ['WALMART SUC 123', 'KEYWORD', 'm-wal'],
-      ['SORIANA HIPER', 'KEYWORD', 'm-sor'],
-      ['WM SUPERCENTER 9', 'AI', 'm-wal'],
-      ['UBER TRIP', 'NONE', null],
+    expect(
+      v.transactions.map((t) => [
+        t.merchant,
+        t.matchSource,
+        t.matchedMerchantId,
+        t.categoryId,
+      ]),
+    ).toEqual([
+      ['WALMART SUC 123', 'KEYWORD', 'm-wal', 'cat-super'],
+      ['SORIANA HIPER', 'KEYWORD', 'm-sor', 'cat-super'],
+      ['WM SUPERCENTER 9', 'AI_MERCHANT', 'm-wal', 'cat-super'],
+      ['UBER TRIP', 'NONE', null, null],
     ]);
     expect(v.transactions[2]).toMatchObject({
       matchConfidence: 0.9,
-      categoryId: 'cat-super',
+      matchReason: 'looks like a supermarket',
       categoryName: 'Supermarkets',
       ruleApplied: true,
     });
@@ -199,22 +225,90 @@ describe('CreateVerificationUseCase', () => {
     expect(v.difference.toString()).toBe('-6');
   });
 
-  it('keeps going with a warning when the AI is unavailable', async () => {
+  it('accepts a category-only result at exactly the threshold', async () => {
+    const { useCase } = setup({
+      merchants: [],
+      guesses: [
+        verdict('WALMART SUC 123', { confidence: 0.7 }),
+        verdict('SORIANA HIPER'),
+        verdict('WM SUPERCENTER 9', { categoryId: 'cat-unknown' }),
+        verdict('UBER TRIP', { categoryId: null }),
+      ],
+    });
+    const v = await useCase.execute({ userId: USER, cardId: 'card-1', pdf });
+    expect(
+      v.transactions.map((t) => [t.matchSource, t.matchedMerchantId]),
+    ).toEqual([
+      ['AI_CATEGORY', null],
+      ['AI_CATEGORY', null],
+      ['NONE', null],
+      ['NONE', null],
+    ]);
+    expect(v.transactions[0]).toMatchObject({
+      categoryName: 'Supermarkets',
+      ruleApplied: true,
+      appliedRatePercent: d(5),
+    });
+    // categories with no merchants are valid targets: 1200 at 5% + 200 at 1%
+    expect(v.expectedAmount.toString()).toBe('62');
+  });
+
+  it('offers every category (with merchants as examples) to the classifier', async () => {
+    const { useCase, categoryCalls } = setup({});
+    await useCase.execute({ userId: USER, cardId: 'card-1', pdf });
+    const sent = categoryCalls[0] as {
+      id: string;
+      description: string | null;
+      merchants: { id: string }[];
+    }[];
+    expect(sent.map((c) => c.id)).toEqual(['cat-super', 'cat-pharmacy']);
+    expect(sent[0]!.merchants.map((m) => m.id)).toEqual(['m-wal', 'm-sor']);
+    expect(sent[1]).toMatchObject({
+      description: 'pharmacies and drugstores',
+      merchants: [],
+    });
+  });
+
+  it('records the classification model only when the classifier ran', async () => {
+    const ran = await setup({}).useCase.execute({
+      userId: USER,
+      cardId: 'card-1',
+      pdf,
+    });
+    expect(ran.models).toEqual({
+      extraction: 'test-model',
+      classification: 'test-classifier',
+    });
+    const skipped = await setup({
+      statement: statement({ transactions: [line('WALMART', 100)] }),
+    }).useCase.execute({ userId: USER, cardId: 'card-1', pdf });
+    expect(skipped.models.classification).toBeNull();
+  });
+
+  it('keeps going with a warning when the classifier fails or skips lines', async () => {
     const { useCase } = setup({ guesses: new Error('boom') });
     const v = await useCase.execute({ userId: USER, cardId: 'card-1', pdf });
     expect(v.warnings.map((w) => w.code)).toContain('AI_MATCHING_UNAVAILABLE');
     expect(v.transactions[2]!.matchSource).toBe('NONE');
     expect(v.expectedAmount.toString()).toBe('62'); // 1200 at 5% + 200 at 1%
+
+    const partial = await setup({
+      guesses: [],
+      unclassified: ['UBER TRIP'],
+    }).useCase.execute({ userId: USER, cardId: 'card-1', pdf });
+    expect(partial.warnings.map((w) => w.code)).toContain(
+      'AI_MATCHING_UNAVAILABLE',
+    );
   });
 
-  it('skips the AI when everything matched or the user has no merchants', async () => {
+  it('skips the AI when everything matched or the user has no categories', async () => {
     const all = setup({
       statement: statement({ transactions: [line('WALMART', 100)] }),
     });
     await all.useCase.execute({ userId: USER, cardId: 'card-1', pdf });
     expect(all.classifierCalls).toHaveLength(0);
 
-    const none = setup({ merchants: [] });
+    const none = setup({ merchants: [], categories: [] });
     const v = await none.useCase.execute({
       userId: USER,
       cardId: 'card-1',

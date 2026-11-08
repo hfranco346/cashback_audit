@@ -86,18 +86,31 @@ export interface ExtractedStatement {
   transactions: ExtractedTransaction[];
 }
 
-/** A merchant of the user, offered to the AI for fuzzy matching. */
-export interface MerchantCandidate {
+/** A category of the user offered to the classifier as a target. */
+export interface CategoryCandidate {
   id: string;
   name: string;
-  keywords: string[];
-  categoryName: string;
+  description: string | null;
+  /** Registered merchants of the category, as examples. */
+  merchants: { id: string; name: string }[];
 }
 
-export interface MerchantGuess {
-  /** The statement descriptor this guess is about. */
+export interface LineClassification {
+  /** The statement descriptor this verdict is about. */
   descriptor: string;
-  merchantId: string | null;
+  categoryId: string | null;
+  /** Set only when the line is a registered merchant of the user. */
+  matchedMerchantId: string | null;
   /** 0..1 */
   confidence: number;
+  /** Short explanation (never used in calculations). */
+  reason: string;
+}
+
+export interface ClassificationResult {
+  results: LineClassification[];
+  /** Descriptors whose batch failed; the caller degrades with a warning. */
+  unclassified: string[];
+  /** Model that answered; null when every batch failed. */
+  model: string | null;
 }

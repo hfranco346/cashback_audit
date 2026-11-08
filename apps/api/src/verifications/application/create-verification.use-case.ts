@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { CardRepository } from '../../cards/domain/card.repository.js';
 import { CardNotFoundError } from '../../cards/domain/card-errors.js';
@@ -20,10 +20,10 @@ import {
 import {
   REWARD_ELIGIBLE_KINDS,
   type ExtractedStatement,
-  type MerchantCandidate,
+  type CategoryCandidate,
 } from '../domain/statement.js';
 import {
-  MerchantClassifier,
+  LineClassifier,
   StatementExtractor,
 } from '../domain/statement-extractor.js';
 import {
@@ -40,8 +40,10 @@ import type {
 } from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
 
-/** AI guesses below this confidence are ignored. */
-export const AI_MATCH_MIN_CONFIDENCE = 0.6;
+/** Injection token: minimum classifier confidence (0..1) to accept a result. */
+export const CLASSIFICATION_MIN_CONFIDENCE = Symbol(
+  'CLASSIFICATION_MIN_CONFIDENCE',
+);
 
 export interface CreateVerificationInput {
   userId: string;
@@ -89,8 +91,10 @@ export class CreateVerificationUseCase {
     private readonly categories: CategoryRepository,
     private readonly merchants: MerchantRepository,
     private readonly extractor: StatementExtractor,
-    private readonly classifier: MerchantClassifier,
+    private readonly classifier: LineClassifier,
     private readonly verifications: VerificationRepository,
+    @Inject(CLASSIFICATION_MIN_CONFIDENCE)
+    private readonly minConfidence: number,
   ) {}
 
   async execute(input: CreateVerificationInput): Promise<Verification> {
@@ -104,11 +108,8 @@ export class CreateVerificationUseCase {
     if (!card) throw new CardNotFoundError();
 
     const userMerchants = await this.merchants.list(input.userId, {});
-    const categoryIds = [...new Set(userMerchants.map((m) => m.categoryId))];
-    const ruleCategoryIds = card.rules.map((r) => r.categoryId);
-    const categories = await this.categories.findManyByIds(input.userId, [
-      ...new Set([...categoryIds, ...ruleCategoryIds]),
-    ]);
+    const allCategories = await this.categories.listWithCounts(input.userId);
+    const categories = allCategories;
     const categoryName = new Map(categories.map((c) => [c.id, c.name]));
     const merchantById = new Map(userMerchants.map((m) => [m.id, m]));
 
@@ -194,57 +195,95 @@ export class CreateVerificationUseCase {
     const eligible = statement.transactions.map((tx) =>
       REWARD_ELIGIBLE_KINDS.includes(tx.kind),
     );
-    const matches = statement.transactions.map((tx, i) => {
+    interface Match {
+      merchantId: string | null;
+      categoryId: string | null;
+      source: MatchSource;
+      confidence: number | null;
+      reason: string | null;
+    }
+    const matches: Match[] = statement.transactions.map((tx, i) => {
       const merchant = eligible[i] ? matcher.match(tx.merchant) : null;
       return {
         merchantId: merchant?.id ?? null,
-        source: (merchant ? 'KEYWORD' : 'NONE') as MatchSource,
-        confidence: null as number | null,
+        categoryId: merchant?.categoryId ?? null,
+        source: merchant ? 'KEYWORD' : 'NONE',
+        confidence: null,
+        reason: null,
       };
     });
 
     const unmatchedDescriptors = [
       ...new Set(
         statement.transactions
-          .filter((_, i) => eligible[i] && matches[i]!.merchantId === null)
+          .filter((_, i) => eligible[i] && matches[i]!.source === 'NONE')
           .map((t) => t.merchant),
       ),
     ];
-    if (unmatchedDescriptors.length > 0 && userMerchants.length > 0) {
+    if (unmatchedDescriptors.length > 0 && categories.length > 0) {
       try {
-        const candidates: MerchantCandidate[] = userMerchants.map((m) => ({
-          id: m.id,
-          name: m.name,
-          keywords: m.keywords,
-          categoryName: categoryName.get(m.categoryId) ?? '',
+        const merchantsByCategory = new Map<
+          string,
+          CategoryCandidate['merchants']
+        >();
+        for (const m of userMerchants) {
+          const list = merchantsByCategory.get(m.categoryId) ?? [];
+          list.push({ id: m.id, name: m.name });
+          merchantsByCategory.set(m.categoryId, list);
+        }
+        const candidates: CategoryCandidate[] = categories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          merchants: merchantsByCategory.get(c.id) ?? [],
         }));
         const classified = await this.classifier.classify(
           unmatchedDescriptors,
           candidates,
         );
         classificationModel = classified.model;
-        const guesses = classified.guesses;
-        const byDescriptor = new Map(guesses.map((g) => [g.descriptor, g]));
+        const byDescriptor = new Map(
+          classified.results.map((r) => [r.descriptor, r]),
+        );
         statement.transactions.forEach((tx, i) => {
-          if (!eligible[i] || matches[i]!.merchantId !== null) return;
-          const guess = byDescriptor.get(tx.merchant);
-          if (
-            guess?.merchantId &&
-            merchantById.has(guess.merchantId) &&
-            guess.confidence >= AI_MATCH_MIN_CONFIDENCE
+          if (!eligible[i] || matches[i]!.source !== 'NONE') return;
+          const verdict = byDescriptor.get(tx.merchant);
+          if (!verdict || verdict.confidence < this.minConfidence) return;
+          const merchant = verdict.matchedMerchantId
+            ? merchantById.get(verdict.matchedMerchantId)
+            : undefined;
+          if (merchant) {
+            matches[i] = {
+              merchantId: merchant.id,
+              categoryId: merchant.categoryId,
+              source: 'AI_MERCHANT',
+              confidence: verdict.confidence,
+              reason: verdict.reason || null,
+            };
+          } else if (
+            verdict.categoryId &&
+            categoryName.has(verdict.categoryId)
           ) {
             matches[i] = {
-              merchantId: guess.merchantId,
-              source: 'AI',
-              confidence: guess.confidence,
+              merchantId: null,
+              categoryId: verdict.categoryId,
+              source: 'AI_CATEGORY',
+              confidence: verdict.confidence,
+              reason: verdict.reason || null,
             };
           }
         });
+        if (classified.unclassified.length > 0) {
+          warnings.push({
+            code: 'AI_MATCHING_UNAVAILABLE',
+            message: `Automatic classification failed for ${classified.unclassified.length} line(s); they were left unclassified.`,
+          });
+        }
       } catch {
         warnings.push({
           code: 'AI_MATCHING_UNAVAILABLE',
           message:
-            'Fuzzy merchant matching was unavailable; only keyword matches were applied.',
+            'Automatic classification was unavailable; only keyword matches were applied.',
         });
       }
     }
@@ -273,9 +312,7 @@ export class CreateVerificationUseCase {
         currency: tx.currency,
         kind: tx.kind,
         isCredit: tx.isCredit,
-        categoryId: matches[index]!.merchantId
-          ? (merchantById.get(matches[index]!.merchantId!)?.categoryId ?? null)
-          : null,
+        categoryId: matches[index]!.categoryId,
       })),
       rates,
     );
@@ -372,12 +409,13 @@ export class CreateVerificationUseCase {
           excludedReason: detail.excludedReason,
           matchedMerchantId: merchant?.id ?? null,
           matchedMerchantName: merchant?.name ?? null,
-          categoryId: merchant?.categoryId ?? null,
-          categoryName: merchant
-            ? (categoryName.get(merchant.categoryId) ?? null)
+          categoryId: match.categoryId,
+          categoryName: match.categoryId
+            ? (categoryName.get(match.categoryId) ?? null)
             : null,
           matchSource: match.source,
           matchConfidence: match.confidence,
+          matchReason: match.reason,
           appliedRatePercent: detail.appliedRatePercent,
           ruleApplied: detail.ruleApplied,
           expectedReward: detail.expectedReward,

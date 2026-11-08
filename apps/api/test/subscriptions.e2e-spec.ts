@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { Decimal } from 'decimal.js';
 import {
-  MerchantClassifier,
+  LineClassifier,
   StatementExtractor,
 } from '../src/verifications/domain/statement-extractor.js';
 import {
@@ -60,7 +60,16 @@ describe('Subscriptions (e2e, gate enabled)', () => {
           }),
         },
       },
-      { token: MerchantClassifier, useValue: { classify: async () => [] } },
+      {
+        token: LineClassifier,
+        useValue: {
+          classify: async () => ({
+            results: [],
+            unclassified: [],
+            model: null,
+          }),
+        },
+      },
     ]);
   });
   afterAll(async () => {

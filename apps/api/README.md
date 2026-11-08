@@ -60,6 +60,7 @@ All variables are validated at startup (`src/config/env.ts`); see
 | `ANTHROPIC_API_KEY` | Claude API key; without it verification returns 503 |
 | `ANTHROPIC_EXTRACTION_MODEL` | Model that reads the statement PDF. Default `claude-sonnet-5-5` |
 | `ANTHROPIC_CLASSIFICATION_MODEL` | Model that classifies merchants/categories. Default `claude-haiku-5-5` |
+| `CLASSIFICATION_MIN_CONFIDENCE` | Minimum classifier confidence (0-1) to accept a category/merchant match. Default `0.7` |
 | `ANTHROPIC_MODEL` | Deprecated; fallback for `ANTHROPIC_EXTRACTION_MODEL` only when that one is unset |
 | `REVENUECAT_WEBHOOK_AUTH` | Shared secret; RevenueCat sends it verbatim in the `Authorization` header |
 | `REVENUECAT_ENTITLEMENT_ID` | Default `pro` |

@@ -263,12 +263,23 @@ export function parseExtraction(raw: unknown): ExtractedStatement | null {
   };
 }
 
+/** Shape requested from the classifier; ids are re-validated by the caller. */
 export const classificationOutputSchema = z.object({
   matches: z.array(
     z.object({
-      descriptor: z.string(),
-      merchantId: z.string().nullable(),
-      confidence: z.number(),
+      descriptor: z.string().describe('The descriptor, copied unchanged'),
+      categoryId: z
+        .string()
+        .nullable()
+        .describe('Id of the best category, or null when unsure'),
+      matchedMerchantId: z
+        .string()
+        .nullable()
+        .describe(
+          'Id of a listed merchant only if it is clearly that merchant',
+        ),
+      confidence: z.number().describe('0 to 1'),
+      reason: z.string().describe('At most 12 words'),
     }),
   ),
 });

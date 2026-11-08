@@ -13,7 +13,13 @@ import type {
   TransactionKind,
 } from './statement.js';
 
-export type MatchSource = 'KEYWORD' | 'AI' | 'NONE';
+/**
+ * KEYWORD: a registered merchant's name/keyword matched.
+ * AI_MERCHANT: the classifier matched a registered merchant.
+ * AI_CATEGORY: the classifier chose a category only.
+ * (Stored rows written before this change say `AI`; they are read as AI_MERCHANT.)
+ */
+export type MatchSource = 'KEYWORD' | 'AI_MERCHANT' | 'AI_CATEGORY' | 'NONE';
 
 export interface VerificationTransaction {
   index: number;
@@ -40,6 +46,8 @@ export interface VerificationTransaction {
   matchSource: MatchSource;
   /** Only for AI matches (0..1). */
   matchConfidence: number | null;
+  /** Short classifier explanation for AI matches. */
+  matchReason: string | null;
   appliedRatePercent: Decimal;
   /** True when a card rule (not the base rate) was applied. */
   ruleApplied: boolean;
