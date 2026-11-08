@@ -11,6 +11,9 @@ abstract class AppNavigator {
   /// Replaces the current page with [route].
   void replace(String route, {Object? arguments});
 
+  /// Pops the current page.
+  void pop();
+
   void showNotice(String title, String message);
 }
 
@@ -25,6 +28,9 @@ class GetAppNavigator implements AppNavigator {
   @override
   void replace(String route, {Object? arguments}) =>
       Get.offNamed<void>(route, arguments: arguments);
+
+  @override
+  void pop() => Get.back<void>();
 
   @override
   void showNotice(String title, String message) => Get.snackbar(title, message);

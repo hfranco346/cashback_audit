@@ -21,6 +21,11 @@ import '../../features/verifications/presentation/result_controller.dart';
 import '../../features/verifications/presentation/result_page.dart';
 import '../../features/verifications/presentation/upload_controller.dart';
 import '../../features/verifications/presentation/upload_page.dart';
+import '../../features/subscription/domain/subscription_repository.dart';
+import '../../features/subscription/presentation/paywall_controller.dart';
+import '../../features/subscription/presentation/paywall_page.dart';
+import '../../features/subscription/presentation/subscription_controller.dart';
+import '../../features/home/presentation/home_controller.dart';
 import '../../features/home/presentation/home_page.dart';
 import '../../features/onboarding/presentation/onboarding_controller.dart';
 import '../../features/onboarding/presentation/onboarding_page.dart';
@@ -76,6 +81,14 @@ abstract final class AppPages {
       name: Routes.home,
       page: () => const HomePage(),
       transition: Transition.fadeIn,
+      binding: BindingsBuilder(() {
+        Get.put(
+          HomeController(
+            session: Get.find<SessionController>(),
+            subscription: Get.find<SubscriptionController>(),
+          ),
+        );
+      }),
     ),
     GetPage(
       name: Routes.cardForm,
@@ -137,6 +150,20 @@ abstract final class AppPages {
             initialCardId: Get.arguments is String
                 ? Get.arguments as String
                 : null,
+          ),
+        );
+      }),
+    ),
+    GetPage(
+      name: Routes.paywall,
+      page: () => const PaywallPage(),
+      fullscreenDialog: true,
+      binding: BindingsBuilder(() {
+        Get.lazyPut(
+          () => PaywallController(
+            billing: Get.find<BillingService>(),
+            subscription: Get.find<SubscriptionController>(),
+            navigator: Get.find<AppNavigator>(),
           ),
         );
       }),

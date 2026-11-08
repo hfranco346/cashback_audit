@@ -4,6 +4,12 @@
 <dict>
 	<!-- TODO: replace with the REVERSED iOS client id from Google Cloud
 	     (e.g. com.googleusercontent.apps.1234-abcd). See apps/mobile/README.md. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Allows http://localhost during development. Remove for release. -->
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

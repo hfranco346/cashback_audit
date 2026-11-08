@@ -18,6 +18,10 @@ import '../../features/verifications/data/verification_repository_impl.dart';
 import '../../features/verifications/domain/pdf_picker.dart';
 import '../../features/verifications/domain/verification_repository.dart';
 import '../../features/verifications/presentation/history_controller.dart';
+import '../../features/subscription/data/revenuecat_billing_service.dart';
+import '../../features/subscription/data/subscription_repository_impl.dart';
+import '../../features/subscription/domain/subscription_repository.dart';
+import '../../features/subscription/presentation/subscription_controller.dart';
 import '../../features/onboarding/data/onboarding_repository_impl.dart';
 import '../../features/onboarding/domain/onboarding_repository.dart';
 import '../config/app_config.dart';
@@ -91,6 +95,29 @@ class InitialBinding extends Bindings {
       () => LatestVerificationsController(Get.find<VerificationRepository>()),
       fenix: true,
     );
+    Get.put<BillingService>(RevenueCatBillingService(), permanent: true);
+    Get.put<SubscriptionRepository>(
+      SubscriptionRepositoryImpl(dio),
+      permanent: true,
+    );
+    Get.put<SubscriptionController>(
+      SubscriptionController(
+        repository: Get.find<SubscriptionRepository>(),
+        billing: Get.find<BillingService>(),
+      ),
+      permanent: true,
+    );
+    // RevenueCat customer must carry our user id before any purchase.
+    final session = Get.find<SessionController>();
+    session
+      ..addSignedInHook((user) => Get.find<BillingService>().logIn(user.id))
+      ..addSignedInHook((_) async {
+        await Get.find<SubscriptionController>().fetchStatus();
+      })
+      ..addSignedOutHook(Get.find<BillingService>().logOut)
+      ..addSignedOutHook(
+        () async => Get.find<SubscriptionController>().reset(),
+      );
     // Shared stores; recreated lazily after logout.
     Get.lazyPut<CardsController>(
       () => CardsController(Get.find<CardRepository>()),

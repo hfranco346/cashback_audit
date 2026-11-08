@@ -18,6 +18,9 @@ class FakeNavigator implements AppNavigator {
   void offAll(String route) => routes.add(route);
   @override
   void showNotice(String title, String message) => notices.add(title);
+  int pops = 0;
+  @override
+  void pop() => pops++;
   final pushed = <String>[];
   final pushedArgs = <Object?>[];
   final replaced = <String>[];

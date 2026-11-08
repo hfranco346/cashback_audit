@@ -263,4 +263,45 @@ abstract final class S {
   static const seeAll = 'Ver todo';
   static const verifyAction = 'Verificar estado';
   static const historyAction = 'Historial';
+
+  // Paywall & subscription
+  static const paywallTitle = 'Cashback Audit Pro';
+  static const paywallHeadline = 'Audita todos tus estados de cuenta';
+  static const paywallBenefit1 =
+      'Verificaciones ilimitadas de tus estados de cuenta';
+  static const paywallBenefit2 = 'Desglose por rubro y por movimiento';
+  static const paywallBenefit3 = 'Historial por tarjeta siempre disponible';
+  static const paywallSubscribe = 'Suscribirme';
+  static const paywallRestore = 'Restaurar compras';
+  static const paywallLegal =
+      'La suscripción se renueva automáticamente. Puedes cancelarla en cualquier momento desde los ajustes de tu tienda de aplicaciones.';
+  static const paywallNoPackages =
+      'No hay planes disponibles por ahora. Inténtalo más tarde.';
+  static const paywallLoadFailed =
+      'No pudimos cargar los planes. Revisa tu conexión e inténtalo de nuevo.';
+  static const paywallPurchaseFailed =
+      'No se pudo completar la compra. No se te cobró nada.';
+  static const paywallRestoreFailed =
+      'No pudimos restaurar tus compras. Inténtalo de nuevo.';
+  static const paywallConfirming = 'Confirmando tu suscripción…';
+  static const paywallPending =
+      'Tu compra se está procesando. Puede tardar unos segundos en reflejarse.';
+  static const paywallCheckAgain = 'Verificar de nuevo';
+  static const paywallSuccessTitle = '¡Listo!';
+  static const paywallSuccessBody = 'Tu suscripción está activa.';
+  static const paywallDevNoticeTitle = 'Compras no configuradas';
+  static const paywallDevNotice =
+      'Esta compilación no tiene clave de RevenueCat (REVENUECAT_IOS_KEY / REVENUECAT_ANDROID_KEY). Configúrala con --dart-define para probar las compras.';
+  static const subscriptionTitle = 'Suscripción';
+  static const subscribeNow = 'Ver planes';
+  static const subscriptionNone = 'Sin suscripción activa';
+  static const subscriptionActive = 'Pro activa';
+  static const subscriptionCancelled = 'Cancelada';
+  static const subscriptionBillingIssue = 'Problema de pago';
+  static const subscriptionExpired = 'Vencida';
+  static String subscriptionRenews(String date) => 'Se renueva el $date';
+  static String subscriptionEnds(String date) => 'Activa hasta el $date';
+  static const subscriptionBillingIssueHint =
+      'Actualiza tu método de pago en la tienda para no perder el acceso.';
+  static const restoreDone = 'Compras restauradas';
 }
