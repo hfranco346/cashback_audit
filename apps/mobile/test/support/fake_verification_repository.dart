@@ -24,6 +24,11 @@ class FakeVerificationRepository implements VerificationRepository {
   final confirmedIds = <String>[];
   final corrections = <({String id, int index, String? categoryId})>[];
   final deleted = <String>[];
+  final suggestionRequests = <({String id, List<String> names})>[];
+
+  /// What `createCategoriesFromSuggestions` returns.
+  Map<String, dynamic>? suggestionsResultJson;
+  Object? suggestionsError;
   List<VerificationSummary> items = [];
   int pageSizeSeen = 0;
 
@@ -60,6 +65,16 @@ class FakeVerificationRepository implements VerificationRepository {
     corrections.add((id: id, index: index, categoryId: categoryId));
     if (correctError != null) throw correctError!;
     return VerificationMapper.detail(detailJson);
+  }
+
+  @override
+  Future<Verification> createCategoriesFromSuggestions(
+    String id,
+    List<String> names,
+  ) async {
+    suggestionRequests.add((id: id, names: names));
+    if (suggestionsError != null) throw suggestionsError!;
+    return VerificationMapper.detail(suggestionsResultJson ?? detailJson);
   }
 
   @override

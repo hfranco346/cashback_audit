@@ -11,6 +11,7 @@ import '../../../core/utils/decimal_utils.dart';
 import '../../cards/domain/card_entities.dart';
 import '../../cards/domain/card_validator.dart';
 import '../../cards/presentation/cards_controller.dart';
+import '../../categories/presentation/catalog_controller.dart';
 import '../domain/verification_entities.dart';
 import '../domain/verification_repository.dart';
 
@@ -92,6 +93,38 @@ class RateEntryDraft {
   }
 }
 
+/// `null` when [text] is a valid exchange rate (> 0, at most 6 decimals).
+String? validateExchangeRate(String text) {
+  final d = CardValidator.parse(text);
+  if (d == null || d <= Decimal.zero || d.scale > 6) {
+    return S.exchangeRateInvalid;
+  }
+  return null;
+}
+
+/// Editable optional rate for one foreign spend currency.
+class ForeignRateDraft {
+  ForeignRateDraft({
+    required this.currency,
+    required this.origin,
+    String rate = '',
+  }) : rate = TextEditingController(text: rate);
+
+  final String currency;
+  final RateOrigin origin;
+  final TextEditingController rate;
+
+  bool get hasRate => rate.text.trim().isNotEmpty;
+
+  /// Optional: only validated when something was typed.
+  String? get error => hasRate ? validateExchangeRate(rate.text) : null;
+
+  /// Without a rate this currency's purchases are left out of the audit.
+  bool get willBeExcluded => !hasRate;
+
+  void dispose() => rate.dispose();
+}
+
 /// Step 2 of the verification flow: the user confirms or edits the rates and
 /// the backend computes the audit. Also used to recalculate for free.
 class ConfirmRatesController extends GetxController {
@@ -100,11 +133,13 @@ class ConfirmRatesController extends GetxController {
     required this._cards,
     required this._navigator,
     required this.args,
+    this._catalog,
   });
 
   final VerificationRepository _repository;
   final CardsController _cards;
   final AppNavigator _navigator;
+  final CatalogController? _catalog;
   final ConfirmRatesArgs args;
 
   final verification = Rxn<Verification>();
@@ -115,6 +150,23 @@ class ConfirmRatesController extends GetxController {
   final entries = <RateEntryDraft>[].obs;
   final saveToCard = false.obs;
   final exchangeRate = TextEditingController();
+
+  /// Reward currency differs from the card's: the user types how much one
+  /// unit of it is worth (primary units).
+  final rewardConversion = Rxn<RewardConversion>();
+  final rewardRate = TextEditingController();
+  RateOrigin rewardRateOrigin = RateOrigin.none;
+  bool rewardRateTouched = false;
+
+  /// One optional rate per foreign spend currency.
+  final foreignRates = <ForeignRateDraft>[].obs;
+
+  /// Statement categories the user lacks, those ticked and progress.
+  final suggestions = <SuggestedCategory>[].obs;
+  final selectedSuggestions = <String>{}.obs;
+  final creatingSuggestions = false.obs;
+  final suggestionsCreatedNotice = false.obs;
+  final _handledSuggestions = <String>{};
   final reportedOverride = TextEditingController();
 
   /// Program names to choose from (several programs and none selected, or
@@ -138,8 +190,11 @@ class ConfirmRatesController extends GetxController {
 
   String get primaryCurrency => verification.value?.currency ?? 'MXN';
 
-  /// Exchange rate field only when foreign-currency purchases exist.
-  bool get showExchangeRate => verification.value?.hasForeignPurchases ?? false;
+  /// The old single "any foreign currency" field: only for verifications
+  /// without a per-currency proposal (rows from before it existed).
+  bool get showExchangeRate =>
+      (verification.value?.hasForeignPurchases ?? false) &&
+      foreignRates.isEmpty;
 
   StatementRate? get statementRate =>
       verification.value?.conversion.statementRate;
@@ -152,12 +207,29 @@ class ConfirmRatesController extends GetxController {
 
   String? get exchangeRateError {
     final t = exchangeRate.text.trim();
-    if (t.isEmpty) return null;
-    final d = CardValidator.parse(t);
-    if (d == null || d <= Decimal.zero || d.scale > 6) {
-      return S.exchangeRateInvalid;
+    return t.isEmpty ? null : validateExchangeRate(t);
+  }
+
+  /// The server reuses the spend rate of the reward currency when no reward
+  /// rate is sent, so a valid one there also satisfies the reward conversion.
+  bool get _rewardRateCoveredBySpendRate {
+    final to = rewardConversion.value?.toCurrency;
+    return foreignRates.any(
+      (f) => f.currency == to && f.hasRate && f.error == null,
+    );
+  }
+
+  /// Required while empty (unless covered), valid when filled.
+  String? get rewardRateError {
+    final conv = rewardConversion.value;
+    if (conv == null) return null;
+    final t = rewardRate.text.trim();
+    if (t.isEmpty) {
+      return conv.required && !_rewardRateCoveredBySpendRate
+          ? S.rewardRateRequiredError
+          : null;
     }
-    return null;
+    return validateExchangeRate(t);
   }
 
   String? get overrideError {
@@ -173,7 +245,8 @@ class ConfirmRatesController extends GetxController {
     _revision.value; // reactive dependency
     if (verification.value == null || submitting.value) return false;
     if (entries.isEmpty || !entries.every((e) => e.isValid)) return false;
-    if (exchangeRateError != null) return false;
+    if (exchangeRateError != null || rewardRateError != null) return false;
+    if (!foreignRates.every((f) => f.error == null)) return false;
     if (programChoices.isNotEmpty && selectedProgram.value == null) {
       return false;
     }
@@ -221,6 +294,9 @@ class ConfirmRatesController extends GetxController {
     }
     exchangeRate.removeListener(_bump);
     exchangeRate.addListener(_bump);
+    rewardRate.removeListener(_bump);
+    rewardRate.addListener(_bump);
+    _loadConversion(v);
     reportedOverride.removeListener(_bump);
     reportedOverride.addListener(_bump);
     final requested = v.conversion.requestedRate;
@@ -233,6 +309,130 @@ class ConfirmRatesController extends GetxController {
   }
 
   void _bump() => _revision.value++;
+
+  /// Prefill priority for the reward and foreign rates: what the
+  /// verification was audited with / sent before > what the statement prints
+  /// > empty.
+  void _loadConversion(Verification v) {
+    final conv = v.rewardConversion;
+    rewardConversion.value = conv;
+    final used =
+        v.appliedRates?.rewardExchangeRate?.rate ??
+        v.conversion.requestedRewardRate;
+    final reward = used ?? conv?.rate;
+    rewardRate.text = reward == null ? '' : decimalToApi(reward);
+    rewardRateOrigin = used != null
+        ? RateOrigin.previous
+        : (conv?.rate != null ? RateOrigin.statement : RateOrigin.none);
+    rewardRateTouched = false;
+
+    for (final f in foreignRates) {
+      f.dispose();
+    }
+    foreignRates.assignAll([
+      for (final e in v.exchangeRateProposal)
+        () {
+          final sent = v.conversion.requestedRates[e.currency];
+          final value = sent ?? e.rate;
+          final draft = ForeignRateDraft(
+            currency: e.currency,
+            origin: sent != null
+                ? RateOrigin.previous
+                : (e.rate != null ? RateOrigin.statement : RateOrigin.none),
+            rate: value == null ? '' : decimalToApi(value),
+          );
+          draft.rate.addListener(_bump);
+          return draft;
+        }(),
+    ]);
+
+    _handledSuggestions.clear();
+    suggestionsCreatedNotice.value = false;
+    _loadSuggestions(v, preselect: true);
+  }
+
+  void _loadSuggestions(Verification v, {required bool preselect}) {
+    final visible = [
+      for (final s in v.suggestedCategories)
+        if (!_handledSuggestions.contains(s.name)) s,
+    ];
+    suggestions.assignAll(visible);
+    final names = visible.map((s) => s.name).toSet();
+    selectedSuggestions.removeWhere((n) => !names.contains(n));
+    if (preselect) {
+      // Names that matched at least one line are the likely wanted ones.
+      selectedSuggestions.assignAll({
+        for (final s in visible)
+          if (s.matchingTransactionCount >= 1) s.name,
+      });
+    }
+  }
+
+  void touchRewardRate() {
+    rewardRateTouched = true;
+    _bump();
+  }
+
+  void toggleSuggestion(String name, bool selected) {
+    if (selected) {
+      selectedSuggestions.add(name);
+    } else {
+      selectedSuggestions.remove(name);
+    }
+  }
+
+  /// Creates the ticked categories (free) and refreshes the proposal in
+  /// place, keeping everything the user already typed.
+  Future<void> createSuggestedCategories() async {
+    final v = verification.value;
+    if (v == null || creatingSuggestions.value) return;
+    final names = [
+      for (final s in suggestions)
+        if (selectedSuggestions.contains(s.name)) s.name,
+    ];
+    if (names.isEmpty) return;
+    creatingSuggestions.value = true;
+    errorMessage.value = null;
+    try {
+      final updated = await _repository.createCategoriesFromSuggestions(
+        v.id,
+        names,
+      );
+      _handledSuggestions.addAll(names);
+      _mergeRefreshed(updated);
+      suggestionsCreatedNotice.value = true;
+      _catalog?.load();
+    } on AppException catch (e) {
+      errorMessage.value = userMessageFor(e);
+    } finally {
+      creatingSuggestions.value = false;
+    }
+  }
+
+  /// Takes a refreshed proposal without losing the user's edits: existing
+  /// rate entries stay as they are, new categories are added prefilled.
+  void _mergeRefreshed(Verification v) {
+    verification.value = v;
+    final existing = {for (final e in entries) e.categoryId: e};
+    final merged = <RateEntryDraft>[];
+    for (final fresh in buildEntries(v)) {
+      final old = existing.remove(fresh.categoryId);
+      if (old != null) {
+        fresh.dispose();
+        merged.add(old);
+      } else {
+        fresh.rate.addListener(_bump);
+        fresh.cap.addListener(_bump);
+        merged.add(fresh);
+      }
+    }
+    for (final dropped in existing.values) {
+      dropped.dispose();
+    }
+    entries.assignAll(merged);
+    _loadSuggestions(v, preselect: false);
+    _bump();
+  }
 
   /// Prefill priority: rates the verification was audited with (recalc) >
   /// what the statement states > the card's rule > empty and required.
@@ -327,6 +527,13 @@ class ConfirmRatesController extends GetxController {
           ? CardValidator.parse(reportedOverride.text)
           : null,
       exchangeRate: showExchangeRate ? exchange : null,
+      exchangeRates: {
+        for (final f in foreignRates)
+          if (f.hasRate) f.currency: CardValidator.parse(f.rate.text)!,
+      },
+      rewardExchangeRate: rewardConversion.value == null
+          ? null
+          : CardValidator.parse(rewardRate.text),
       rewardProgramName: selectedProgram.value,
     );
   }
@@ -363,6 +570,25 @@ class ConfirmRatesController extends GetxController {
       case 'REPORTED_REWARD_NOT_FOUND':
         needsReportedOverride.value = true;
         errorMessage.value = userMessageFor(e);
+      case 'REWARD_EXCHANGE_RATE_REQUIRED':
+        // The server could not find a rate: make the field required (and
+        // create it when the proposal did not announce a conversion).
+        final d = e.details is Map ? e.details as Map : const {};
+        final current = rewardConversion.value;
+        final from = (d['fromCurrency'] ?? current?.fromCurrency) as String?;
+        final to = (d['toCurrency'] ?? current?.toCurrency) as String?;
+        if (from != null && to != null) {
+          rewardConversion.value = RewardConversion(
+            fromCurrency: from,
+            toCurrency: to,
+            rate: current?.rate,
+            fromStatement: current?.fromStatement ?? false,
+            required: true,
+            note: current?.note,
+          );
+        }
+        rewardRateTouched = true;
+        errorMessage.value = userMessageFor(e);
       case 'RATES_REQUIRED':
         final missing = ((e.details as Map?)?['missing'] as List?) ?? const [];
         final ids = {
@@ -392,6 +618,10 @@ class ConfirmRatesController extends GetxController {
       e.dispose();
     }
     exchangeRate.dispose();
+    rewardRate.dispose();
+    for (final f in foreignRates) {
+      f.dispose();
+    }
     reportedOverride.dispose();
     super.onClose();
   }

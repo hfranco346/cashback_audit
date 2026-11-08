@@ -71,6 +71,18 @@ class VerificationRepositoryImpl implements VerificationRepository {
     return _store(res.data!);
   });
 
+  @override
+  Future<Verification> createCategoriesFromSuggestions(
+    String id,
+    List<String> names,
+  ) => guardApi(() async {
+    final res = await _dio.post<JsonMap>(
+      '/verifications/$id/categories-from-suggestions',
+      data: {'names': names},
+    );
+    return _store(res.data!);
+  });
+
   /// Writes a fresh verification through to the offline cache.
   Future<Verification> _store(JsonMap json) async {
     await _db.saveVerificationDetail(json);

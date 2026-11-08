@@ -6,7 +6,11 @@ import '../../../../core/l10n/strings.dart';
 import '../../../../shared/widgets/atoms/staggered_entrance.dart';
 import '../../../../shared/widgets/molecules/inline_message.dart';
 import '../confirm_rates_controller.dart';
+import '../../domain/verification_entities.dart';
+import 'foreign_rates_card.dart';
 import 'rate_entry_card.dart';
+import 'reward_conversion_card.dart';
+import 'suggested_categories_card.dart';
 
 /// Pure presentational rate confirmation screen (step 2).
 class ConfirmRatesView extends StatelessWidget {
@@ -29,6 +33,18 @@ class ConfirmRatesView extends StatelessWidget {
     required this.onSelectProgram,
     required this.needsOverride,
     required this.reportedOverride,
+    this.rewardConversion,
+    this.rewardRate,
+    this.rewardRateOrigin = RateOrigin.none,
+    this.rewardRateError,
+    this.onRewardRateTouched,
+    this.foreignRates = const [],
+    this.suggestions = const [],
+    this.selectedSuggestions = const {},
+    this.onToggleSuggestion,
+    this.onCreateSuggestions,
+    this.creatingSuggestions = false,
+    this.suggestionsCreated = false,
     this.isRecalculation = false,
     this.exchangeRateError,
     this.statementRateNote,
@@ -66,6 +82,24 @@ class ConfirmRatesView extends StatelessWidget {
   final String? overrideError;
   final String? errorMessage;
 
+  /// Reward paid in another currency than the card's (required rate).
+  final RewardConversion? rewardConversion;
+  final TextEditingController? rewardRate;
+  final RateOrigin rewardRateOrigin;
+  final String? rewardRateError;
+  final VoidCallback? onRewardRateTouched;
+
+  /// Optional rate per foreign spend currency.
+  final List<ForeignRateDraft> foreignRates;
+
+  /// Statement categories the user lacks.
+  final List<SuggestedCategory> suggestions;
+  final Set<String> selectedSuggestions;
+  final void Function(String name, bool selected)? onToggleSuggestion;
+  final VoidCallback? onCreateSuggestions;
+  final bool creatingSuggestions;
+  final bool suggestionsCreated;
+
   static final _decimal = FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'));
 
   @override
@@ -90,8 +124,20 @@ class ConfirmRatesView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          if (suggestions.isNotEmpty || suggestionsCreated) ...[
+            SuggestedCategoriesCard(
+              suggestions: suggestions,
+              selected: selectedSuggestions,
+              onToggle: onToggleSuggestion ?? (_, _) {},
+              onCreate: onCreateSuggestions ?? () {},
+              creating: creatingSuggestions,
+              createdNotice: suggestionsCreated,
+            ),
+            const SizedBox(height: 12),
+          ],
           for (final entry in entries)
             Padding(
+              key: ValueKey(entry.categoryId ?? 'base'),
               padding: const EdgeInsets.only(bottom: 12),
               child: StaggeredEntrance(
                 index: position++,
@@ -103,6 +149,25 @@ class ConfirmRatesView extends StatelessWidget {
                 ),
               ),
             ),
+          if (rewardConversion != null && rewardRate != null) ...[
+            const SizedBox(height: 4),
+            RewardConversionCard(
+              conversion: rewardConversion!,
+              controller: rewardRate!,
+              origin: rewardRateOrigin,
+              onTouched: onRewardRateTouched ?? () {},
+              error: rewardRateError,
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (foreignRates.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            ForeignRatesCard(
+              primaryCurrency: primaryCurrency,
+              rates: foreignRates,
+            ),
+            const SizedBox(height: 12),
+          ],
           if (showExchangeRate) ...[
             const SizedBox(height: 4),
             _ExchangeRateSection(

@@ -60,6 +60,24 @@ class ConfirmRatesPage extends GetView<ConfirmRatesController> {
         reportedOverride: controller.reportedOverride,
         overrideError: controller.overrideError,
         errorMessage: controller.errorMessage.value,
+        rewardConversion: controller.rewardConversion.value,
+        rewardRate: controller.rewardRate,
+        rewardRateOrigin: controller.rewardRateOrigin,
+        // Errors show once the user typed or left the field (or the server
+        // answered REWARD_EXCHANGE_RATE_REQUIRED).
+        rewardRateError:
+            controller.rewardRate.text.trim().isNotEmpty ||
+                controller.rewardRateTouched
+            ? controller.rewardRateError
+            : null,
+        onRewardRateTouched: controller.touchRewardRate,
+        foreignRates: controller.foreignRates.toList(),
+        suggestions: controller.suggestions.toList(),
+        selectedSuggestions: controller.selectedSuggestions.toSet(),
+        onToggleSuggestion: controller.toggleSuggestion,
+        onCreateSuggestions: controller.createSuggestedCategories,
+        creatingSuggestions: controller.creatingSuggestions.value,
+        suggestionsCreated: controller.suggestionsCreatedNotice.value,
       );
     });
   }

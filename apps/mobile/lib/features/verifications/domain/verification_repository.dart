@@ -27,6 +27,15 @@ abstract class VerificationRepository {
     String? categoryId,
   );
 
+  /// Creates (or reuses) the categories the statement mentions and moves the
+  /// matching lines into them. Free: no Claude call, no credit. Returns the
+  /// refreshed verification (new categories appear in `rateProposal`
+  /// prefilled with the statement rate).
+  Future<Verification> createCategoriesFromSuggestions(
+    String id,
+    List<String> names,
+  );
+
   /// Page 1 is cached for offline use.
   Future<Cached<VerificationPage>> history({
     String? cardId,

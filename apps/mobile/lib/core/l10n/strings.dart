@@ -261,6 +261,35 @@ abstract final class S {
       'Hay compras en moneda extranjera. Sin tipo de cambio quedarán fuera del cálculo.';
   static const exchangeRateInvalid =
       'Escribe un número mayor a 0 (máximo 6 decimales)';
+  // Reward conversion + foreign spend rates + suggested categories
+  static String howManyIs(String primary, String other) =>
+      '¿Cuántos $primary vale 1 $other?';
+  static String rewardConversionTitle(String reward, String primary) =>
+      'Tu banco paga la recompensa en $reward y tus compras están en $primary';
+  static String rewardConversionHelper(String reward) =>
+      'Necesitamos este tipo de cambio para convertir lo que deberías haber recibido a $reward. Es obligatorio.';
+  static const rewardRateRequiredError =
+      'Escribe el tipo de cambio para continuar';
+  static const foreignRatesTitle = 'Compras en otras monedas';
+  static const foreignRatesHelper =
+      'Opcional. Si dejas un tipo de cambio vacío, las compras en esa moneda quedan fuera del cálculo.';
+  static const foreignRateOptional = 'Opcional';
+  static String foreignRateEmptyNote(String currency) =>
+      'Sin tipo de cambio, las compras en $currency no cuentan.';
+  static const suggestionsTitle =
+      'Tu estado de cuenta menciona rubros que no tienes';
+  static const suggestionsHelper =
+      'Créalos para auditar esas compras con el porcentaje que indica tu banco.';
+  static const suggestionsFree = 'Es gratis: no consume verificaciones.';
+  static const createSuggestions = 'Crear rubros seleccionados';
+  static const creatingSuggestions = 'Creando rubros…';
+  static const suggestionsCreated =
+      'Rubros creados. Ya aparecen abajo con el porcentaje de tu estado de cuenta.';
+  static String suggestionLines(int n) => switch (n) {
+    0 => 'Sin movimientos',
+    1 => '1 movimiento',
+    _ => '$n movimientos',
+  };
   static const programChooserTitle = 'Elige el programa a auditar';
   static const programChooserHelper =
       'Tu estado de cuenta lista varios programas de recompensa.';

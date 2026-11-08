@@ -145,6 +145,7 @@ abstract final class AppPages {
             repository: Get.find<VerificationRepository>(),
             cards: Get.find<CardsController>(),
             navigator: Get.find<AppNavigator>(),
+            catalog: Get.find<CatalogController>(),
             args: args is ConfirmRatesArgs
                 ? args
                 : ConfirmRatesArgs.byId(args as String),
