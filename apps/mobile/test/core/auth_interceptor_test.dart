@@ -93,52 +93,57 @@ void main() {
     expect(adapter.count('/auth/refresh'), 1);
   });
 
-  test('a request sent with a stale token reuses already refreshed tokens', () async {
-    var refreshed = false;
-    final adapter = FakeAdapter((o) {
-      if (o.path == '/auth/refresh') {
-        refreshed = true;
-        return const FakeResponse(200, {
-          'accessToken': 'new',
-          'refreshToken': 'r2',
-        });
-      }
-      return o.headers['Authorization'] == 'Bearer new'
-          ? const FakeResponse(200, {})
-          : _expired;
-    });
-    final dio = client(adapter);
-    await dio.get<dynamic>('/cards');
-    expect(refreshed, isTrue);
-    // Simulate a late 401 that carried the old token.
-    await tokens.save(const AuthTokens(accessToken: 'new', refreshToken: 'r2'));
-    final res = await dio.get<dynamic>(
-      '/x',
-      options: Options(headers: {}),
-    );
-    expect(res.statusCode, 200);
-    expect(adapter.count('/auth/refresh'), 1);
-  });
+  test(
+    'a request sent with a stale token reuses already refreshed tokens',
+    () async {
+      var refreshed = false;
+      final adapter = FakeAdapter((o) {
+        if (o.path == '/auth/refresh') {
+          refreshed = true;
+          return const FakeResponse(200, {
+            'accessToken': 'new',
+            'refreshToken': 'r2',
+          });
+        }
+        return o.headers['Authorization'] == 'Bearer new'
+            ? const FakeResponse(200, {})
+            : _expired;
+      });
+      final dio = client(adapter);
+      await dio.get<dynamic>('/cards');
+      expect(refreshed, isTrue);
+      // Simulate a late 401 that carried the old token.
+      await tokens.save(
+        const AuthTokens(accessToken: 'new', refreshToken: 'r2'),
+      );
+      final res = await dio.get<dynamic>('/x', options: Options(headers: {}));
+      expect(res.statusCode, 200);
+      expect(adapter.count('/auth/refresh'), 1);
+    },
+  );
 
-  test('logs out (clears tokens, emits event) when refresh is rejected', () async {
-    final adapter = FakeAdapter((o) {
-      if (o.path == '/auth/refresh') {
-        return const FakeResponse(401, {
-          'statusCode': 401,
-          'code': 'INVALID_REFRESH_TOKEN',
-          'message': 'x',
-        });
-      }
-      return _expired;
-    });
-    await expectLater(
-      client(adapter).get<dynamic>('/cards'),
-      throwsA(isA<DioException>()),
-    );
-    await Future<void>.delayed(Duration.zero);
-    expect(await tokens.read(), isNull);
-    expect(expiredCount, 1);
-  });
+  test(
+    'logs out (clears tokens, emits event) when refresh is rejected',
+    () async {
+      final adapter = FakeAdapter((o) {
+        if (o.path == '/auth/refresh') {
+          return const FakeResponse(401, {
+            'statusCode': 401,
+            'code': 'INVALID_REFRESH_TOKEN',
+            'message': 'x',
+          });
+        }
+        return _expired;
+      });
+      await expectLater(
+        client(adapter).get<dynamic>('/cards'),
+        throwsA(isA<DioException>()),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(await tokens.read(), isNull);
+      expect(expiredCount, 1);
+    },
+  );
 
   test('keeps the session when refresh fails because of the network', () async {
     final adapter = FakeAdapter((o) {
@@ -184,21 +189,24 @@ void main() {
     expect(loop.count('/auth/refresh'), 1);
   });
 
-  test('UNAUTHORIZED (account deleted) ends the session without refreshing', () async {
-    final adapter = FakeAdapter(
-      (o) => const FakeResponse(401, {
-        'statusCode': 401,
-        'code': 'UNAUTHORIZED',
-        'message': 'x',
-      }),
-    );
-    await expectLater(
-      client(adapter).get<dynamic>('/cards'),
-      throwsA(isA<DioException>()),
-    );
-    await Future<void>.delayed(Duration.zero);
-    expect(adapter.count('/auth/refresh'), 0);
-    expect(await tokens.read(), isNull);
-    expect(expiredCount, 1);
-  });
+  test(
+    'UNAUTHORIZED (account deleted) ends the session without refreshing',
+    () async {
+      final adapter = FakeAdapter(
+        (o) => const FakeResponse(401, {
+          'statusCode': 401,
+          'code': 'UNAUTHORIZED',
+          'message': 'x',
+        }),
+      );
+      await expectLater(
+        client(adapter).get<dynamic>('/cards'),
+        throwsA(isA<DioException>()),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(adapter.count('/auth/refresh'), 0);
+      expect(await tokens.read(), isNull);
+      expect(expiredCount, 1);
+    },
+  );
 }

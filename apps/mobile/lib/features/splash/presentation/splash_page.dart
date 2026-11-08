@@ -30,9 +30,8 @@ class SplashPage extends GetView<SplashController> {
               const SizedBox(height: 16),
               Text(
                 S.appName,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: scheme.onPrimary,
-                ),
+                style: Theme.of(context).textTheme.headlineMedium
+                    ?.copyWith(color: scheme.onPrimary),
               ),
             ],
           ),

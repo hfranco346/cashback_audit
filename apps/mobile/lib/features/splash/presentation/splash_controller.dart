@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../../../core/routing/app_navigator.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../onboarding/domain/onboarding_repository.dart';
@@ -9,11 +10,13 @@ class SplashController extends GetxController {
   SplashController({
     required this.onboarding,
     required this.tokens,
+    required this.navigator,
     this.minimumDelay = const Duration(milliseconds: 900),
   });
 
   final OnboardingRepository onboarding;
   final TokenStorage tokens;
+  final AppNavigator navigator;
   final Duration minimumDelay;
 
   Future<String> resolveRoute() async {
@@ -34,6 +37,6 @@ class SplashController extends GetxController {
       resolveRoute(),
       Future<void>.delayed(minimumDelay),
     ]);
-    Get.offAllNamed(results.first as String);
+    navigator.offAll(results.first as String);
   }
 }

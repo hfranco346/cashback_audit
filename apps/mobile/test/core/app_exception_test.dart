@@ -41,13 +41,19 @@ void main() {
     final req = RequestOptions(path: '/x');
     expect(
       AppException.fromDio(
-        DioException(requestOptions: req, type: DioExceptionType.connectionError),
+        DioException(
+          requestOptions: req,
+          type: DioExceptionType.connectionError,
+        ),
       ).kind,
       AppErrorKind.network,
     );
     expect(
       AppException.fromDio(
-        DioException(requestOptions: req, type: DioExceptionType.receiveTimeout),
+        DioException(
+          requestOptions: req,
+          type: DioExceptionType.receiveTimeout,
+        ),
       ).kind,
       AppErrorKind.timeout,
     );

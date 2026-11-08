@@ -97,7 +97,8 @@ class AppException implements Exception {
   }
 
   @override
-  String toString() => 'AppException($kind, $statusCode, $code, $serverMessage)';
+  String toString() =>
+      'AppException($kind, $statusCode, $code, $serverMessage)';
 }
 
 /// Runs [body] and converts Dio failures into [AppException].

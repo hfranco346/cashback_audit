@@ -2,6 +2,9 @@ import 'package:cashback_audit/core/routing/app_routes.dart';
 import 'package:cashback_audit/core/storage/token_storage.dart';
 import 'package:cashback_audit/features/onboarding/domain/onboarding_repository.dart';
 import 'package:cashback_audit/features/splash/presentation/splash_controller.dart';
+
+import '../support/fakes.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeOnboarding implements OnboardingRepository {
@@ -18,6 +21,7 @@ void main() {
       SplashController(
         onboarding: _FakeOnboarding(seen),
         tokens: InMemoryTokenStorage(tokens),
+        navigator: FakeNavigator(),
       );
 
   test('first launch goes to onboarding', () async {

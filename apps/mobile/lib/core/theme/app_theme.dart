@@ -85,7 +85,11 @@ class VerdictColors extends ThemeExtension<VerdictColors> {
         t,
       )!,
       warning: Color.lerp(warning, other.warning, t)!,
-      warningContainer: Color.lerp(warningContainer, other.warningContainer, t)!,
+      warningContainer: Color.lerp(
+        warningContainer,
+        other.warningContainer,
+        t,
+      )!,
     );
   }
 }
@@ -157,10 +161,7 @@ abstract final class AppTheme {
             fontFeatures: figures,
           ),
         )
-        .apply(
-          bodyColor: scheme.onSurface,
-          displayColor: scheme.onSurface,
-        );
+        .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface);
 
     return base.copyWith(
       textTheme: text,

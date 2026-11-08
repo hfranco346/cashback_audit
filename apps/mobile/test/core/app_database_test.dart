@@ -45,10 +45,9 @@ void main() {
       (await db.readVerificationSummaries(cardId: 'a')).map((v) => v['id']),
       ['new', 'old'],
     );
-    await db.saveVerificationSummaries(
-      [_summary('fresh', 'a', '2026-04-01T00:00:00.000Z')],
-      replaceScopeCardId: 'a',
-    );
+    await db.saveVerificationSummaries([
+      _summary('fresh', 'a', '2026-04-01T00:00:00.000Z'),
+    ], replaceScopeCardId: 'a');
     expect(
       (await db.readVerificationSummaries(cardId: 'a')).map((v) => v['id']),
       ['fresh'],

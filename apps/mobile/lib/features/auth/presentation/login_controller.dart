@@ -1,0 +1,55 @@
+import 'package:get/get.dart';
+
+import '../../../core/errors/error_messages.dart';
+import '../../../core/routing/app_navigator.dart';
+import '../../../core/routing/app_routes.dart';
+import '../domain/auth_entities.dart';
+import '../domain/auth_repository.dart';
+import 'session_controller.dart';
+
+enum LoginProvider { google, apple }
+
+class LoginController extends GetxController {
+  LoginController({
+    required this._repository,
+    required this._session,
+    required this._navigator,
+    required this.showApple,
+  });
+
+  final AuthRepository _repository;
+  final SessionController _session;
+  final AppNavigator _navigator;
+  final bool showApple;
+
+  final loading = Rxn<LoginProvider>();
+  final errorMessage = RxnString();
+
+  bool get isBusy => loading.value != null;
+
+  Future<void> signInWithGoogle() =>
+      _run(LoginProvider.google, _repository.signInWithGoogle);
+
+  Future<void> signInWithApple() =>
+      _run(LoginProvider.apple, _repository.signInWithApple);
+
+  Future<void> _run(
+    LoginProvider provider,
+    Future<AppUser> Function() action,
+  ) async {
+    if (isBusy) return;
+    loading.value = provider;
+    errorMessage.value = null;
+    try {
+      final user = await action();
+      await _session.onSignedIn(user);
+      _navigator.offAll(Routes.home);
+    } on SignInCancelled {
+      // User dismissed the sheet: nothing to show.
+    } catch (e) {
+      errorMessage.value = userMessageFor(e);
+    } finally {
+      loading.value = null;
+    }
+  }
+}
