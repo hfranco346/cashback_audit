@@ -3,6 +3,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { validateEnv, type Env } from './config/env.js';
+import { AuthModule } from './auth/auth.module.js';
+import { JwtAuthGuard } from './auth/infrastructure/jwt-auth.guard.js';
+import { UsersModule } from './users/users.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './shared/prisma/prisma.module.js';
 
@@ -19,8 +22,14 @@ import { PrismaModule } from './shared/prisma/prisma.module.js';
       ],
     }),
     PrismaModule,
+    UsersModule,
+    AuthModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    // Order matters: throttle first, then authenticate.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+  ],
 })
 export class AppModule {}

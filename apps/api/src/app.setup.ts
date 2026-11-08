@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import { AllExceptionsFilter } from './shared/http/all-exceptions.filter.js';
 
 export const API_PREFIX = 'api/v1';
 
@@ -7,6 +8,7 @@ export const API_PREFIX = 'api/v1';
 export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix(API_PREFIX);
   app.use(helmet());
+  app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
