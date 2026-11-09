@@ -1415,9 +1415,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get onbDemoFoot => 'Unos 3 minutos · no pedimos datos de pago';
 
   @override
-  String get onbSkipSetup => 'Omitir configuración';
-
-  @override
   String get onbStepBank => 'Tu banco';
 
   @override
@@ -1528,9 +1525,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get onbBaseSub =>
       'Lo que gana una compra fuera de estos rubros (tasa base)';
-
-  @override
-  String get onbRateHint => '%';
 
   @override
   String get onbAccountTitle => 'Guarda lo que configuraste';
@@ -1706,15 +1700,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String pendingFailedBody(String card, String reason) {
-    return '$card · $reason';
-  }
-
-  @override
   String get pendingFollow => 'Seguir';
-
-  @override
-  String get pendingSectionTitle => 'Pendientes';
 
   @override
   String homeGreetingMorning(String name) {
@@ -1883,7 +1869,4 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get navAria => 'Navegación principal';
-
-  @override
-  String get loginDividerOr => 'o';
 }

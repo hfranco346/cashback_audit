@@ -742,7 +742,6 @@
   "onbDemoSub": "Subes el PDF, la IA lee cada compra y te decimos si te pagaron bien, de menos o de más. Vamos a configurar tu tarjeta mientras lo pruebas.",
   "onbDemoCta": "Hacer mi verificación gratis",
   "onbDemoFoot": "Unos 3 minutos · no pedimos datos de pago",
-  "onbSkipSetup": "Omitir configuración",
   "onbStepBank": "Tu banco",
   "onbStepCard": "Tu tarjeta",
   "onbStepCategories": "Tus rubros",
@@ -798,7 +797,6 @@
   "onbCatAdd": "Agregar",
   "onbBaseTitle": "Todo lo demás",
   "onbBaseSub": "Lo que gana una compra fuera de estos rubros (tasa base)",
-  "onbRateHint": "%",
   "onbAccountTitle": "Guarda lo que configuraste",
   "onbAccountSub": "Crea tu cuenta para no perder tu tarjeta y usar tu verificación gratis.",
   "onbAccountCardSub": "{bank} · {unit} en {currency}",
@@ -909,19 +907,7 @@
       }
     }
   },
-  "pendingFailedBody": "{card} · {reason}",
-  "@pendingFailedBody": {
-    "placeholders": {
-      "card": {
-        "type": "String"
-      },
-      "reason": {
-        "type": "String"
-      }
-    }
-  },
   "pendingFollow": "Seguir",
-  "pendingSectionTitle": "Pendientes",
   "homeGreetingMorning": "{name, select, none{Buenos días} other{Buenos días, {name}}}",
   "@homeGreetingMorning": {
     "placeholders": {
@@ -1028,6 +1014,5 @@
   "navHistory": "Historial",
   "navCategories": "Rubros",
   "navProfile": "Perfil",
-  "navAria": "Navegación principal",
-  "loginDividerOr": "o"
+  "navAria": "Navegación principal"
 }

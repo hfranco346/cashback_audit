@@ -34,7 +34,7 @@ The current UI is the MVP look; the designer delivered a complete system (tokens
 - [x] B1 Backend async lifecycle (statuses, background processor with bounded concurrency, refund on failure, boot recovery, attention + seen endpoints, tests, contract doc). Route: delegated (writer trigger: 2+ non-trivial files).
 - [x] B2 Backend user preferences (locale, primaryCurrency, currencies with last rate) + credit history endpoint if missing. Route: delegated (same writer as B1).
 - [x] M1 Mobile foundation: tokens → ColorScheme light/dark + status/creditCard ThemeExtension, atomic components (credit card, verdict card, movement row, rate field with source label, segmented filter, collapsible warning, bottom sheet, nav bar, buttons/chips/pills), ARB ES/EN with gen-l10n, locale detection (`en-*` → English, else Spanish) + Automatic/Español/English preference. Route: delegated.
-- [ ] M2 Splash + dynamic onboarding (bank → card → categories/% → login → first PDF → first verdict) + login + Home (empty / just onboarded / continuous use, pending verification banner). Route: delegated.
+- [x] M2 Splash + dynamic onboarding (bank → card → categories/% → login → first PDF → first verdict) + login + Home (empty / just onboarded / continuous use, pending verification banner). Route: delegated.
 - [ ] M3 Card form (basic/advanced) + Categories and merchants (guided empty / populated). Route: delegated.
 - [ ] M4 Verify (pick file, async processing, can leave) + Confirm percentages + Result (under/over/match, movements filter, change-category sheet with "remember"). Route: delegated.
 - [ ] M5 History (online/offline) + Paywall (free check / no credits) + Profile/Settings (profile, credit history, language and currencies) + M3 navigation bar (Inicio · Historial · Rubros · Perfil). Route: delegated.
@@ -47,6 +47,7 @@ The current UI is the MVP look; the designer delivered a complete system (tokens
 
 ## Progress / evidence
 - M1 done (commits 6b5cd10 l10n+locale; theme+components commit follows on feat/mvp). Checks in apps/mobile: `flutter gen-l10n` ok, `dart format --set-exit-if-changed lib test` 0 changed, `flutter analyze` no issues, `flutter test` 321 passed. Route: delegated writer. New: `lib/core/theme/app_colors.dart` (AppStatusColors), `lib/core/ui/` (atoms/molecules/organisms + `ui.dart` barrel), `lib/l10n/*.arb` (~400 keys), `LocaleController`.
+- M2 done (commits 5f5bfbe async data layer, fbc0a04 onboarding+splash+login, home+shell commit follows on feat/mvp). Route: delegated writer. Checks in apps/mobile: `flutter gen-l10n` ok, `dart format --set-exit-if-changed lib test` 0 changed, `flutter analyze` no issues, `flutter test` 393 passed. New: `VerificationRepository.upload/get/attention/markSeen`, `VerificationPoller`, `AttentionController`, `Routes.verificationProgress`, guided setup (`features/onboarding`: draft in shared_preferences, `OnboardingSync` after sign-in), `AppNavigationShell` + `ShellController` (Routes.home), new Home states + `PendingBanner`. Pending for later tasks: card deletion moved out of Home (long-press gone; M3 card form), History tile/screen restyle (M5) already shows processing/failed labels, Upload/Verify screen (M4) now hands off to the progress page.
 
 ## Next step
 M1 (in progress in parallel); then M2..M6 using the finished backend contract.

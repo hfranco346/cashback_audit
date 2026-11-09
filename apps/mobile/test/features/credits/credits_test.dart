@@ -13,7 +13,6 @@ import 'package:cashback_audit/features/credits/presentation/credits_controller.
 import 'package:cashback_audit/features/credits/presentation/widgets/credit_history_view.dart';
 import 'package:cashback_audit/features/credits/presentation/widgets/credits_chip.dart';
 import 'package:cashback_audit/features/credits/presentation/widgets/credits_summary_card.dart';
-import 'package:cashback_audit/features/home/presentation/widgets/home_view.dart';
 import 'package:cashback_audit/features/subscription/data/revenuecat_billing_service.dart';
 import 'package:cashback_audit/features/subscription/domain/subscription_entities.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/upload_view.dart';
@@ -279,34 +278,6 @@ void main() {
 
       await tester.pumpWidget(wrap(CreditsChip(balance: null, onTap: () {})));
       expect(find.byKey(const Key('credits-chip')), findsNothing);
-    });
-
-    testWidgets('home shows the credits chip above the quick actions', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        wrap(
-          HomeView(
-            greeting: 'Hola',
-            cards: [CardMapper.fromJson(cardJson())],
-            loading: false,
-            offline: false,
-            onRefresh: () async {},
-            onAddCard: () {},
-            onOpenCard: (_) {},
-            onLongPressCard: (_) {},
-            onOpenCatalog: () {},
-            onOpenSettings: () {},
-            creditsChip: CreditsChip(
-              balance: balance(purchased: 4),
-              onTap: () {},
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('credits-chip-label')), findsOneWidget);
-      expect(find.text('4 verificaciones disponibles'), findsOneWidget);
     });
 
     testWidgets('summary card shows buckets, plan expiry and actions', (

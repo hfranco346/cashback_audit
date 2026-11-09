@@ -1,100 +1,108 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/l10n/strings.dart';
+import '../../../core/l10n/l10n_context.dart';
+import '../../../core/routing/app_navigator.dart';
 import '../../../core/routing/app_routes.dart';
+import '../../../core/ui/ui.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../cards/domain/card_entities.dart';
-import '../../cards/presentation/cards_controller.dart';
-import '../../credits/presentation/credits_controller.dart';
-import '../../credits/presentation/widgets/credits_chip.dart';
-import '../../../shared/widgets/molecules/quick_action_button.dart';
-import '../../../core/routing/app_navigator.dart';
-import '../../verifications/presentation/history_controller.dart';
+import '../../verifications/domain/verification_entities.dart';
+import '../../verifications/presentation/failure_text.dart';
 import '../../verifications/presentation/verification_navigation.dart';
-import '../../verifications/presentation/widgets/latest_verifications_section.dart';
+import '../../navigation/presentation/shell_controller.dart';
+import 'home_controller.dart';
 import 'widgets/home_view.dart';
 
-/// Container: wires controllers to the presentational [HomeView].
-class HomePage extends GetView<CardsController> {
+/// Container: wires the controllers to the presentational [HomeView]. Lives
+/// in the first tab of the navigation shell.
+class HomePage extends GetView<HomeController> {
   const HomePage({super.key});
 
-  Future<void> _confirmDelete(CreditCard card) async {
-    final ok = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text(S.deleteCardTitle),
-        content: Text(S.deleteCardBody(card.alias)),
+  static String greetingFor(BuildContext context, DateTime now, String? name) {
+    final l10n = context.l10n;
+    final who = name ?? 'none';
+    if (now.hour < 12) return l10n.homeGreetingMorning(who);
+    if (now.hour < 19) return l10n.homeGreetingAfternoon(who);
+    return l10n.homeGreetingEvening(who);
+  }
+
+  static String initialsOf(String? name) {
+    final parts = (name ?? '')
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty);
+    if (parts.isEmpty) return '?';
+    return parts.take(2).map((p) => p.characters.first.toUpperCase()).join();
+  }
+
+  Future<void> _explainFailure(BuildContext context, VerificationSummary item) {
+    final l10n = context.l10n;
+    return showAppBottomSheet<void>(
+      context: context,
+      builder: (ctx) => AppBottomSheet(
+        title: l10n.pendingFailedTitle,
         actions: [
-          TextButton(
-            onPressed: () => Get.back<bool>(result: false),
-            child: Text(S.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Get.back<bool>(result: true),
-            style: FilledButton.styleFrom(minimumSize: const Size(100, 44)),
-            child: Text(S.delete),
+          AppButton(
+            key: const Key('failure-dismiss'),
+            label: l10n.processingDismiss,
+            onPressed: () => Navigator.of(ctx).pop(),
           ),
         ],
+        child: Text(
+          failureMessage(l10n, item.failureCode),
+          style: Theme.of(ctx).textTheme.bodyMedium,
+        ),
       ),
     );
-    if (ok != true) return;
-    final error = await controller.delete(card);
-    Get.snackbar(error == null ? S.cardDeleted : S.loadError, error ?? '');
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = controller;
     final session = Get.find<SessionController>();
-    final latest = Get.find<LatestVerificationsController>();
-    final credits = Get.find<CreditsController>();
-    return Obx(
-      () => HomeView(
-        greeting: S.greeting(session.user.value?.firstName),
-        cards: controller.cards.toList(),
-        loading: controller.loading.value,
-        offline: controller.offline.value,
-        errorMessage: controller.errorMessage.value,
-        onRefresh: () async {
-          await controller.load();
-          await latest.load();
-          await credits.fetch();
+    final navigator = Get.find<AppNavigator>();
+    return Obx(() {
+      final user = session.user.value;
+      final cards = c.cards.cards.toList();
+      final latest = c.latest.items.toList();
+      final balance = c.credits.balance.value;
+      return HomeView(
+        layout: c.layout,
+        greeting: greetingFor(context, DateTime.now(), user?.firstName),
+        initials: initialsOf(user?.name ?? user?.email),
+        firstName: user?.firstName,
+        cards: cards,
+        latest: latest,
+        pending: c.attention.items.toList(),
+        cardLabel: c.cardLabel,
+        categoryName: c.categoryName,
+        freeChecks: balance?.free,
+        totalChecks: balance?.total,
+        uncategorized: c.uncategorized.value,
+        offline: c.cards.offline.value,
+        errorMessage: c.cards.errorMessage.value,
+        onRefresh: c.refreshAll,
+        onProfile: () => Get.find<ShellController>().select(3),
+        onVerify: () {
+          c.dismissFresh();
+          navigator.push(Routes.upload);
         },
-        onAddCard: () => Get.toNamed<void>(Routes.cardForm),
-        onOpenCard: (c) => Get.toNamed<void>(Routes.cardForm, arguments: c),
-        onLongPressCard: _confirmDelete,
-        onOpenCatalog: () => Get.toNamed<void>(Routes.catalog),
-        onOpenSettings: () => Get.toNamed<void>(Routes.settings),
-        creditsChip: CreditsChip(
-          balance: credits.balance.value,
-          onTap: () => Get.toNamed<void>(Routes.paywall),
+        onAddCard: () {
+          c.dismissFresh();
+          navigator.push(Routes.cardForm);
+        },
+        onOpenCard: (CreditCard card) =>
+            navigator.push(Routes.cardForm, arguments: card),
+        onOpenVerification: (s) => openVerificationSummary(navigator, s),
+        onOpenPending: (item) => c.attention.open(
+          item,
+          showFailure: (i) => _explainFailure(context, i),
         ),
-        quickActions: [
-          QuickActionButton(
-            key: const Key('action-verify'),
-            icon: Icons.upload_file_rounded,
-            label: S.verifyAction,
-            primary: true,
-            onPressed: () => Get.toNamed<void>(Routes.upload),
-          ),
-          QuickActionButton(
-            key: const Key('action-history'),
-            icon: Icons.history_rounded,
-            label: S.historyAction,
-            onPressed: () => Get.toNamed<void>(Routes.history),
-          ),
-        ],
-        extraSections: [
-          LatestVerificationsSection(
-            items: latest.items.toList(),
-            cardLabel: (id) {
-              final c = controller.byId(id);
-              return c == null ? '—' : '${c.alias} · ${c.last4}';
-            },
-            onOpen: (s) => openVerificationSummary(Get.find<AppNavigator>(), s),
-            onSeeAll: () => Get.toNamed<void>(Routes.history),
-          ),
-        ],
-      ),
-    );
+        onSeeAll: () => Get.find<ShellController>().select(1),
+        onGetMore: () => navigator.push(Routes.paywall),
+        onGuidedSetup: () => navigator.push(Routes.onboarding),
+      );
+    });
   }
 }

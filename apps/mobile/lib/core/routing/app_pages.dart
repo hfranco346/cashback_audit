@@ -39,7 +39,8 @@ import '../../features/subscription/presentation/paywall_controller.dart';
 import '../../features/subscription/presentation/paywall_page.dart';
 import '../../features/subscription/presentation/subscription_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
-import '../../features/home/presentation/home_page.dart';
+import '../../features/navigation/presentation/home_shell_page.dart';
+import '../../features/navigation/presentation/shell_controller.dart';
 import '../../features/onboarding/data/onboarding_sync.dart';
 import '../../features/onboarding/domain/onboarding_draft.dart';
 import '../../features/onboarding/presentation/onboarding_controller.dart';
@@ -110,14 +111,40 @@ abstract final class AppPages {
     ),
     GetPage(
       name: Routes.home,
-      page: () => const HomePage(),
+      page: () => const HomeShellPage(),
       transition: Transition.fadeIn,
       binding: BindingsBuilder(() {
+        final session = Get.find<SessionController>();
+        final drafts = Get.find<OnboardingDraftRepository>();
+        Get.put(ShellController());
+        // Tabs reuse the screens' controllers; the shell registers them
+        // because no route binding runs for a tab.
+        Get.lazyPut(
+          () => HistoryController(
+            repository: Get.find<VerificationRepository>(),
+            navigator: Get.find<AppNavigator>(),
+          ),
+        );
         Get.put(
           HomeController(
-            session: Get.find<SessionController>(),
-            subscription: Get.find<SubscriptionController>(),
+            attention: Get.find<AttentionController>(),
+            cards: Get.find<CardsController>(),
+            catalog: Get.find<CatalogController>(),
+            latest: Get.find<LatestVerificationsController>(),
             credits: Get.find<CreditsController>(),
+            drafts: drafts,
+            verifications: Get.find<VerificationRepository>(),
+            sync: OnboardingSync(
+              cards: Get.find<CardRepository>(),
+              categories: Get.find<CategoryRepository>(),
+              drafts: drafts,
+            ),
+            isSignedIn: () => session.user.value != null,
+            startup: () async {
+              await session.restore();
+              await Get.find<SubscriptionController>().fetchStatus();
+              await Get.find<CreditsController>().fetch();
+            },
           ),
         );
       }),

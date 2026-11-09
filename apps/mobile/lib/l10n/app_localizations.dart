@@ -2456,12 +2456,6 @@ abstract class AppLocalizations {
   /// **'Unos 3 minutos · no pedimos datos de pago'**
   String get onbDemoFoot;
 
-  /// No description provided for @onbSkipSetup.
-  ///
-  /// In es, this message translates to:
-  /// **'Omitir configuración'**
-  String get onbSkipSetup;
-
   /// No description provided for @onbStepBank.
   ///
   /// In es, this message translates to:
@@ -2671,12 +2665,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Lo que gana una compra fuera de estos rubros (tasa base)'**
   String get onbBaseSub;
-
-  /// No description provided for @onbRateHint.
-  ///
-  /// In es, this message translates to:
-  /// **'%'**
-  String get onbRateHint;
 
   /// No description provided for @onbAccountTitle.
   ///
@@ -2954,23 +2942,11 @@ abstract class AppLocalizations {
   /// **'{card} · toca para verlo'**
   String pendingCompletedBody(String card);
 
-  /// No description provided for @pendingFailedBody.
-  ///
-  /// In es, this message translates to:
-  /// **'{card} · {reason}'**
-  String pendingFailedBody(String card, String reason);
-
   /// No description provided for @pendingFollow.
   ///
   /// In es, this message translates to:
   /// **'Seguir'**
   String get pendingFollow;
-
-  /// No description provided for @pendingSectionTitle.
-  ///
-  /// In es, this message translates to:
-  /// **'Pendientes'**
-  String get pendingSectionTitle;
 
   /// No description provided for @homeGreetingMorning.
   ///
@@ -3199,12 +3175,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Navegación principal'**
   String get navAria;
-
-  /// No description provided for @loginDividerOr.
-  ///
-  /// In es, this message translates to:
-  /// **'o'**
-  String get loginDividerOr;
 }
 
 class _AppLocalizationsDelegate

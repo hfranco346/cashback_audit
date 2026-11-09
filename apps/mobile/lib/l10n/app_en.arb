@@ -393,7 +393,6 @@
   "onbDemoSub": "Upload the PDF, AI reads every purchase and we tell you if you were paid right, short or over. We will set up your card while you try it.",
   "onbDemoCta": "Run my free check",
   "onbDemoFoot": "About 3 minutes · no payment details needed",
-  "onbSkipSetup": "Skip setup",
   "onbStepBank": "Your bank",
   "onbStepCard": "Your card",
   "onbStepCategories": "Your categories",
@@ -429,7 +428,6 @@
   "onbCatAdd": "Add",
   "onbBaseTitle": "Everything else",
   "onbBaseSub": "What a purchase earns outside these categories (base rate)",
-  "onbRateHint": "%",
   "onbAccountTitle": "Save what you set up",
   "onbAccountSub": "Create your account so you do not lose your card and can use your free check.",
   "onbAccountCardSub": "{bank} · {unit} in {currency}",
@@ -476,9 +474,7 @@
   "pendingAwaitingBody": "Your % still need confirming",
   "pendingCompletedTitle": "New result",
   "pendingCompletedBody": "{card} · tap to see it",
-  "pendingFailedBody": "{card} · {reason}",
   "pendingFollow": "Continue",
-  "pendingSectionTitle": "Pending",
   "homeGreetingMorning": "{name, select, none{Good morning} other{Good morning, {name}}}",
   "homeGreetingAfternoon": "{name, select, none{Good afternoon} other{Good afternoon, {name}}}",
   "homeGreetingEvening": "{name, select, none{Good evening} other{Good evening, {name}}}",
@@ -516,6 +512,5 @@
   "navHistory": "History",
   "navCategories": "Categories",
   "navProfile": "Profile",
-  "navAria": "Main navigation",
-  "loginDividerOr": "or"
+  "navAria": "Main navigation"
 }

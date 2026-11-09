@@ -36,8 +36,13 @@ class VerificationSummaryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final verdict = summary.verdict;
-    if (summary.isAwaitingRates || verdict == null) {
+    if (!summary.isCompleted || verdict == null) {
       return _AwaitingTile(
+        label: switch (summary.status) {
+          VerificationStatus.processing => S.current.pendingProcessingTitle,
+          VerificationStatus.failed => S.current.pendingFailedTitle,
+          _ => S.awaitingRatesChip,
+        },
         cardLabel: cardLabel,
         period: _period(),
         onTap: onTap,
@@ -118,11 +123,13 @@ class VerificationSummaryTile extends StatelessWidget {
 /// History row of a statement whose rates were not confirmed yet.
 class _AwaitingTile extends StatelessWidget {
   const _AwaitingTile({
+    required this.label,
     required this.cardLabel,
     required this.period,
     required this.onTap,
   });
 
+  final String label;
   final String cardLabel;
   final String period;
   final VoidCallback onTap;
@@ -165,7 +172,7 @@ class _AwaitingTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        S.awaitingRatesChip,
+                        label,
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: verdicts.warning,
                           fontWeight: FontWeight.w700,
