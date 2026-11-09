@@ -40,12 +40,12 @@ class CatalogView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(S.catalogTitle)),
+      appBar: AppBar(title: Text(S.catalogTitle)),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('add-category'),
         onPressed: onAddCategory,
         icon: const Icon(Icons.add_rounded),
-        label: const Text(S.addCategory),
+        label: Text(S.addCategory),
       ),
       body: RefreshIndicator(
         onRefresh: onRefresh,
@@ -74,7 +74,7 @@ class CatalogView extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
               children: [
                 if (offline)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(bottom: 12),
                     child: InlineMessage(
                       message: S.offlineBanner,
@@ -143,14 +143,14 @@ class _CategoryCard extends StatelessWidget {
         data: theme.copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           key: PageStorageKey('category-${category.id}'),
-          tilePadding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          tilePadding: EdgeInsets.fromLTRB(16, 4, 4, 4),
+          childrenPadding: EdgeInsets.fromLTRB(12, 0, 12, 12),
           title: Text(category.name, style: theme.textTheme.titleMedium),
           subtitle: Text(S.merchantCount(merchants.length)),
           trailing: PopupMenuButton<String>(
             key: Key('category-menu-${category.id}'),
             onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
-            itemBuilder: (_) => const [
+            itemBuilder: (_) => [
               PopupMenuItem(value: 'edit', child: Text(S.edit)),
               PopupMenuItem(value: 'delete', child: Text(S.delete)),
             ],
@@ -194,7 +194,7 @@ class _CategoryCard extends StatelessWidget {
                 key: Key('add-merchant-${category.id}'),
                 onPressed: onAddMerchant,
                 icon: const Icon(Icons.add_rounded),
-                label: const Text(S.addMerchant),
+                label: Text(S.addMerchant),
               ),
             ),
           ],

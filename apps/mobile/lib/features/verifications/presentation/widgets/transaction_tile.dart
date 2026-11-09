@@ -280,7 +280,7 @@ class TransactionTile extends StatelessWidget {
                           Icons.drive_file_move_outline,
                           size: 18,
                         ),
-                        label: const Text(S.assignToCategory),
+                        label: Text(S.assignToCategory),
                         style: TextButton.styleFrom(
                           foregroundColor: color,
                           visualDensity: VisualDensity.compact,

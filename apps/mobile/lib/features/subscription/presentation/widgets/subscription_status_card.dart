@@ -1,3 +1,5 @@
+import '../../../../core/l10n/active_locale.dart';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -25,7 +27,8 @@ class SubscriptionStatusCard extends StatelessWidget {
     final s = status;
     final date = s?.expiresAt == null
         ? null
-        : DateFormat.yMMMd('es_MX').format(s!.expiresAt!.toLocal());
+        : DateFormat.yMMMd(ActiveLocale.intlName)
+              .format(s!.expiresAt!.toLocal());
     final (label, color, icon) = switch (s?.state) {
       SubscriptionState.active => (
         S.subscriptionActive,
@@ -103,7 +106,7 @@ class SubscriptionStatusCard extends StatelessWidget {
               FilledButton(
                 key: const Key('manage-subscription'),
                 onPressed: onManage,
-                child: const Text(S.subscribeNow),
+                child: Text(S.subscribeNow),
               ),
             ],
           ],

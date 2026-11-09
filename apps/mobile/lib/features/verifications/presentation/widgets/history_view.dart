@@ -48,7 +48,7 @@ class HistoryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(S.historyTitle)),
+      appBar: AppBar(title: Text(S.historyTitle)),
       body: Column(
         children: [
           if (cards.length > 1)
@@ -62,7 +62,7 @@ class HistoryView extends StatelessWidget {
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
                       key: const Key('filter-all'),
-                      label: const Text(S.allCards),
+                      label: Text(S.allCards),
                       selected: cardFilter == null,
                       onSelected: (_) => onCardFilter(null),
                     ),
@@ -102,7 +102,7 @@ class HistoryView extends StatelessWidget {
                           ),
                         SizedBox(
                           height: MediaQuery.sizeOf(context).height * 0.5,
-                          child: const EmptyState(
+                          child: EmptyState(
                             icon: Icons.history_rounded,
                             title: S.historyEmptyTitle,
                             message: S.historyEmptyBody,
@@ -116,7 +116,7 @@ class HistoryView extends StatelessWidget {
                     itemCount: items.length + 1 + (offline ? 1 : 0),
                     itemBuilder: (context, i) {
                       if (offline && i == 0) {
-                        return const Padding(
+                        return Padding(
                           padding: EdgeInsets.only(bottom: 12),
                           child: InlineMessage(
                             message: S.offlineBanner,
@@ -134,7 +134,7 @@ class HistoryView extends StatelessWidget {
                               : OutlinedButton(
                                   key: const Key('load-more'),
                                   onPressed: onLoadMore,
-                                  child: const Text(S.loadMore),
+                                  child: Text(S.loadMore),
                                 ),
                         );
                       }

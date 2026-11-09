@@ -1,3 +1,5 @@
+import '../../../../core/l10n/active_locale.dart';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -27,7 +29,8 @@ class CreditsSummaryCard extends StatelessWidget {
     final b = balance;
     final date = b?.planPeriodEnd == null || b!.plan == 0
         ? null
-        : DateFormat.yMMMd('es_MX').format(b.planPeriodEnd!.toLocal());
+        : DateFormat.yMMMd(ActiveLocale.intlName)
+              .format(b.planPeriodEnd!.toLocal());
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -70,13 +73,13 @@ class CreditsSummaryCard extends StatelessWidget {
                   key: const Key('credits-buy'),
                   onPressed: onBuy,
                   icon: const Icon(Icons.add_shopping_cart_rounded),
-                  label: const Text(S.creditsBuy),
+                  label: Text(S.creditsBuy),
                 ),
                 TextButton.icon(
                   key: const Key('credits-history'),
                   onPressed: onHistory,
                   icon: const Icon(Icons.receipt_long_rounded),
-                  label: const Text(S.creditsHistoryTitle),
+                  label: Text(S.creditsHistoryTitle),
                 ),
               ],
             ),

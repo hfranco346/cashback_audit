@@ -1,3 +1,5 @@
+import '../../../../core/l10n/active_locale.dart';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -48,7 +50,7 @@ class CreditHistoryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(S.creditsHistoryTitle)),
+      appBar: AppBar(title: Text(S.creditsHistoryTitle)),
       body: RefreshIndicator(
         onRefresh: onRefresh,
         child: Builder(
@@ -71,7 +73,7 @@ class CreditHistoryView extends StatelessWidget {
                     ),
                   SizedBox(
                     height: MediaQuery.sizeOf(context).height * 0.5,
-                    child: const EmptyState(
+                    child: EmptyState(
                       icon: Icons.receipt_long_rounded,
                       title: S.creditsHistoryEmptyTitle,
                       message: S.creditsHistoryEmptyBody,
@@ -94,7 +96,7 @@ class CreditHistoryView extends StatelessWidget {
                         : OutlinedButton(
                             key: const Key('credits-load-more'),
                             onPressed: onLoadMore,
-                            child: const Text(S.loadMore),
+                            child: Text(S.loadMore),
                           ),
                   );
                 }
@@ -122,7 +124,7 @@ class CreditHistoryTile extends StatelessWidget {
     final status = context.statusColors;
     final positive = entry.delta > 0;
     final color = positive ? status.success : status.danger;
-    final date = DateFormat.yMMMd('es_MX')
+    final date = DateFormat.yMMMd(ActiveLocale.intlName)
         .add_jm()
         .format(entry.createdAt.toLocal());
     return Card(

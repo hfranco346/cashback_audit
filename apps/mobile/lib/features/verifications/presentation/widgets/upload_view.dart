@@ -51,7 +51,7 @@ class UploadView extends StatelessWidget {
     final theme = Theme.of(context);
     if (cards.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text(S.uploadTitle)),
+        appBar: AppBar(title: Text(S.uploadTitle)),
         body: EmptyState(
           icon: Icons.credit_card_off_rounded,
           title: S.homeNoCardsTitle,
@@ -62,7 +62,7 @@ class UploadView extends StatelessWidget {
       );
     }
     return Scaffold(
-      appBar: AppBar(title: const Text(S.uploadTitle)),
+      appBar: AppBar(title: Text(S.uploadTitle)),
       body: Stack(
         children: [
           ListView(
@@ -99,7 +99,7 @@ class UploadView extends StatelessWidget {
               FilledButton(
                 key: const Key('verify-button'),
                 onPressed: canSubmit ? onSubmit : null,
-                child: const Text(S.verify),
+                child: Text(S.verify),
               ),
               const SizedBox(height: 14),
               Row(
@@ -254,7 +254,7 @@ class _CreditNotice extends StatelessWidget {
       );
     }
     if (balance.free > 0) {
-      return const InlineMessage(
+      return InlineMessage(
         key: Key('upload-free-notice'),
         message: S.uploadFreeNotice,
         tone: InlineMessageTone.info,

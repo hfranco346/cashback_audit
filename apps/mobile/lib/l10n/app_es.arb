@@ -1,0 +1,710 @@
+{
+  "@@locale": "es",
+  "appName": "Cashback Audit",
+  "tagline": "Verifica que tu banco te pague lo que te corresponde.",
+  "retry": "Reintentar",
+  "cancel": "Cancelar",
+  "save": "Guardar",
+  "delete": "Eliminar",
+  "edit": "Editar",
+  "continueLabel": "Continuar",
+  "skip": "Omitir",
+  "devSignIn": "Entrar como usuario de prueba (desarrollo)",
+  "back": "Atrás",
+  "loading": "Cargando…",
+  "offlineBanner": "Sin conexión. Mostrando datos guardados.",
+  "errNetwork": "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+  "errTimeout": "La solicitud tardó demasiado. Inténtalo de nuevo.",
+  "errUnauthorized": "Tu sesión expiró. Inicia sesión otra vez.",
+  "errNoCredits": "No tienes verificaciones disponibles. Suscríbete o compra un paquete para continuar.",
+  "errRatesRequired": "Escribe el porcentaje de los rubros marcados como obligatorios.",
+  "errProgramAmbiguous": "Tu estado de cuenta tiene varios programas de recompensa. Elige cuál auditar.",
+  "errTransactionNotFound": "No encontramos ese movimiento.",
+  "errTransactionNotClassifiable": "Este movimiento no genera recompensa, así que no se puede asignar a un rubro.",
+  "errVerificationNotFound": "Esta verificación ya no existe. Las que no se confirman en 7 días se eliminan.",
+  "errValidation": "Revisa los datos e inténtalo de nuevo.",
+  "errNotFound": "No encontramos lo que buscabas.",
+  "errConflict": "Esa acción entra en conflicto con datos existentes.",
+  "errTooLarge": "El archivo supera el límite de 10 MB.",
+  "errNotPdf": "Solo se aceptan archivos PDF.",
+  "errRateLimited": "Demasiados intentos. Espera un momento e inténtalo otra vez.",
+  "errServer": "Algo salió mal de nuestro lado. Inténtalo de nuevo en unos minutos.",
+  "errUnknown": "Ocurrió un error inesperado.",
+  "errCategoryNameTaken": "Ya tienes un rubro con ese nombre.",
+  "errMerchantNameTaken": "Ya tienes un comercio con ese nombre.",
+  "errCategoryInUse": "Este rubro tiene comercios o reglas de tarjeta. Elige a qué rubro moverlos.",
+  "errInvalidPdf": "El archivo no es un PDF válido.",
+  "errUnreadable": "No pudimos leer ese estado de cuenta. Descarga el PDF original desde tu banco (no una foto ni un archivo con contraseña).",
+  "errRewardRateRequired": "Escribe cuánto vale la moneda de la recompensa para poder convertirla.",
+  "errInvalidExchangeRate": "Revisa los tipos de cambio: deben ser números mayores a 0 (máximo 6 decimales).",
+  "errRewardNotFound": "El estado de cuenta no muestra la recompensa que te dio el banco. Escríbela para continuar.",
+  "errExtractionFailed": "El análisis no devolvió un resultado utilizable. Suele funcionar al reintentar.",
+  "errExtractionUnavailable": "El servicio de análisis está ocupado. Inténtalo más tarde.",
+  "errIdentityToken": "No pudimos validar tu cuenta. Inténtalo de nuevo.",
+  "errIdentityUnavailable": "El inicio de sesión no está disponible por ahora.",
+  "errSignInFailed": "No pudimos completar el inicio de sesión. Inténtalo de nuevo.",
+  "sessionExpiredTitle": "Sesión finalizada",
+  "onb1Title": "Comprueba lo que tu banco te debe",
+  "onb1Body": "Sube tu estado de cuenta y calculamos cuánto cashback o cuántos puntos deberías haber recibido.",
+  "onb2Title": "Registra tus tarjetas y rubros",
+  "onb2Body": "Captura la tasa base de cada tarjeta y los porcentajes por rubro (súper, gasolina, restaurantes…). Asigna cada comercio al rubro en el que esperas que acumule.",
+  "onb3Title": "Sube el PDF y revisa el veredicto",
+  "onb3Body": "Te mostramos si el pago coincide, si te pagaron de menos o de más, con el detalle por rubro y por movimiento.",
+  "onb4Title": "Tu privacidad primero",
+  "onb4Body": "Nunca guardamos tu PDF ni el número completo de tu tarjeta: solo los últimos 4 dígitos y los resultados del análisis.",
+  "start": "Empezar",
+  "loginTitle": "Inicia sesión",
+  "loginSubtitle": "Usa tu cuenta para guardar tus tarjetas, rubros y el historial de verificaciones.",
+  "signInGoogle": "Continuar con Google",
+  "signInApple": "Continuar con Apple",
+  "loginLegal": "No almacenamos tu PDF ni el número completo de tu tarjeta.",
+  "fieldRequired": "Este campo es obligatorio",
+  "last4Invalid": "Escribe exactamente 4 dígitos",
+  "currencyInvalid": "Usa un código de 3 letras (MXN, USD…)",
+  "numberInvalid": "Escribe un número válido",
+  "percentRange": "Debe estar entre 0 y 100",
+  "capInvalid": "Debe ser mayor a 0 (máximo 2 decimales)",
+  "pointsFactorInvalid": "Debe ser mayor a 0 y hasta 1000",
+  "homeCards": "Mis tarjetas",
+  "homeNoCardsTitle": "Aún no tienes tarjetas",
+  "homeNoCardsBody": "Agrega tu primera tarjeta con sus tasas de recompensa para empezar a auditar.",
+  "addCard": "Agregar tarjeta",
+  "manageCategories": "Rubros y comercios",
+  "logout": "Cerrar sesión",
+  "loadError": "No pudimos cargar tus datos.",
+  "newCard": "Nueva tarjeta",
+  "editCard": "Editar tarjeta",
+  "cardAlias": "Alias",
+  "cardAliasHint": "Ej. Tarjeta diaria",
+  "cardBank": "Banco",
+  "cardLast4": "Últimos 4 dígitos",
+  "cardLast4Helper": "Nunca pedimos el número completo.",
+  "cardNetwork": "Red (opcional)",
+  "cardCurrency": "Moneda",
+  "cardRewardProgram": "Programa de recompensa a auditar",
+  "cardRewardProgramHelper": "Opcional. Si tu estado de cuenta lista varios programas (p. ej. CASH BAC), escribe el nombre del que quieres auditar.",
+  "cardRewardCurrency": "Moneda en que recibes la recompensa",
+  "cardRewardCurrencyHelper": "Opcional. Si tu banco paga la recompensa en otra moneda que tus compras (p. ej. dólares), indícala. Vacío = detectar automáticamente.",
+  "cardRewardCurrencyAuto": "Detectar automáticamente",
+  "rewardUnitLabel": "Tipo de recompensa",
+  "unitCashback": "Cashback",
+  "unitPoints": "Puntos",
+  "pointsPerUnit": "Puntos por cada $1 de recompensa",
+  "baseRate": "Tasa base (%)",
+  "baseRateHelper": "Se aplica a todo gasto sin regla por rubro.",
+  "rulesTitle": "Reglas por rubro",
+  "rulesHelper": "Define una tasa distinta para cada rubro, con tope mensual opcional.",
+  "addRule": "Agregar regla",
+  "ruleCategory": "Rubro",
+  "ruleRate": "Tasa (%)",
+  "ruleCap": "Tope mensual",
+  "ruleCapHelper": "Opcional",
+  "removeRule": "Quitar regla",
+  "ruleNeedsCategories": "Primero crea al menos un rubro para definir reglas.",
+  "ruleCategoryRequired": "Elige un rubro",
+  "ruleDuplicateCategory": "Ya hay una regla para ese rubro",
+  "deleteCardTitle": "Eliminar tarjeta",
+  "cardSaved": "Tarjeta guardada",
+  "cardDeleted": "Tarjeta eliminada",
+  "catalogTitle": "Rubros y comercios",
+  "addCategory": "Nuevo rubro",
+  "editCategory": "Editar rubro",
+  "categoryName": "Nombre del rubro",
+  "categoryDescription": "Descripción (opcional)",
+  "addMerchant": "Agregar comercio",
+  "editMerchant": "Editar comercio",
+  "merchantName": "Nombre del comercio",
+  "merchantKeywords": "Palabras clave del estado de cuenta",
+  "merchantKeywordsHelper": "Como aparecen en tu estado de cuenta, separadas por coma. Ej. WAL MART, WALMART SUC",
+  "merchantCategory": "Rubro esperado",
+  "noMerchants": "Sin comercios",
+  "catalogEmptyTitle": "Crea tu primer rubro",
+  "catalogEmptyBody": "Los rubros (súper, gasolina, restaurantes…) agrupan comercios y reciben tasas especiales en tus tarjetas.",
+  "deleteCategoryTitle": "Eliminar rubro",
+  "reassignTo": "Mover a",
+  "reassignAndDelete": "Mover y eliminar",
+  "deleteMerchantTitle": "Eliminar comercio",
+  "needOtherCategory": "Crea otro rubro para poder mover los elementos.",
+  "settingsTitle": "Perfil y ajustes",
+  "appearanceTitle": "Apariencia",
+  "themeSystem": "Sistema",
+  "themeLight": "Claro",
+  "themeDark": "Oscuro",
+  "longPressHint": "Mantén presionada una tarjeta para eliminarla",
+  "uploadTitle": "Verificar estado de cuenta",
+  "uploadStep1": "Elige la tarjeta",
+  "uploadStep2": "Selecciona el PDF",
+  "pickPdf": "Elegir PDF",
+  "changePdf": "Cambiar archivo",
+  "noCardsForUpload": "Primero agrega una tarjeta para poder verificar un estado de cuenta.",
+  "verify": "Verificar",
+  "uploading": "Subiendo archivo…",
+  "analyzing": "Analizando tu estado de cuenta…",
+  "analyzingHint": "Puede tardar hasta un minuto. No cierres la app.",
+  "uploadPrivacy": "Procesamos el PDF en memoria y no lo guardamos.",
+  "fileTooLarge": "El archivo supera el límite de 10 MB.",
+  "fileNotPdf": "Elige un archivo PDF.",
+  "uploadTimeout": "El análisis tardó demasiado. Revisa tu historial antes de reintentar: puede que ya se haya procesado.",
+  "overrideTitle": "Escribe la recompensa que te dio el banco",
+  "overrideLabel": "Recompensa reportada",
+  "overrideHelper": "Búscala en tu estado de cuenta (bonificación o puntos del periodo).",
+  "overrideInvalid": "Escribe un monto válido (hasta 2 decimales)",
+  "selectCardFirst": "Elige una tarjeta",
+  "analyzingStepUpload": "Archivo recibido",
+  "analyzingStepRead": "Leyendo tu estado de cuenta",
+  "analyzingStepClassify": "Clasificando movimientos",
+  "analyzingExpect": "Este paso suele tardar cerca de 1 minuto. Después podrás confirmar los porcentajes.",
+  "confirmRatesTitle": "Confirma los porcentajes",
+  "recalcRatesTitle": "Recalcular con otros %",
+  "confirmRatesIntro": "Los bancos cambian sus políticas seguido. Revisa con qué porcentajes vamos a calcular lo que deberías haber recibido.",
+  "confirmRatesNoCharge": "Calcular y recalcular no consume verificaciones.",
+  "rateBaseTitle": "Tasa base",
+  "rateBaseSubtitle": "Se aplica a todo gasto fuera de tus rubros.",
+  "rateFieldLabel": "Porcentaje",
+  "rateCapLabel": "Tope mensual (opcional)",
+  "badgeStatement": "Detectado en tu estado de cuenta",
+  "badgeCardRule": "De las reglas de tu tarjeta",
+  "badgePrevious": "Los que usaste antes",
+  "badgeRequired": "Obligatorio",
+  "rateRequiredError": "Escribe el porcentaje para continuar",
+  "saveToCardTitle": "Guardar estos % en la tarjeta",
+  "saveToCardSubtitle": "Reemplaza la tasa base y las reglas por rubro de tu tarjeta.",
+  "exchangeRateTitle": "Tipo de cambio (opcional)",
+  "exchangeRateMissing": "Hay compras en moneda extranjera. Sin tipo de cambio quedarán fuera del cálculo.",
+  "exchangeRateInvalid": "Escribe un número mayor a 0 (máximo 6 decimales)",
+  "rewardRateRequiredError": "Escribe el tipo de cambio para continuar",
+  "foreignRatesTitle": "Compras en otras monedas",
+  "foreignRatesHelper": "Opcional. Si dejas un tipo de cambio vacío, las compras en esa moneda quedan fuera del cálculo.",
+  "foreignRateOptional": "Opcional",
+  "suggestionsTitle": "Tu estado de cuenta menciona rubros que no tienes",
+  "suggestionsHelper": "Créalos para auditar esas compras con el porcentaje que indica tu banco.",
+  "suggestionsFree": "Es gratis: no consume verificaciones.",
+  "createSuggestions": "Crear rubros seleccionados",
+  "creatingSuggestions": "Creando rubros…",
+  "suggestionsCreated": "Rubros creados. Ya aparecen abajo con el porcentaje de tu estado de cuenta.",
+  "programChooserTitle": "Elige el programa a auditar",
+  "programChooserHelper": "Tu estado de cuenta lista varios programas de recompensa.",
+  "programRequired": "Elige un programa para continuar",
+  "calculateResult": "Calcular resultado",
+  "calculating": "Calculando…",
+  "confirmLoadError": "No pudimos cargar esta verificación.",
+  "resultTitle": "Resultado",
+  "resultNotConfirmed": "Esta verificación aún no tiene resultado. Confirma los porcentajes para calcularlo.",
+  "verdictMatch": "Todo en orden",
+  "verdictUnderpaid": "Te pagaron de menos",
+  "verdictOverpaid": "Te pagaron de más",
+  "verdictMatchHint": "La recompensa coincide con lo esperado.",
+  "expectedLabel": "Esperado",
+  "reportedLabel": "Reportado",
+  "differenceLabel": "Diferencia",
+  "reportedOverrideNote": "Capturado por ti",
+  "breakdownTitle": "Desglose por rubro",
+  "baseRateLine": "Tasa base",
+  "capped": "Tope alcanzado",
+  "transactionsTitle": "Movimientos",
+  "filterAll": "Todos",
+  "filterCounted": "En rubro",
+  "filterUncounted": "Sin rubro",
+  "filterExcluded": "Excluidos",
+  "countedLabel": "Contó en rubro",
+  "uncountedLabel": "Sin rubro",
+  "excludedLabel": "No genera recompensa",
+  "aiChip": "IA",
+  "aiChipTooltip": "Asignado por inteligencia artificial",
+  "userChip": "Tú",
+  "userChipTooltip": "Rubro corregido por ti",
+  "excludedPayment": "Los pagos no generan recompensa",
+  "excludedFee": "Comisión o cargo",
+  "excludedInterest": "Intereses",
+  "excludedInsurance": "Seguro",
+  "excludedOther": "Movimiento que no genera recompensa",
+  "changeCategory": "Cambiar rubro",
+  "changeCategoryTitle": "Cambiar el rubro de este movimiento",
+  "noCategoryOption": "Sin rubro",
+  "categoryChanged": "Rubro actualizado y resultado recalculado",
+  "recalcFailedAfterChange": "Cambiaste el rubro, pero no pudimos recalcular el resultado. Los montos mostrados siguen siendo los anteriores.",
+  "recalcNeedsRate": "Ese rubro necesita un porcentaje. Confírmalo para recalcular.",
+  "recalcAction": "Recalcular",
+  "recalcWithOtherRates": "Recalcular con otros %",
+  "explanationTitle": "En pocas palabras",
+  "loyaltyTitle": "Programas de recompensa",
+  "loyaltyAudited": "Auditado",
+  "loyaltyCumulativeChip": "Posible saldo acumulado",
+  "loyaltyProgram": "Programa",
+  "loyaltyAccumulated": "Acumulado",
+  "loyaltyAvailable": "Disponible",
+  "loyaltyRedeemed": "Canjeado",
+  "loyaltyExpiring": "Por vencer",
+  "loyaltyForfeited": "Perdido",
+  "currenciesTitle": "Subtotales por moneda",
+  "currencySpent": "Gasto neto",
+  "currencyEligible": "Considerado",
+  "currencyReward": "Recompensa (sin topes)",
+  "appliedRatesTitle": "Porcentajes usados",
+  "warnLast4": "Este estado de cuenta parece ser de otra tarjeta: los últimos 4 dígitos no coinciden.",
+  "warnCurrencyMismatch": "Ninguna moneda del estado de cuenta coincide con la moneda de tu tarjeta.",
+  "warnTotalMismatch": "Los movimientos leídos no suman el total del estado de cuenta. Puede que falten algunos y el resultado sea poco confiable.",
+  "warnNoTransactions": "No encontramos movimientos en el estado de cuenta.",
+  "warnAiUnavailable": "La clasificación con IA no estuvo disponible para algunos movimientos; solo se usaron tus comercios registrados.",
+  "warnNoExchangeRate": "Hay compras en moneda extranjera sin tipo de cambio: quedaron fuera del cálculo.",
+  "warnExchangeMultiple": "El tipo de cambio se aplicó a más de una moneda extranjera.",
+  "warnCumulative": "La cifra reportada parece un saldo acumulado y no lo ganado en este periodo. Revisa el programa.",
+  "warnUnitDiffers": "El programa reporta una unidad distinta a la de tu tarjeta; se usó la configuración de la tarjeta.",
+  "assignToCategory": "Recordar comercio en un rubro",
+  "assignedNotice": "Asignado para próximas verificaciones",
+  "baseOnly": "Solo tasa base",
+  "creditPayment": "Pago a la tarjeta",
+  "creditRefund": "Devolución",
+  "creditOther": "Otro crédito / bonificación",
+  "rewardRateDetailTitle": "Conversión de la recompensa",
+  "rewardRateFromStatement": "Tomado de tu estado de cuenta",
+  "rewardRateUserEntered": "Lo escribiste tú",
+  "assignSheetTitle": "Asignar comercio a un rubro",
+  "noCategoriesToAssign": "Crea un rubro primero para poder asignar este comercio.",
+  "goToCategories": "Ir a rubros",
+  "merchantAssigned": "Comercio asignado",
+  "warningsTitle": "Avisos",
+  "noTransactionsMatch": "No hay movimientos en esta vista.",
+  "periodLabel": "Periodo",
+  "deleteVerification": "Eliminar verificación",
+  "deleteVerificationBody": "¿Eliminar esta verificación del historial?",
+  "awaitingRatesChip": "Pendiente de confirmar %",
+  "historyTitle": "Historial",
+  "historyEmptyTitle": "Sin verificaciones todavía",
+  "historyEmptyBody": "Cuando verifiques un estado de cuenta aparecerá aquí.",
+  "allCards": "Todas",
+  "loadMore": "Ver más",
+  "latestVerifications": "Últimas verificaciones",
+  "seeAll": "Ver todo",
+  "verifyAction": "Verificar estado",
+  "historyAction": "Historial",
+  "creditsNone": "Sin verificaciones disponibles",
+  "uploadFreeNotice": "Tu primera verificación es gratis.",
+  "uploadNoCredits": "No tienes verificaciones disponibles para analizar otro estado de cuenta.",
+  "seePlans": "Ver planes",
+  "creditsTitle": "Verificaciones",
+  "creditsHistoryTitle": "Historial de verificaciones",
+  "creditsHistoryEmptyTitle": "Sin movimientos todavía",
+  "creditsHistoryEmptyBody": "Aquí verás cuándo recibes, usas o te devolvemos verificaciones.",
+  "creditsBuy": "Comprar verificaciones",
+  "creditReasonGrantFree": "Verificación gratis",
+  "creditReasonGrantPlan": "Verificaciones de tu suscripción",
+  "creditReasonGrantPack": "Paquete comprado",
+  "creditReasonConsume": "Estado de cuenta analizado",
+  "creditReasonRefund": "Verificación devuelta",
+  "creditReasonExpirePlan": "Venció el saldo del plan",
+  "creditReasonOther": "Ajuste",
+  "creditBucketFree": "Gratis",
+  "creditBucketPlan": "Plan",
+  "creditBucketPurchased": "Comprada",
+  "paywallTitle": "Cashback Audit Pro",
+  "paywallHeadline": "Más verificaciones, cuando las necesites",
+  "paywallBenefit1": "Cada estado de cuenta que analizas usa 1 verificación",
+  "paywallBenefit2": "Confirmar, recalcular y corregir movimientos no cuesta nada",
+  "paywallBenefit3": "Tu historial siempre queda disponible",
+  "paywallSubscriptionTitle": "Suscripción mensual",
+  "paywallSubscriptionPerks": "5 verificaciones al mes · no se acumulan",
+  "paywallPacksTitle": "Paquetes de verificaciones",
+  "paywallPacksSubtitle": "Se compran una sola vez y no caducan.",
+  "paywallBuy": "Comprar",
+  "paywallSuccessPack": "Tus verificaciones ya están disponibles.",
+  "paywallConfirmingPurchase": "Confirmando tu compra…",
+  "paywallPendingPack": "Tu compra se está procesando. Las verificaciones pueden tardar unos segundos en aparecer.",
+  "restoreNothing": "No encontramos compras para restaurar en esta cuenta.",
+  "paywallSubscribe": "Suscribirme",
+  "paywallRestore": "Restaurar compras",
+  "paywallLegal": "La suscripción se renueva automáticamente. Puedes cancelarla en cualquier momento desde los ajustes de tu tienda de aplicaciones.",
+  "paywallNoPackages": "No hay planes disponibles por ahora. Inténtalo más tarde.",
+  "paywallLoadFailed": "No pudimos cargar los planes. Revisa tu conexión e inténtalo de nuevo.",
+  "paywallPurchaseFailed": "No se pudo completar la compra. No se te cobró nada.",
+  "paywallRestoreFailed": "No pudimos restaurar tus compras. Inténtalo de nuevo.",
+  "paywallConfirming": "Confirmando tu compra…",
+  "paywallPending": "Tu compra se está procesando. Puede tardar unos segundos en reflejarse.",
+  "paywallCheckAgain": "Verificar de nuevo",
+  "paywallSuccessTitle": "¡Listo!",
+  "paywallSuccessBody": "Tu suscripción está activa.",
+  "paywallDevNoticeTitle": "Compras no configuradas",
+  "paywallDevNotice": "Esta compilación no tiene clave de RevenueCat (REVENUECAT_IOS_KEY / REVENUECAT_ANDROID_KEY). Configúrala con --dart-define para probar las compras.",
+  "subscriptionTitle": "Suscripción",
+  "subscribeNow": "Ver planes",
+  "subscriptionNone": "Sin suscripción activa",
+  "subscriptionActive": "Pro activa",
+  "subscriptionCancelled": "Cancelada",
+  "subscriptionBillingIssue": "Problema de pago",
+  "subscriptionExpired": "Vencida",
+  "subscriptionBillingIssueHint": "Actualiza tu método de pago en la tienda para no perder el acceso.",
+  "restoreDone": "Compras restauradas",
+  "fieldTooLong": "Máximo {max} caracteres",
+  "@fieldTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "greeting": "{name, select, none{Hola} other{Hola, {name}}}",
+  "@greeting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteCardBody": "¿Eliminar \"{alias}\"? También se borrará su historial de verificaciones.",
+  "@deleteCardBody": {
+    "placeholders": {
+      "alias": {
+        "type": "String"
+      }
+    }
+  },
+  "ruleCount": "{n, plural, =0{Sin reglas} =1{1 regla} other{{n} reglas}}",
+  "@ruleCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "ruleCountPlain": "{n, plural, =1{1 regla} other{{n} reglas}}",
+  "@ruleCountPlain": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "baseRateShort": "Base {rate}",
+  "@baseRateShort": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteCategoryBody": "¿Eliminar el rubro \"{name}\"?",
+  "@deleteCategoryBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassignBody": "Este rubro tiene {merchants} y {rules} de tarjeta. Elige a qué rubro moverlos antes de eliminarlo.",
+  "@reassignBody": {
+    "placeholders": {
+      "merchants": {
+        "type": "String"
+      },
+      "rules": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteMerchantBody": "¿Eliminar \"{name}\"? Dejará de asignarse a su rubro.",
+  "@deleteMerchantBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "merchantCount": "{n, plural, =1{1 comercio} other{{n} comercios}}",
+  "@merchantCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "evidenceQuote": "“{text}”",
+  "@evidenceQuote": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "exchangeRateHelper": "Cuántos {primary} vale 1 unidad de la moneda extranjera. Sin él, las compras en otra moneda no cuentan para la recompensa.",
+  "@exchangeRateHelper": {
+    "placeholders": {
+      "primary": {
+        "type": "String"
+      }
+    }
+  },
+  "exchangeRateStatement": "Tu estado de cuenta indica 1 {from} = {rate} {to}.",
+  "@exchangeRateStatement": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "howManyIs": "¿Cuántos {primary} vale 1 {foreign}?",
+  "@howManyIs": {
+    "placeholders": {
+      "primary": {
+        "type": "String"
+      },
+      "foreign": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardConversionTitle": "Tu banco paga la recompensa en {reward} y tus compras están en {primary}",
+  "@rewardConversionTitle": {
+    "placeholders": {
+      "reward": {
+        "type": "String"
+      },
+      "primary": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardConversionHelper": "Necesitamos este tipo de cambio para convertir lo que deberías haber recibido a {reward}. Es obligatorio.",
+  "@rewardConversionHelper": {
+    "placeholders": {
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "foreignRateEmptyNote": "Sin tipo de cambio, las compras en {currency} no cuentan.",
+  "@foreignRateEmptyNote": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionLines": "{n, plural, =0{Sin movimientos} =1{1 movimiento} other{{n} movimientos}}",
+  "@suggestionLines": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "verdictUnderpaidHint": "El banco te debe {amount}. Puedes reclamarlo con tu estado de cuenta.",
+  "@verdictUnderpaidHint": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "verdictOverpaidHint": "El banco te pagó {amount} de más.",
+  "@verdictOverpaidHint": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "breakdownDetail": "{spend} en {count, plural, =1{1 movimiento} other{{count} movimientos}}",
+  "@breakdownDetail": {
+    "placeholders": {
+      "spend": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "capOf": "Tope {cap}",
+  "@capOf": {
+    "placeholders": {
+      "cap": {
+        "type": "String"
+      }
+    }
+  },
+  "filterWithCount": "{label} ({n})",
+  "@filterWithCount": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "transactionsSummary": "{counted} en rubro · {uncounted} sin rubro · {excluded} excluidos",
+  "@transactionsSummary": {
+    "placeholders": {
+      "counted": {
+        "type": "int"
+      },
+      "uncounted": {
+        "type": "int"
+      },
+      "excluded": {
+        "type": "int"
+      }
+    }
+  },
+  "convertedAs": "≈ {amount}",
+  "@convertedAs": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "excludedNoRate": "Compra en {currency} sin tipo de cambio",
+  "@excludedNoRate": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "currencyRate": "1 {from} = {rate} {to}",
+  "@currencyRate": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "currencyExcluded": "{n, plural, =1{1 movimiento excluido} other{{n} movimientos excluidos}}",
+  "@currencyExcluded": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "assignedTo": "Asignado a {category} · aplicará en la próxima verificación",
+  "@assignedTo": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "appliedRate": "Tasa {rate}",
+  "@appliedRate": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "bankConsiders": "Tu banco lo considera: {hint}",
+  "@bankConsiders": {
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
+  "equivalentTo": "Equivale a {money}",
+  "@equivalentTo": {
+    "placeholders": {
+      "money": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardRateDetail": "1 {reward} = {rate} {primary}",
+  "@rewardRateDetail": {
+    "placeholders": {
+      "reward": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      },
+      "primary": {
+        "type": "String"
+      }
+    }
+  },
+  "creditsAvailable": "{n, plural, =1{1 verificación disponible} other{{n} verificaciones disponibles}}",
+  "@creditsAvailable": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "uploadCreditNotice": "Esta verificación usará 1 de tus {n} disponibles.",
+  "@uploadCreditNotice": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "creditsBreakdown": "Gratis {free} · Plan {plan} · Comprados {purchased}",
+  "@creditsBreakdown": {
+    "placeholders": {
+      "free": {
+        "type": "int"
+      },
+      "plan": {
+        "type": "int"
+      },
+      "purchased": {
+        "type": "int"
+      }
+    }
+  },
+  "creditsPlanExpires": "Las del plan vencen el {date}",
+  "@creditsPlanExpires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "packTitle": "{n, plural, =1{1 verificación} other{{n} verificaciones}}",
+  "@packTitle": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "paywallFreeBanner": "{n, plural, =1{Tienes 1 verificación gratis. Úsala antes de comprar nada.} other{Tienes {n} verificaciones gratis. Úsalas antes de comprar nada.}}",
+  "@paywallFreeBanner": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionRenews": "Se renueva el {date}",
+  "@subscriptionRenews": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionEnds": "Activa hasta el {date}",
+  "@subscriptionEnds": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

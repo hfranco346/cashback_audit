@@ -18,17 +18,17 @@ class ResultPage extends GetView<ResultController> {
     if (catalog.categories.isEmpty) {
       final go = await Get.dialog<bool>(
         AlertDialog(
-          title: const Text(S.assignSheetTitle),
-          content: const Text(S.noCategoriesToAssign),
+          title: Text(S.assignSheetTitle),
+          content: Text(S.noCategoriesToAssign),
           actions: [
             TextButton(
               onPressed: () => Get.back<bool>(result: false),
-              child: const Text(S.cancel),
+              child: Text(S.cancel),
             ),
             FilledButton(
               onPressed: () => Get.back<bool>(result: true),
               style: FilledButton.styleFrom(minimumSize: const Size(100, 44)),
-              child: const Text(S.goToCategories),
+              child: Text(S.goToCategories),
             ),
           ],
         ),
@@ -88,7 +88,7 @@ class ResultPage extends GetView<ResultController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(S.resultTitle)),
+      appBar: AppBar(title: Text(S.resultTitle)),
       body: Obx(() {
         final v = controller.verification.value;
         if (v == null) {

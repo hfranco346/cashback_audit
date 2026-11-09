@@ -12,7 +12,7 @@ class OnboardingPage extends GetView<OnboardingController> {
 
   @override
   Widget build(BuildContext context) {
-    const slides = OnboardingController.slides;
+    final slides = OnboardingController.slides;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -28,7 +28,7 @@ class OnboardingPage extends GetView<OnboardingController> {
                         ? const SizedBox(height: 48)
                         : TextButton(
                             onPressed: controller.finish,
-                            child: const Text(S.skip),
+                            child: Text(S.skip),
                           ),
                   ),
                 ],

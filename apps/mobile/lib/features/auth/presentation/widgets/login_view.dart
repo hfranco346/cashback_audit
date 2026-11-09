@@ -88,7 +88,7 @@ class LoginView extends StatelessWidget {
                   key: const Key('dev-sign-in'),
                   onPressed: busy ? null : onDevSignIn,
                   icon: const Icon(Icons.developer_mode_rounded),
-                  label: const Text(S.devSignIn),
+                  label: Text(S.devSignIn),
                 ),
               ],
               const SizedBox(height: 20),

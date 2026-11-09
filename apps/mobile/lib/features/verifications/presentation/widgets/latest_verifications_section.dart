@@ -34,10 +34,7 @@ class LatestVerificationsSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 24, 12, 10),
             child: SectionHeader(
               title: S.latestVerifications,
-              trailing: TextButton(
-                onPressed: onSeeAll,
-                child: const Text(S.seeAll),
-              ),
+              trailing: TextButton(onPressed: onSeeAll, child: Text(S.seeAll)),
             ),
           ),
         ),

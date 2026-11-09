@@ -1,3 +1,5 @@
+import '../../../../core/l10n/active_locale.dart';
+
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -22,7 +24,7 @@ class VerificationSummaryTile extends StatelessWidget {
   final VoidCallback onTap;
 
   String _period() {
-    final f = DateFormat.yMMMd('es_MX');
+    final f = DateFormat.yMMMd(ActiveLocale.intlName);
     final s = summary.statement;
     if (s.periodStart != null && s.periodEnd != null) {
       return '${f.format(s.periodStart!)} – ${f.format(s.periodEnd!)}';

@@ -7,7 +7,7 @@ import '../../../core/routing/app_routes.dart';
 import '../domain/onboarding_repository.dart';
 
 class OnboardingSlide {
-  const OnboardingSlide({
+  OnboardingSlide({
     required this.icon,
     required this.title,
     required this.body,
@@ -24,7 +24,7 @@ class OnboardingController extends GetxController {
   final OnboardingRepository _repository;
   final AppNavigator _navigator;
 
-  static const slides = <OnboardingSlide>[
+  static List<OnboardingSlide> get slides => <OnboardingSlide>[
     OnboardingSlide(
       icon: Icons.fact_check_rounded,
       title: S.onb1Title,

@@ -1,3 +1,5 @@
+import '../l10n/active_locale.dart';
+
 import 'package:decimal/decimal.dart';
 import 'package:decimal/intl.dart';
 import 'package:intl/intl.dart';
@@ -20,7 +22,7 @@ String decimalToApi(Decimal value) => value.toString();
 Decimal roundDecimal(Decimal value, {int scale = 2}) =>
     value.round(scale: scale);
 
-const _locale = 'es_MX';
+String get _locale => ActiveLocale.intlName;
 
 /// ISO 4217 minor units for the currencies that do not use 2 decimals. Every
 /// other code (including unknown ones) defaults to 2.

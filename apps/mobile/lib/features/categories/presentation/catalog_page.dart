@@ -73,12 +73,12 @@ class CatalogPage extends GetView<CatalogController> {
         actions: [
           TextButton(
             onPressed: () => Get.back<bool>(result: false),
-            child: const Text(S.cancel),
+            child: Text(S.cancel),
           ),
           FilledButton(
             onPressed: () => Get.back<bool>(result: true),
             style: FilledButton.styleFrom(minimumSize: const Size(100, 44)),
-            child: const Text(S.delete),
+            child: Text(S.delete),
           ),
         ],
       ),
@@ -165,7 +165,7 @@ class _ReassignDialogState extends State<_ReassignDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text(S.deleteCategoryTitle),
+      title: Text(S.deleteCategoryTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,7 +175,7 @@ class _ReassignDialogState extends State<_ReassignDialog> {
           DropdownButtonFormField<String>(
             initialValue: _target,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: S.reassignTo),
+            decoration: InputDecoration(labelText: S.reassignTo),
             items: [
               for (final c in widget.others)
                 DropdownMenuItem(value: c.id, child: Text(c.name)),
@@ -187,12 +187,12 @@ class _ReassignDialogState extends State<_ReassignDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(S.cancel),
+          child: Text(S.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_target),
           style: FilledButton.styleFrom(minimumSize: const Size(100, 44)),
-          child: const Text(S.reassignAndDelete),
+          child: Text(S.reassignAndDelete),
         ),
       ],
     );

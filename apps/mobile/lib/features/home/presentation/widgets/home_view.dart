@@ -71,7 +71,7 @@ class HomeView extends StatelessWidget {
           : FloatingActionButton.extended(
               onPressed: onAddCard,
               icon: const Icon(Icons.add_card_rounded),
-              label: const Text(S.addCard),
+              label: Text(S.addCard),
             ),
       body: RefreshIndicator(
         onRefresh: onRefresh,
@@ -79,7 +79,7 @@ class HomeView extends StatelessWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             if (offline)
-              const SliverToBoxAdapter(
+              SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
                   child: InlineMessage(
@@ -120,7 +120,7 @@ class HomeView extends StatelessWidget {
                   ),
                 ),
               ),
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 10),
                 child: SectionHeader(title: S.homeCards),

@@ -49,7 +49,7 @@ class _AnalyzingProgressState extends State<AnalyzingProgress> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _Step(
+        _Step(
           key: Key('step-upload'),
           label: S.analyzingStepUpload,
           state: _StepState.done,

@@ -22,17 +22,17 @@ class HomePage extends GetView<CardsController> {
   Future<void> _confirmDelete(CreditCard card) async {
     final ok = await Get.dialog<bool>(
       AlertDialog(
-        title: const Text(S.deleteCardTitle),
+        title: Text(S.deleteCardTitle),
         content: Text(S.deleteCardBody(card.alias)),
         actions: [
           TextButton(
             onPressed: () => Get.back<bool>(result: false),
-            child: const Text(S.cancel),
+            child: Text(S.cancel),
           ),
           FilledButton(
             onPressed: () => Get.back<bool>(result: true),
             style: FilledButton.styleFrom(minimumSize: const Size(100, 44)),
-            child: const Text(S.delete),
+            child: Text(S.delete),
           ),
         ],
       ),

@@ -212,8 +212,8 @@ class ConfirmRatesView extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             value: saveToCard,
             onChanged: submitting ? null : onSaveToCard,
-            title: const Text(S.saveToCardTitle),
-            subtitle: const Text(S.saveToCardSubtitle),
+            title: Text(S.saveToCardTitle),
+            subtitle: Text(S.saveToCardSubtitle),
           ),
           if (errorMessage != null) ...[
             const SizedBox(height: 8),
@@ -239,7 +239,7 @@ class ConfirmRatesView extends StatelessWidget {
                       Text(S.calculating),
                     ],
                   )
-                : const Text(S.calculateResult),
+                : Text(S.calculateResult),
           ),
         ],
       ),
@@ -305,7 +305,7 @@ class _ExchangeRateSection extends StatelessWidget {
             ),
             if (excluded) ...[
               const SizedBox(height: 10),
-              const InlineMessage(
+              InlineMessage(
                 key: Key('exchange-rate-warning'),
                 message: S.exchangeRateMissing,
                 tone: InlineMessageTone.warning,

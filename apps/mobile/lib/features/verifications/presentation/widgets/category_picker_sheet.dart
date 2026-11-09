@@ -64,7 +64,7 @@ class CategoryPickerSheet extends StatelessWidget {
                   ListTile(
                     key: const Key('pick-none'),
                     leading: const Icon(Icons.block_rounded),
-                    title: const Text(S.noCategoryOption),
+                    title: Text(S.noCategoryOption),
                     trailing: transaction.categoryId == null
                         ? const Icon(Icons.check_rounded)
                         : null,

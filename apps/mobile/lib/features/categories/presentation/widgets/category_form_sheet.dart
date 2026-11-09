@@ -8,12 +8,12 @@ class CategoryFormSheet extends StatefulWidget {
   const CategoryFormSheet({
     super.key,
     required this.onSubmit,
-    this.title = S.addCategory,
+    this.title,
     this.initialName = '',
     this.initialDescription = '',
   });
 
-  final String title;
+  final String? title;
   final String initialName;
   final String initialDescription;
   final Future<String?> Function(String name, String description) onSubmit;
@@ -74,13 +74,16 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              widget.title ?? S.addCategory,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
             TextFormField(
               key: const Key('category-name'),
               controller: _name,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: S.categoryName),
+              decoration: InputDecoration(labelText: S.categoryName),
               validator: (v) {
                 final t = v?.trim() ?? '';
                 if (t.isEmpty) return S.fieldRequired;
@@ -93,9 +96,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
               key: const Key('category-description'),
               controller: _description,
               maxLength: 500,
-              decoration: const InputDecoration(
-                labelText: S.categoryDescription,
-              ),
+              decoration: InputDecoration(labelText: S.categoryDescription),
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
@@ -111,7 +112,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
                       height: 22,
                       child: CircularProgressIndicator(strokeWidth: 2.4),
                     )
-                  : const Text(S.save),
+                  : Text(S.save),
             ),
           ],
         ),

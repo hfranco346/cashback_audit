@@ -1,524 +1,413 @@
-/// All user-facing copy lives here (Spanish, neutral/Mexico) so it can be
-/// moved to proper localization later. Identifiers stay in English.
+import 'package:flutter/widgets.dart';
+
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_es.dart';
+
+/// Compatibility layer over the generated [AppLocalizations].
+///
+/// Legacy screens still read copy through `S.xxx`. New code must use
+/// `context.l10n` instead (see `L10nContext`). [S.current] follows the active
+/// locale: `LocaleController` and the app `builder` keep it in sync.
 abstract final class S {
-  static const appName = 'Cashback Audit';
-  static const tagline =
-      'Verifica que tu banco te pague lo que te corresponde.';
+  static AppLocalizations current = AppLocalizationsEs();
 
-  // Generic
-  static const retry = 'Reintentar';
-  static const cancel = 'Cancelar';
-  static const save = 'Guardar';
-  static const delete = 'Eliminar';
-  static const edit = 'Editar';
-  static const continueLabel = 'Continuar';
-  static const skip = 'Omitir';
-  static const devSignIn = 'Entrar como usuario de prueba (desarrollo)';
-  static const back = 'Atrás';
-  static const loading = 'Cargando…';
-  static const offlineBanner = 'Sin conexión. Mostrando datos guardados.';
+  /// Points [current] at the localizations resolved for [context].
+  static void bind(BuildContext context) {
+    final l = Localizations.of<AppLocalizations>(context, AppLocalizations);
+    if (l != null) current = l;
+  }
 
-  // Errors
-  static const errNetwork =
-      'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
-  static const errTimeout = 'La solicitud tardó demasiado. Inténtalo de nuevo.';
-  static const errUnauthorized = 'Tu sesión expiró. Inicia sesión otra vez.';
-  static const errNoCredits =
-      'No tienes verificaciones disponibles. Suscríbete o compra un paquete para continuar.';
-  static const errRatesRequired =
-      'Escribe el porcentaje de los rubros marcados como obligatorios.';
-  static const errProgramAmbiguous =
-      'Tu estado de cuenta tiene varios programas de recompensa. Elige cuál auditar.';
-  static const errTransactionNotFound = 'No encontramos ese movimiento.';
-  static const errTransactionNotClassifiable =
-      'Este movimiento no genera recompensa, así que no se puede asignar a un rubro.';
-  static const errVerificationNotFound =
-      'Esta verificación ya no existe. Las que no se confirman en 7 días se eliminan.';
-  static const errValidation = 'Revisa los datos e inténtalo de nuevo.';
-  static const errNotFound = 'No encontramos lo que buscabas.';
-  static const errConflict =
-      'Esa acción entra en conflicto con datos existentes.';
-  static const errTooLarge = 'El archivo supera el límite de 10 MB.';
-  static const errNotPdf = 'Solo se aceptan archivos PDF.';
-  static const errRateLimited =
-      'Demasiados intentos. Espera un momento e inténtalo otra vez.';
-  static const errServer =
-      'Algo salió mal de nuestro lado. Inténtalo de nuevo en unos minutos.';
-  static const errUnknown = 'Ocurrió un error inesperado.';
-  static const errCategoryNameTaken = 'Ya tienes un rubro con ese nombre.';
-  static const errMerchantNameTaken = 'Ya tienes un comercio con ese nombre.';
-  static const errCategoryInUse =
-      'Este rubro tiene comercios o reglas de tarjeta. Elige a qué rubro moverlos.';
-  static const errInvalidPdf = 'El archivo no es un PDF válido.';
-  static const errUnreadable =
-      'No pudimos leer ese estado de cuenta. Descarga el PDF original desde tu banco (no una foto ni un archivo con contraseña).';
-  static const errRewardRateRequired =
-      'Escribe cuánto vale la moneda de la recompensa para poder convertirla.';
-  static const errInvalidExchangeRate =
-      'Revisa los tipos de cambio: deben ser números mayores a 0 (máximo 6 decimales).';
-  static const errRewardNotFound =
-      'El estado de cuenta no muestra la recompensa que te dio el banco. Escríbela para continuar.';
-  static const errExtractionFailed =
-      'El análisis no devolvió un resultado utilizable. Suele funcionar al reintentar.';
-  static const errExtractionUnavailable =
-      'El servicio de análisis está ocupado. Inténtalo más tarde.';
-  static const errIdentityToken =
-      'No pudimos validar tu cuenta. Inténtalo de nuevo.';
-  static const errIdentityUnavailable =
-      'El inicio de sesión no está disponible por ahora.';
+  static AppLocalizations get _l => current;
 
-  static const errSignInFailed =
-      'No pudimos completar el inicio de sesión. Inténtalo de nuevo.';
-
-  // Session
-  static const sessionExpiredTitle = 'Sesión finalizada';
-
-  // Onboarding
-  static const onb1Title = 'Comprueba lo que tu banco te debe';
-  static const onb1Body =
-      'Sube tu estado de cuenta y calculamos cuánto cashback o cuántos puntos deberías haber recibido.';
-  static const onb2Title = 'Registra tus tarjetas y rubros';
-  static const onb2Body =
-      'Captura la tasa base de cada tarjeta y los porcentajes por rubro (súper, gasolina, restaurantes…). Asigna cada comercio al rubro en el que esperas que acumule.';
-  static const onb3Title = 'Sube el PDF y revisa el veredicto';
-  static const onb3Body =
-      'Te mostramos si el pago coincide, si te pagaron de menos o de más, con el detalle por rubro y por movimiento.';
-  static const onb4Title = 'Tu privacidad primero';
-  static const onb4Body =
-      'Nunca guardamos tu PDF ni el número completo de tu tarjeta: solo los últimos 4 dígitos y los resultados del análisis.';
-  static const start = 'Empezar';
-
-  // Login
-  static const loginTitle = 'Inicia sesión';
-  static const loginSubtitle =
-      'Usa tu cuenta para guardar tus tarjetas, rubros y el historial de verificaciones.';
-  static const signInGoogle = 'Continuar con Google';
-  static const signInApple = 'Continuar con Apple';
-  static const loginLegal =
-      'No almacenamos tu PDF ni el número completo de tu tarjeta.';
-
-  // Validation
-  static const fieldRequired = 'Este campo es obligatorio';
-  static String fieldTooLong(int max) => 'Máximo $max caracteres';
-  static const last4Invalid = 'Escribe exactamente 4 dígitos';
-  static const currencyInvalid = 'Usa un código de 3 letras (MXN, USD…)';
-  static const numberInvalid = 'Escribe un número válido';
-  static const percentRange = 'Debe estar entre 0 y 100';
-  static const capInvalid = 'Debe ser mayor a 0 (máximo 2 decimales)';
-  static const pointsFactorInvalid = 'Debe ser mayor a 0 y hasta 1000';
-
-  // Home
-  static String greeting(String? name) => name == null ? 'Hola' : 'Hola, $name';
-  static const homeCards = 'Mis tarjetas';
-  static const homeNoCardsTitle = 'Aún no tienes tarjetas';
-  static const homeNoCardsBody =
-      'Agrega tu primera tarjeta con sus tasas de recompensa para empezar a auditar.';
-  static const addCard = 'Agregar tarjeta';
-  static const manageCategories = 'Rubros y comercios';
-  static const logout = 'Cerrar sesión';
-  static const loadError = 'No pudimos cargar tus datos.';
-
-  // Cards
-  static const newCard = 'Nueva tarjeta';
-  static const editCard = 'Editar tarjeta';
-  static const cardAlias = 'Alias';
-  static const cardAliasHint = 'Ej. Tarjeta diaria';
-  static const cardBank = 'Banco';
-  static const cardLast4 = 'Últimos 4 dígitos';
-  static const cardLast4Helper = 'Nunca pedimos el número completo.';
-  static const cardNetwork = 'Red (opcional)';
-  static const cardCurrency = 'Moneda';
-  static const cardRewardProgram = 'Programa de recompensa a auditar';
-  static const cardRewardProgramHelper =
-      'Opcional. Si tu estado de cuenta lista varios programas (p. ej. CASH BAC), escribe el nombre del que quieres auditar.';
-  static const cardRewardCurrency = 'Moneda en que recibes la recompensa';
-  static const cardRewardCurrencyHelper =
-      'Opcional. Si tu banco paga la recompensa en otra moneda que tus compras (p. ej. dólares), indícala. Vacío = detectar automáticamente.';
-  static const cardRewardCurrencyAuto = 'Detectar automáticamente';
-  static const rewardUnitLabel = 'Tipo de recompensa';
-  static const unitCashback = 'Cashback';
-  static const unitPoints = 'Puntos';
-  static const pointsPerUnit = 'Puntos por cada \$1 de recompensa';
-  static const baseRate = 'Tasa base (%)';
-  static const baseRateHelper = 'Se aplica a todo gasto sin regla por rubro.';
-  static const rulesTitle = 'Reglas por rubro';
-  static const rulesHelper =
-      'Define una tasa distinta para cada rubro, con tope mensual opcional.';
-  static const addRule = 'Agregar regla';
-  static const ruleCategory = 'Rubro';
-  static const ruleRate = 'Tasa (%)';
-  static const ruleCap = 'Tope mensual';
-  static const ruleCapHelper = 'Opcional';
-  static const removeRule = 'Quitar regla';
-  static const ruleNeedsCategories =
-      'Primero crea al menos un rubro para definir reglas.';
-  static const ruleCategoryRequired = 'Elige un rubro';
-  static const ruleDuplicateCategory = 'Ya hay una regla para ese rubro';
-  static const deleteCardTitle = 'Eliminar tarjeta';
-  static String deleteCardBody(String alias) =>
-      '¿Eliminar "$alias"? También se borrará su historial de verificaciones.';
-  static const cardSaved = 'Tarjeta guardada';
-  static const cardDeleted = 'Tarjeta eliminada';
-  static String ruleCount(int n) =>
-      n == 0 ? 'Sin reglas' : (n == 1 ? '1 regla' : '$n reglas');
-  static String baseRateShort(String rate) => 'Base $rate';
-
-  // Categories & merchants
-  static const catalogTitle = 'Rubros y comercios';
-  static const addCategory = 'Nuevo rubro';
-  static const editCategory = 'Editar rubro';
-  static const categoryName = 'Nombre del rubro';
-  static const categoryDescription = 'Descripción (opcional)';
-  static const addMerchant = 'Agregar comercio';
-  static const editMerchant = 'Editar comercio';
-  static const merchantName = 'Nombre del comercio';
-  static const merchantKeywords = 'Palabras clave del estado de cuenta';
-  static const merchantKeywordsHelper =
-      'Como aparecen en tu estado de cuenta, separadas por coma. Ej. WAL MART, WALMART SUC';
-  static const merchantCategory = 'Rubro esperado';
-  static const noMerchants = 'Sin comercios';
-  static const catalogEmptyTitle = 'Crea tu primer rubro';
-  static const catalogEmptyBody =
-      'Los rubros (súper, gasolina, restaurantes…) agrupan comercios y reciben tasas especiales en tus tarjetas.';
-  static const deleteCategoryTitle = 'Eliminar rubro';
-  static String deleteCategoryBody(String name) =>
-      '¿Eliminar el rubro "$name"?';
+  static String get appName => _l.appName;
+  static String get tagline => _l.tagline;
+  static String get retry => _l.retry;
+  static String get cancel => _l.cancel;
+  static String get save => _l.save;
+  static String get delete => _l.delete;
+  static String get edit => _l.edit;
+  static String get continueLabel => _l.continueLabel;
+  static String get skip => _l.skip;
+  static String get devSignIn => _l.devSignIn;
+  static String get back => _l.back;
+  static String get loading => _l.loading;
+  static String get offlineBanner => _l.offlineBanner;
+  static String get errNetwork => _l.errNetwork;
+  static String get errTimeout => _l.errTimeout;
+  static String get errUnauthorized => _l.errUnauthorized;
+  static String get errNoCredits => _l.errNoCredits;
+  static String get errRatesRequired => _l.errRatesRequired;
+  static String get errProgramAmbiguous => _l.errProgramAmbiguous;
+  static String get errTransactionNotFound => _l.errTransactionNotFound;
+  static String get errTransactionNotClassifiable =>
+      _l.errTransactionNotClassifiable;
+  static String get errVerificationNotFound => _l.errVerificationNotFound;
+  static String get errValidation => _l.errValidation;
+  static String get errNotFound => _l.errNotFound;
+  static String get errConflict => _l.errConflict;
+  static String get errTooLarge => _l.errTooLarge;
+  static String get errNotPdf => _l.errNotPdf;
+  static String get errRateLimited => _l.errRateLimited;
+  static String get errServer => _l.errServer;
+  static String get errUnknown => _l.errUnknown;
+  static String get errCategoryNameTaken => _l.errCategoryNameTaken;
+  static String get errMerchantNameTaken => _l.errMerchantNameTaken;
+  static String get errCategoryInUse => _l.errCategoryInUse;
+  static String get errInvalidPdf => _l.errInvalidPdf;
+  static String get errUnreadable => _l.errUnreadable;
+  static String get errRewardRateRequired => _l.errRewardRateRequired;
+  static String get errInvalidExchangeRate => _l.errInvalidExchangeRate;
+  static String get errRewardNotFound => _l.errRewardNotFound;
+  static String get errExtractionFailed => _l.errExtractionFailed;
+  static String get errExtractionUnavailable => _l.errExtractionUnavailable;
+  static String get errIdentityToken => _l.errIdentityToken;
+  static String get errIdentityUnavailable => _l.errIdentityUnavailable;
+  static String get errSignInFailed => _l.errSignInFailed;
+  static String get sessionExpiredTitle => _l.sessionExpiredTitle;
+  static String get onb1Title => _l.onb1Title;
+  static String get onb1Body => _l.onb1Body;
+  static String get onb2Title => _l.onb2Title;
+  static String get onb2Body => _l.onb2Body;
+  static String get onb3Title => _l.onb3Title;
+  static String get onb3Body => _l.onb3Body;
+  static String get onb4Title => _l.onb4Title;
+  static String get onb4Body => _l.onb4Body;
+  static String get start => _l.start;
+  static String get loginTitle => _l.loginTitle;
+  static String get loginSubtitle => _l.loginSubtitle;
+  static String get signInGoogle => _l.signInGoogle;
+  static String get signInApple => _l.signInApple;
+  static String get loginLegal => _l.loginLegal;
+  static String get fieldRequired => _l.fieldRequired;
+  static String get last4Invalid => _l.last4Invalid;
+  static String get currencyInvalid => _l.currencyInvalid;
+  static String get numberInvalid => _l.numberInvalid;
+  static String get percentRange => _l.percentRange;
+  static String get capInvalid => _l.capInvalid;
+  static String get pointsFactorInvalid => _l.pointsFactorInvalid;
+  static String get homeCards => _l.homeCards;
+  static String get homeNoCardsTitle => _l.homeNoCardsTitle;
+  static String get homeNoCardsBody => _l.homeNoCardsBody;
+  static String get addCard => _l.addCard;
+  static String get manageCategories => _l.manageCategories;
+  static String get logout => _l.logout;
+  static String get loadError => _l.loadError;
+  static String get newCard => _l.newCard;
+  static String get editCard => _l.editCard;
+  static String get cardAlias => _l.cardAlias;
+  static String get cardAliasHint => _l.cardAliasHint;
+  static String get cardBank => _l.cardBank;
+  static String get cardLast4 => _l.cardLast4;
+  static String get cardLast4Helper => _l.cardLast4Helper;
+  static String get cardNetwork => _l.cardNetwork;
+  static String get cardCurrency => _l.cardCurrency;
+  static String get cardRewardProgram => _l.cardRewardProgram;
+  static String get cardRewardProgramHelper => _l.cardRewardProgramHelper;
+  static String get cardRewardCurrency => _l.cardRewardCurrency;
+  static String get cardRewardCurrencyHelper => _l.cardRewardCurrencyHelper;
+  static String get cardRewardCurrencyAuto => _l.cardRewardCurrencyAuto;
+  static String get rewardUnitLabel => _l.rewardUnitLabel;
+  static String get unitCashback => _l.unitCashback;
+  static String get unitPoints => _l.unitPoints;
+  static String get pointsPerUnit => _l.pointsPerUnit;
+  static String get baseRate => _l.baseRate;
+  static String get baseRateHelper => _l.baseRateHelper;
+  static String get rulesTitle => _l.rulesTitle;
+  static String get rulesHelper => _l.rulesHelper;
+  static String get addRule => _l.addRule;
+  static String get ruleCategory => _l.ruleCategory;
+  static String get ruleRate => _l.ruleRate;
+  static String get ruleCap => _l.ruleCap;
+  static String get ruleCapHelper => _l.ruleCapHelper;
+  static String get removeRule => _l.removeRule;
+  static String get ruleNeedsCategories => _l.ruleNeedsCategories;
+  static String get ruleCategoryRequired => _l.ruleCategoryRequired;
+  static String get ruleDuplicateCategory => _l.ruleDuplicateCategory;
+  static String get deleteCardTitle => _l.deleteCardTitle;
+  static String get cardSaved => _l.cardSaved;
+  static String get cardDeleted => _l.cardDeleted;
+  static String get catalogTitle => _l.catalogTitle;
+  static String get addCategory => _l.addCategory;
+  static String get editCategory => _l.editCategory;
+  static String get categoryName => _l.categoryName;
+  static String get categoryDescription => _l.categoryDescription;
+  static String get addMerchant => _l.addMerchant;
+  static String get editMerchant => _l.editMerchant;
+  static String get merchantName => _l.merchantName;
+  static String get merchantKeywords => _l.merchantKeywords;
+  static String get merchantKeywordsHelper => _l.merchantKeywordsHelper;
+  static String get merchantCategory => _l.merchantCategory;
+  static String get noMerchants => _l.noMerchants;
+  static String get catalogEmptyTitle => _l.catalogEmptyTitle;
+  static String get catalogEmptyBody => _l.catalogEmptyBody;
+  static String get deleteCategoryTitle => _l.deleteCategoryTitle;
+  static String get reassignTo => _l.reassignTo;
+  static String get reassignAndDelete => _l.reassignAndDelete;
+  static String get deleteMerchantTitle => _l.deleteMerchantTitle;
+  static String get needOtherCategory => _l.needOtherCategory;
+  static String get settingsTitle => _l.settingsTitle;
+  static String get appearanceTitle => _l.appearanceTitle;
+  static String get themeSystem => _l.themeSystem;
+  static String get themeLight => _l.themeLight;
+  static String get themeDark => _l.themeDark;
+  static String get longPressHint => _l.longPressHint;
+  static String get uploadTitle => _l.uploadTitle;
+  static String get uploadStep1 => _l.uploadStep1;
+  static String get uploadStep2 => _l.uploadStep2;
+  static String get pickPdf => _l.pickPdf;
+  static String get changePdf => _l.changePdf;
+  static String get noCardsForUpload => _l.noCardsForUpload;
+  static String get verify => _l.verify;
+  static String get uploading => _l.uploading;
+  static String get analyzing => _l.analyzing;
+  static String get analyzingHint => _l.analyzingHint;
+  static String get uploadPrivacy => _l.uploadPrivacy;
+  static String get fileTooLarge => _l.fileTooLarge;
+  static String get fileNotPdf => _l.fileNotPdf;
+  static String get uploadTimeout => _l.uploadTimeout;
+  static String get overrideTitle => _l.overrideTitle;
+  static String get overrideLabel => _l.overrideLabel;
+  static String get overrideHelper => _l.overrideHelper;
+  static String get overrideInvalid => _l.overrideInvalid;
+  static String get selectCardFirst => _l.selectCardFirst;
+  static String get analyzingStepUpload => _l.analyzingStepUpload;
+  static String get analyzingStepRead => _l.analyzingStepRead;
+  static String get analyzingStepClassify => _l.analyzingStepClassify;
+  static String get analyzingExpect => _l.analyzingExpect;
+  static String get confirmRatesTitle => _l.confirmRatesTitle;
+  static String get recalcRatesTitle => _l.recalcRatesTitle;
+  static String get confirmRatesIntro => _l.confirmRatesIntro;
+  static String get confirmRatesNoCharge => _l.confirmRatesNoCharge;
+  static String get rateBaseTitle => _l.rateBaseTitle;
+  static String get rateBaseSubtitle => _l.rateBaseSubtitle;
+  static String get rateFieldLabel => _l.rateFieldLabel;
+  static String get rateCapLabel => _l.rateCapLabel;
+  static String get badgeStatement => _l.badgeStatement;
+  static String get badgeCardRule => _l.badgeCardRule;
+  static String get badgePrevious => _l.badgePrevious;
+  static String get badgeRequired => _l.badgeRequired;
+  static String get rateRequiredError => _l.rateRequiredError;
+  static String get saveToCardTitle => _l.saveToCardTitle;
+  static String get saveToCardSubtitle => _l.saveToCardSubtitle;
+  static String get exchangeRateTitle => _l.exchangeRateTitle;
+  static String get exchangeRateMissing => _l.exchangeRateMissing;
+  static String get exchangeRateInvalid => _l.exchangeRateInvalid;
+  static String get rewardRateRequiredError => _l.rewardRateRequiredError;
+  static String get foreignRatesTitle => _l.foreignRatesTitle;
+  static String get foreignRatesHelper => _l.foreignRatesHelper;
+  static String get foreignRateOptional => _l.foreignRateOptional;
+  static String get suggestionsTitle => _l.suggestionsTitle;
+  static String get suggestionsHelper => _l.suggestionsHelper;
+  static String get suggestionsFree => _l.suggestionsFree;
+  static String get createSuggestions => _l.createSuggestions;
+  static String get creatingSuggestions => _l.creatingSuggestions;
+  static String get suggestionsCreated => _l.suggestionsCreated;
+  static String get programChooserTitle => _l.programChooserTitle;
+  static String get programChooserHelper => _l.programChooserHelper;
+  static String get programRequired => _l.programRequired;
+  static String get calculateResult => _l.calculateResult;
+  static String get calculating => _l.calculating;
+  static String get confirmLoadError => _l.confirmLoadError;
+  static String get resultTitle => _l.resultTitle;
+  static String get resultNotConfirmed => _l.resultNotConfirmed;
+  static String get verdictMatch => _l.verdictMatch;
+  static String get verdictUnderpaid => _l.verdictUnderpaid;
+  static String get verdictOverpaid => _l.verdictOverpaid;
+  static String get verdictMatchHint => _l.verdictMatchHint;
+  static String get expectedLabel => _l.expectedLabel;
+  static String get reportedLabel => _l.reportedLabel;
+  static String get differenceLabel => _l.differenceLabel;
+  static String get reportedOverrideNote => _l.reportedOverrideNote;
+  static String get breakdownTitle => _l.breakdownTitle;
+  static String get baseRateLine => _l.baseRateLine;
+  static String get capped => _l.capped;
+  static String get transactionsTitle => _l.transactionsTitle;
+  static String get filterAll => _l.filterAll;
+  static String get filterCounted => _l.filterCounted;
+  static String get filterUncounted => _l.filterUncounted;
+  static String get filterExcluded => _l.filterExcluded;
+  static String get countedLabel => _l.countedLabel;
+  static String get uncountedLabel => _l.uncountedLabel;
+  static String get excludedLabel => _l.excludedLabel;
+  static String get aiChip => _l.aiChip;
+  static String get aiChipTooltip => _l.aiChipTooltip;
+  static String get userChip => _l.userChip;
+  static String get userChipTooltip => _l.userChipTooltip;
+  static String get excludedPayment => _l.excludedPayment;
+  static String get excludedFee => _l.excludedFee;
+  static String get excludedInterest => _l.excludedInterest;
+  static String get excludedInsurance => _l.excludedInsurance;
+  static String get excludedOther => _l.excludedOther;
+  static String get changeCategory => _l.changeCategory;
+  static String get changeCategoryTitle => _l.changeCategoryTitle;
+  static String get noCategoryOption => _l.noCategoryOption;
+  static String get categoryChanged => _l.categoryChanged;
+  static String get recalcFailedAfterChange => _l.recalcFailedAfterChange;
+  static String get recalcNeedsRate => _l.recalcNeedsRate;
+  static String get recalcAction => _l.recalcAction;
+  static String get recalcWithOtherRates => _l.recalcWithOtherRates;
+  static String get explanationTitle => _l.explanationTitle;
+  static String get loyaltyTitle => _l.loyaltyTitle;
+  static String get loyaltyAudited => _l.loyaltyAudited;
+  static String get loyaltyCumulativeChip => _l.loyaltyCumulativeChip;
+  static String get loyaltyProgram => _l.loyaltyProgram;
+  static String get loyaltyAccumulated => _l.loyaltyAccumulated;
+  static String get loyaltyAvailable => _l.loyaltyAvailable;
+  static String get loyaltyRedeemed => _l.loyaltyRedeemed;
+  static String get loyaltyExpiring => _l.loyaltyExpiring;
+  static String get loyaltyForfeited => _l.loyaltyForfeited;
+  static String get currenciesTitle => _l.currenciesTitle;
+  static String get currencySpent => _l.currencySpent;
+  static String get currencyEligible => _l.currencyEligible;
+  static String get currencyReward => _l.currencyReward;
+  static String get appliedRatesTitle => _l.appliedRatesTitle;
+  static String get warnLast4 => _l.warnLast4;
+  static String get warnCurrencyMismatch => _l.warnCurrencyMismatch;
+  static String get warnTotalMismatch => _l.warnTotalMismatch;
+  static String get warnNoTransactions => _l.warnNoTransactions;
+  static String get warnAiUnavailable => _l.warnAiUnavailable;
+  static String get warnNoExchangeRate => _l.warnNoExchangeRate;
+  static String get warnExchangeMultiple => _l.warnExchangeMultiple;
+  static String get warnCumulative => _l.warnCumulative;
+  static String get warnUnitDiffers => _l.warnUnitDiffers;
+  static String get assignToCategory => _l.assignToCategory;
+  static String get assignedNotice => _l.assignedNotice;
+  static String get baseOnly => _l.baseOnly;
+  static String get creditPayment => _l.creditPayment;
+  static String get creditRefund => _l.creditRefund;
+  static String get creditOther => _l.creditOther;
+  static String get rewardRateDetailTitle => _l.rewardRateDetailTitle;
+  static String get rewardRateFromStatement => _l.rewardRateFromStatement;
+  static String get rewardRateUserEntered => _l.rewardRateUserEntered;
+  static String get assignSheetTitle => _l.assignSheetTitle;
+  static String get noCategoriesToAssign => _l.noCategoriesToAssign;
+  static String get goToCategories => _l.goToCategories;
+  static String get merchantAssigned => _l.merchantAssigned;
+  static String get warningsTitle => _l.warningsTitle;
+  static String get noTransactionsMatch => _l.noTransactionsMatch;
+  static String get periodLabel => _l.periodLabel;
+  static String get deleteVerification => _l.deleteVerification;
+  static String get deleteVerificationBody => _l.deleteVerificationBody;
+  static String get awaitingRatesChip => _l.awaitingRatesChip;
+  static String get historyTitle => _l.historyTitle;
+  static String get historyEmptyTitle => _l.historyEmptyTitle;
+  static String get historyEmptyBody => _l.historyEmptyBody;
+  static String get allCards => _l.allCards;
+  static String get loadMore => _l.loadMore;
+  static String get latestVerifications => _l.latestVerifications;
+  static String get seeAll => _l.seeAll;
+  static String get verifyAction => _l.verifyAction;
+  static String get historyAction => _l.historyAction;
+  static String get creditsNone => _l.creditsNone;
+  static String get uploadFreeNotice => _l.uploadFreeNotice;
+  static String get uploadNoCredits => _l.uploadNoCredits;
+  static String get seePlans => _l.seePlans;
+  static String get creditsTitle => _l.creditsTitle;
+  static String get creditsHistoryTitle => _l.creditsHistoryTitle;
+  static String get creditsHistoryEmptyTitle => _l.creditsHistoryEmptyTitle;
+  static String get creditsHistoryEmptyBody => _l.creditsHistoryEmptyBody;
+  static String get creditsBuy => _l.creditsBuy;
+  static String get creditReasonGrantFree => _l.creditReasonGrantFree;
+  static String get creditReasonGrantPlan => _l.creditReasonGrantPlan;
+  static String get creditReasonGrantPack => _l.creditReasonGrantPack;
+  static String get creditReasonConsume => _l.creditReasonConsume;
+  static String get creditReasonRefund => _l.creditReasonRefund;
+  static String get creditReasonExpirePlan => _l.creditReasonExpirePlan;
+  static String get creditReasonOther => _l.creditReasonOther;
+  static String get creditBucketFree => _l.creditBucketFree;
+  static String get creditBucketPlan => _l.creditBucketPlan;
+  static String get creditBucketPurchased => _l.creditBucketPurchased;
+  static String get paywallTitle => _l.paywallTitle;
+  static String get paywallHeadline => _l.paywallHeadline;
+  static String get paywallBenefit1 => _l.paywallBenefit1;
+  static String get paywallBenefit2 => _l.paywallBenefit2;
+  static String get paywallBenefit3 => _l.paywallBenefit3;
+  static String get paywallSubscriptionTitle => _l.paywallSubscriptionTitle;
+  static String get paywallSubscriptionPerks => _l.paywallSubscriptionPerks;
+  static String get paywallPacksTitle => _l.paywallPacksTitle;
+  static String get paywallPacksSubtitle => _l.paywallPacksSubtitle;
+  static String get paywallBuy => _l.paywallBuy;
+  static String get paywallSuccessPack => _l.paywallSuccessPack;
+  static String get paywallConfirmingPurchase => _l.paywallConfirmingPurchase;
+  static String get paywallPendingPack => _l.paywallPendingPack;
+  static String get restoreNothing => _l.restoreNothing;
+  static String get paywallSubscribe => _l.paywallSubscribe;
+  static String get paywallRestore => _l.paywallRestore;
+  static String get paywallLegal => _l.paywallLegal;
+  static String get paywallNoPackages => _l.paywallNoPackages;
+  static String get paywallLoadFailed => _l.paywallLoadFailed;
+  static String get paywallPurchaseFailed => _l.paywallPurchaseFailed;
+  static String get paywallRestoreFailed => _l.paywallRestoreFailed;
+  static String get paywallConfirming => _l.paywallConfirming;
+  static String get paywallPending => _l.paywallPending;
+  static String get paywallCheckAgain => _l.paywallCheckAgain;
+  static String get paywallSuccessTitle => _l.paywallSuccessTitle;
+  static String get paywallSuccessBody => _l.paywallSuccessBody;
+  static String get paywallDevNoticeTitle => _l.paywallDevNoticeTitle;
+  static String get paywallDevNotice => _l.paywallDevNotice;
+  static String get subscriptionTitle => _l.subscriptionTitle;
+  static String get subscribeNow => _l.subscribeNow;
+  static String get subscriptionNone => _l.subscriptionNone;
+  static String get subscriptionActive => _l.subscriptionActive;
+  static String get subscriptionCancelled => _l.subscriptionCancelled;
+  static String get subscriptionBillingIssue => _l.subscriptionBillingIssue;
+  static String get subscriptionExpired => _l.subscriptionExpired;
+  static String get subscriptionBillingIssueHint =>
+      _l.subscriptionBillingIssueHint;
+  static String get restoreDone => _l.restoreDone;
+  static String fieldTooLong(int max) => _l.fieldTooLong(max);
+  static String greeting(String? name) => _l.greeting(name ?? 'none');
+  static String deleteCardBody(String alias) => _l.deleteCardBody(alias);
+  static String ruleCount(int n) => _l.ruleCount(n);
+  static String baseRateShort(String rate) => _l.baseRateShort(rate);
+  static String deleteCategoryBody(String name) => _l.deleteCategoryBody(name);
   static String reassignBody(int merchants, int rules) =>
-      'Este rubro tiene $merchants comercio(s) y $rules regla(s) de tarjeta. Elige a qué rubro moverlos antes de eliminarlo.';
-  static const reassignTo = 'Mover a';
-  static const reassignAndDelete = 'Mover y eliminar';
-  static const deleteMerchantTitle = 'Eliminar comercio';
-  static String deleteMerchantBody(String name) =>
-      '¿Eliminar "$name"? Dejará de asignarse a su rubro.';
-  static const needOtherCategory =
-      'Crea otro rubro para poder mover los elementos.';
-  static String merchantCount(int n) => n == 1 ? '1 comercio' : '$n comercios';
-
-  static const settingsTitle = 'Perfil y ajustes';
-  static const appearanceTitle = 'Apariencia';
-  static const themeSystem = 'Sistema';
-  static const themeLight = 'Claro';
-  static const themeDark = 'Oscuro';
-  static const longPressHint = 'Mantén presionada una tarjeta para eliminarla';
-
-  // Upload
-  static const uploadTitle = 'Verificar estado de cuenta';
-  static const uploadStep1 = 'Elige la tarjeta';
-  static const uploadStep2 = 'Selecciona el PDF';
-  static const pickPdf = 'Elegir PDF';
-  static const changePdf = 'Cambiar archivo';
-  static const noCardsForUpload =
-      'Primero agrega una tarjeta para poder verificar un estado de cuenta.';
-  static const verify = 'Verificar';
-  static const uploading = 'Subiendo archivo…';
-  static const analyzing = 'Analizando tu estado de cuenta…';
-  static const analyzingHint =
-      'Puede tardar hasta un minuto. No cierres la app.';
-  static const uploadPrivacy =
-      'Procesamos el PDF en memoria y no lo guardamos.';
-  static const fileTooLarge = 'El archivo supera el límite de 10 MB.';
-  static const fileNotPdf = 'Elige un archivo PDF.';
-  static const uploadTimeout =
-      'El análisis tardó demasiado. Revisa tu historial antes de reintentar: puede que ya se haya procesado.';
-  static const overrideTitle = 'Escribe la recompensa que te dio el banco';
-  static const overrideLabel = 'Recompensa reportada';
-  static const overrideHelper =
-      'Búscala en tu estado de cuenta (bonificación o puntos del periodo).';
-  static const overrideInvalid = 'Escribe un monto válido (hasta 2 decimales)';
-  static const selectCardFirst = 'Elige una tarjeta';
-
-  static const analyzingStepUpload = 'Archivo recibido';
-  static const analyzingStepRead = 'Leyendo tu estado de cuenta';
-  static const analyzingStepClassify = 'Clasificando movimientos';
-  static const analyzingExpect =
-      'Este paso suele tardar cerca de 1 minuto. Después podrás confirmar los porcentajes.';
-
-  // Rate confirmation
-  static const confirmRatesTitle = 'Confirma los porcentajes';
-  static const recalcRatesTitle = 'Recalcular con otros %';
-  static const confirmRatesIntro =
-      'Los bancos cambian sus políticas seguido. Revisa con qué porcentajes vamos a calcular lo que deberías haber recibido.';
-  static const confirmRatesNoCharge =
-      'Calcular y recalcular no consume verificaciones.';
-  static const rateBaseTitle = 'Tasa base';
-  static const rateBaseSubtitle = 'Se aplica a todo gasto fuera de tus rubros.';
-  static const rateFieldLabel = 'Porcentaje';
-  static const rateCapLabel = 'Tope mensual (opcional)';
-  static const badgeStatement = 'Detectado en tu estado de cuenta';
-  static const badgeCardRule = 'De las reglas de tu tarjeta';
-  static const badgePrevious = 'Los que usaste antes';
-  static const badgeRequired = 'Obligatorio';
-  static const rateRequiredError = 'Escribe el porcentaje para continuar';
-  static String evidenceQuote(String text) => '“$text”';
-  static const saveToCardTitle = 'Guardar estos % en la tarjeta';
-  static const saveToCardSubtitle =
-      'Reemplaza la tasa base y las reglas por rubro de tu tarjeta.';
-  static const exchangeRateTitle = 'Tipo de cambio (opcional)';
+      _l.reassignBody(_l.merchantCount(merchants), _l.ruleCountPlain(rules));
+  static String deleteMerchantBody(String name) => _l.deleteMerchantBody(name);
+  static String merchantCount(int n) => _l.merchantCount(n);
+  static String evidenceQuote(String text) => _l.evidenceQuote(text);
   static String exchangeRateHelper(String primary) =>
-      'Cuántos $primary vale 1 unidad de la moneda extranjera. Sin él, las compras en otra moneda no cuentan para la recompensa.';
+      _l.exchangeRateHelper(primary);
   static String exchangeRateStatement(String from, String to, String rate) =>
-      'Tu estado de cuenta indica 1 $from = $rate $to.';
-  static const exchangeRateMissing =
-      'Hay compras en moneda extranjera. Sin tipo de cambio quedarán fuera del cálculo.';
-  static const exchangeRateInvalid =
-      'Escribe un número mayor a 0 (máximo 6 decimales)';
-  // Reward conversion + foreign spend rates + suggested categories
+      _l.exchangeRateStatement(from, to, rate);
   static String howManyIs(String primary, String other) =>
-      '¿Cuántos $primary vale 1 $other?';
+      _l.howManyIs(primary, other);
   static String rewardConversionTitle(String reward, String primary) =>
-      'Tu banco paga la recompensa en $reward y tus compras están en $primary';
+      _l.rewardConversionTitle(reward, primary);
   static String rewardConversionHelper(String reward) =>
-      'Necesitamos este tipo de cambio para convertir lo que deberías haber recibido a $reward. Es obligatorio.';
-  static const rewardRateRequiredError =
-      'Escribe el tipo de cambio para continuar';
-  static const foreignRatesTitle = 'Compras en otras monedas';
-  static const foreignRatesHelper =
-      'Opcional. Si dejas un tipo de cambio vacío, las compras en esa moneda quedan fuera del cálculo.';
-  static const foreignRateOptional = 'Opcional';
+      _l.rewardConversionHelper(reward);
   static String foreignRateEmptyNote(String currency) =>
-      'Sin tipo de cambio, las compras en $currency no cuentan.';
-  static const suggestionsTitle =
-      'Tu estado de cuenta menciona rubros que no tienes';
-  static const suggestionsHelper =
-      'Créalos para auditar esas compras con el porcentaje que indica tu banco.';
-  static const suggestionsFree = 'Es gratis: no consume verificaciones.';
-  static const createSuggestions = 'Crear rubros seleccionados';
-  static const creatingSuggestions = 'Creando rubros…';
-  static const suggestionsCreated =
-      'Rubros creados. Ya aparecen abajo con el porcentaje de tu estado de cuenta.';
-  static String suggestionLines(int n) => switch (n) {
-    0 => 'Sin movimientos',
-    1 => '1 movimiento',
-    _ => '$n movimientos',
-  };
-  static const programChooserTitle = 'Elige el programa a auditar';
-  static const programChooserHelper =
-      'Tu estado de cuenta lista varios programas de recompensa.';
-  static const programRequired = 'Elige un programa para continuar';
-  static const calculateResult = 'Calcular resultado';
-  static const calculating = 'Calculando…';
-  static const confirmLoadError = 'No pudimos cargar esta verificación.';
-
-  // Verdicts and result
-  static const resultTitle = 'Resultado';
-  static const resultNotConfirmed =
-      'Esta verificación aún no tiene resultado. Confirma los porcentajes para calcularlo.';
-  static const verdictMatch = 'Todo en orden';
-  static const verdictUnderpaid = 'Te pagaron de menos';
-  static const verdictOverpaid = 'Te pagaron de más';
-  static const verdictMatchHint = 'La recompensa coincide con lo esperado.';
+      _l.foreignRateEmptyNote(currency);
+  static String suggestionLines(int n) => _l.suggestionLines(n);
   static String verdictUnderpaidHint(String amount) =>
-      'El banco te debe $amount. Puedes reclamarlo con tu estado de cuenta.';
+      _l.verdictUnderpaidHint(amount);
   static String verdictOverpaidHint(String amount) =>
-      'El banco te pagó $amount de más.';
-  static const expectedLabel = 'Esperado';
-  static const reportedLabel = 'Reportado';
-  static const differenceLabel = 'Diferencia';
-  static const reportedOverrideNote = 'Capturado por ti';
-  static const breakdownTitle = 'Desglose por rubro';
-  static const baseRateLine = 'Tasa base';
+      _l.verdictOverpaidHint(amount);
   static String breakdownDetail(String spend, int count) =>
-      '$spend en $count movimiento(s)';
-  static const capped = 'Tope alcanzado';
-  static String capOf(String cap) => 'Tope $cap';
-  static const transactionsTitle = 'Movimientos';
-  static const filterAll = 'Todos';
-  static const filterCounted = 'En rubro';
-  static const filterUncounted = 'Sin rubro';
-  static const filterExcluded = 'Excluidos';
-  static String filterWithCount(String label, int n) => '$label ($n)';
+      _l.breakdownDetail(spend, count);
+  static String capOf(String cap) => _l.capOf(cap);
+  static String filterWithCount(String label, int n) =>
+      _l.filterWithCount(label, n);
   static String transactionsSummary(int counted, int uncounted, int excluded) =>
-      '$counted en rubro · $uncounted sin rubro · $excluded excluidos';
-  static const countedLabel = 'Contó en rubro';
-  static const uncountedLabel = 'Sin rubro';
-  static const excludedLabel = 'No genera recompensa';
-  static const aiChip = 'IA';
-  static const aiChipTooltip = 'Asignado por inteligencia artificial';
-  static const userChip = 'Tú';
-  static const userChipTooltip = 'Rubro corregido por ti';
-  static String convertedAs(String amount) => '≈ $amount';
-  static const excludedPayment = 'Los pagos no generan recompensa';
-  static const excludedFee = 'Comisión o cargo';
-  static const excludedInterest = 'Intereses';
-  static const excludedInsurance = 'Seguro';
-  static const excludedOther = 'Movimiento que no genera recompensa';
-  static String excludedNoRate(String currency) =>
-      'Compra en $currency sin tipo de cambio';
-  static const changeCategory = 'Cambiar rubro';
-  static const changeCategoryTitle = 'Cambiar el rubro de este movimiento';
-  static const noCategoryOption = 'Sin rubro';
-  static const categoryChanged = 'Rubro actualizado y resultado recalculado';
-  static const recalcFailedAfterChange =
-      'Cambiaste el rubro, pero no pudimos recalcular el resultado. Los montos mostrados siguen siendo los anteriores.';
-  static const recalcNeedsRate =
-      'Ese rubro necesita un porcentaje. Confírmalo para recalcular.';
-  static const recalcAction = 'Recalcular';
-  static const recalcWithOtherRates = 'Recalcular con otros %';
-  static const explanationTitle = 'En pocas palabras';
-  static const loyaltyTitle = 'Programas de recompensa';
-  static const loyaltyAudited = 'Auditado';
-  static const loyaltyCumulativeChip = 'Posible saldo acumulado';
-  static const loyaltyProgram = 'Programa';
-  static const loyaltyAccumulated = 'Acumulado';
-  static const loyaltyAvailable = 'Disponible';
-  static const loyaltyRedeemed = 'Canjeado';
-  static const loyaltyExpiring = 'Por vencer';
-  static const loyaltyForfeited = 'Perdido';
-  static const currenciesTitle = 'Subtotales por moneda';
-  static const currencySpent = 'Gasto neto';
-  static const currencyEligible = 'Considerado';
-  static const currencyReward = 'Recompensa (sin topes)';
+      _l.transactionsSummary(counted, uncounted, excluded);
+  static String convertedAs(String amount) => _l.convertedAs(amount);
+  static String excludedNoRate(String currency) => _l.excludedNoRate(currency);
   static String currencyRate(String from, String to, String rate) =>
-      '1 $from = $rate $to';
-  static String currencyExcluded(int n) =>
-      n == 1 ? '1 movimiento excluido' : '$n movimientos excluidos';
-  static const appliedRatesTitle = 'Porcentajes usados';
-  static const warnLast4 =
-      'Este estado de cuenta parece ser de otra tarjeta: los últimos 4 dígitos no coinciden.';
-  static const warnCurrencyMismatch =
-      'Ninguna moneda del estado de cuenta coincide con la moneda de tu tarjeta.';
-  static const warnTotalMismatch =
-      'Los movimientos leídos no suman el total del estado de cuenta. Puede que falten algunos y el resultado sea poco confiable.';
-  static const warnNoTransactions =
-      'No encontramos movimientos en el estado de cuenta.';
-  static const warnAiUnavailable =
-      'La clasificación con IA no estuvo disponible para algunos movimientos; solo se usaron tus comercios registrados.';
-  static const warnNoExchangeRate =
-      'Hay compras en moneda extranjera sin tipo de cambio: quedaron fuera del cálculo.';
-  static const warnExchangeMultiple =
-      'El tipo de cambio se aplicó a más de una moneda extranjera.';
-  static const warnCumulative =
-      'La cifra reportada parece un saldo acumulado y no lo ganado en este periodo. Revisa el programa.';
-  static const warnUnitDiffers =
-      'El programa reporta una unidad distinta a la de tu tarjeta; se usó la configuración de la tarjeta.';
-  static const assignToCategory = 'Recordar comercio en un rubro';
-  static const assignedNotice = 'Asignado para próximas verificaciones';
-  static String assignedTo(String category) =>
-      'Asignado a $category · aplicará en la próxima verificación';
-  static String appliedRate(String rate) => 'Tasa $rate';
-  static const baseOnly = 'Solo tasa base';
-  static const creditPayment = 'Pago a la tarjeta';
-  static const creditRefund = 'Devolución';
-  static const creditOther = 'Otro crédito / bonificación';
-  static String bankConsiders(String hint) => 'Tu banco lo considera: $hint';
-  static String equivalentTo(String money) => 'Equivale a $money';
-  static const rewardRateDetailTitle = 'Conversión de la recompensa';
+      _l.currencyRate(from, to, rate);
+  static String currencyExcluded(int n) => _l.currencyExcluded(n);
+  static String assignedTo(String category) => _l.assignedTo(category);
+  static String appliedRate(String rate) => _l.appliedRate(rate);
+  static String bankConsiders(String hint) => _l.bankConsiders(hint);
+  static String equivalentTo(String money) => _l.equivalentTo(money);
   static String rewardRateDetail(String reward, String rate, String primary) =>
-      '1 $reward = $rate $primary';
-  static const rewardRateFromStatement = 'Tomado de tu estado de cuenta';
-  static const rewardRateUserEntered = 'Lo escribiste tú';
-  static const assignSheetTitle = 'Asignar comercio a un rubro';
-  static const noCategoriesToAssign =
-      'Crea un rubro primero para poder asignar este comercio.';
-  static const goToCategories = 'Ir a rubros';
-  static const merchantAssigned = 'Comercio asignado';
-  static const warningsTitle = 'Avisos';
-  static const noTransactionsMatch = 'No hay movimientos en esta vista.';
-  static const periodLabel = 'Periodo';
-  static const deleteVerification = 'Eliminar verificación';
-  static const deleteVerificationBody =
-      '¿Eliminar esta verificación del historial?';
-
-  // History
-  static const awaitingRatesChip = 'Pendiente de confirmar %';
-  static const historyTitle = 'Historial';
-  static const historyEmptyTitle = 'Sin verificaciones todavía';
-  static const historyEmptyBody =
-      'Cuando verifiques un estado de cuenta aparecerá aquí.';
-  static const allCards = 'Todas';
-  static const loadMore = 'Ver más';
-  static const latestVerifications = 'Últimas verificaciones';
-  static const seeAll = 'Ver todo';
-  static const verifyAction = 'Verificar estado';
-  static const historyAction = 'Historial';
-
-  // Credits
-  static String creditsAvailable(int n) =>
-      n == 1 ? '1 verificación disponible' : '$n verificaciones disponibles';
-  static const creditsNone = 'Sin verificaciones disponibles';
-  static String uploadCreditNotice(int n) =>
-      'Esta verificación usará 1 de tus $n disponibles.';
-  static const uploadFreeNotice = 'Tu primera verificación es gratis.';
-  static const uploadNoCredits =
-      'No tienes verificaciones disponibles para analizar otro estado de cuenta.';
-  static const seePlans = 'Ver planes';
-  static const creditsTitle = 'Verificaciones';
-  static const creditsHistoryTitle = 'Historial de verificaciones';
-  static const creditsHistoryEmptyTitle = 'Sin movimientos todavía';
-  static const creditsHistoryEmptyBody =
-      'Aquí verás cuándo recibes, usas o te devolvemos verificaciones.';
-  static const creditsBuy = 'Comprar verificaciones';
+      _l.rewardRateDetail(reward, rate, primary);
+  static String creditsAvailable(int n) => _l.creditsAvailable(n);
+  static String uploadCreditNotice(int n) => _l.uploadCreditNotice(n);
   static String creditsBreakdown(int free, int plan, int purchased) =>
-      'Gratis $free · Plan $plan · Comprados $purchased';
-  static String creditsPlanExpires(String date) =>
-      'Las del plan vencen el $date';
-  static const creditReasonGrantFree = 'Verificación gratis';
-  static const creditReasonGrantPlan = 'Verificaciones de tu suscripción';
-  static const creditReasonGrantPack = 'Paquete comprado';
-  static const creditReasonConsume = 'Estado de cuenta analizado';
-  static const creditReasonRefund = 'Verificación devuelta';
-  static const creditReasonExpirePlan = 'Venció el saldo del plan';
-  static const creditReasonOther = 'Ajuste';
-  static const creditBucketFree = 'Gratis';
-  static const creditBucketPlan = 'Plan';
-  static const creditBucketPurchased = 'Comprada';
-
-  // Paywall & subscription
-  static const paywallTitle = 'Cashback Audit Pro';
-  static const paywallHeadline = 'Más verificaciones, cuando las necesites';
-  static const paywallBenefit1 =
-      'Cada estado de cuenta que analizas usa 1 verificación';
-  static const paywallBenefit2 =
-      'Confirmar, recalcular y corregir movimientos no cuesta nada';
-  static const paywallBenefit3 = 'Tu historial siempre queda disponible';
-  static const paywallSubscriptionTitle = 'Suscripción mensual';
-  static const paywallSubscriptionPerks =
-      '5 verificaciones al mes · no se acumulan';
-  static const paywallPacksTitle = 'Paquetes de verificaciones';
-  static const paywallPacksSubtitle = 'Se compran una sola vez y no caducan.';
-  static String packTitle(int n) =>
-      n == 1 ? '1 verificación' : '$n verificaciones';
-  static String paywallFreeBanner(int n) => n == 1
-      ? 'Tienes 1 verificación gratis. Úsala antes de comprar nada.'
-      : 'Tienes $n verificaciones gratis. Úsalas antes de comprar nada.';
-  static const paywallBuy = 'Comprar';
-  static const paywallSuccessPack = 'Tus verificaciones ya están disponibles.';
-  static const paywallConfirmingPurchase = 'Confirmando tu compra…';
-  static const paywallPendingPack =
-      'Tu compra se está procesando. Las verificaciones pueden tardar unos segundos en aparecer.';
-  static const restoreNothing =
-      'No encontramos compras para restaurar en esta cuenta.';
-  static const paywallSubscribe = 'Suscribirme';
-  static const paywallRestore = 'Restaurar compras';
-  static const paywallLegal =
-      'La suscripción se renueva automáticamente. Puedes cancelarla en cualquier momento desde los ajustes de tu tienda de aplicaciones.';
-  static const paywallNoPackages =
-      'No hay planes disponibles por ahora. Inténtalo más tarde.';
-  static const paywallLoadFailed =
-      'No pudimos cargar los planes. Revisa tu conexión e inténtalo de nuevo.';
-  static const paywallPurchaseFailed =
-      'No se pudo completar la compra. No se te cobró nada.';
-  static const paywallRestoreFailed =
-      'No pudimos restaurar tus compras. Inténtalo de nuevo.';
-  static const paywallConfirming = 'Confirmando tu compra…';
-  static const paywallPending =
-      'Tu compra se está procesando. Puede tardar unos segundos en reflejarse.';
-  static const paywallCheckAgain = 'Verificar de nuevo';
-  static const paywallSuccessTitle = '¡Listo!';
-  static const paywallSuccessBody = 'Tu suscripción está activa.';
-  static const paywallDevNoticeTitle = 'Compras no configuradas';
-  static const paywallDevNotice =
-      'Esta compilación no tiene clave de RevenueCat (REVENUECAT_IOS_KEY / REVENUECAT_ANDROID_KEY). Configúrala con --dart-define para probar las compras.';
-  static const subscriptionTitle = 'Suscripción';
-  static const subscribeNow = 'Ver planes';
-  static const subscriptionNone = 'Sin suscripción activa';
-  static const subscriptionActive = 'Pro activa';
-  static const subscriptionCancelled = 'Cancelada';
-  static const subscriptionBillingIssue = 'Problema de pago';
-  static const subscriptionExpired = 'Vencida';
-  static String subscriptionRenews(String date) => 'Se renueva el $date';
-  static String subscriptionEnds(String date) => 'Activa hasta el $date';
-  static const subscriptionBillingIssueHint =
-      'Actualiza tu método de pago en la tienda para no perder el acceso.';
-  static const restoreDone = 'Compras restauradas';
+      _l.creditsBreakdown(free, plan, purchased);
+  static String creditsPlanExpires(String date) => _l.creditsPlanExpires(date);
+  static String packTitle(int n) => _l.packTitle(n);
+  static String paywallFreeBanner(int n) => _l.paywallFreeBanner(n);
+  static String subscriptionRenews(String date) => _l.subscriptionRenews(date);
+  static String subscriptionEnds(String date) => _l.subscriptionEnds(date);
 }

@@ -32,7 +32,7 @@ class SettingsPage extends StatelessWidget {
     final themeController = Get.find<ThemeController>();
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text(S.settingsTitle)),
+      appBar: AppBar(title: Text(S.settingsTitle)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -82,7 +82,7 @@ class SettingsPage extends StatelessWidget {
             key: const Key('restore-purchases'),
             onPressed: () => _restore(sub, credits),
             icon: const Icon(Icons.restore_rounded),
-            label: const Text(S.paywallRestore),
+            label: Text(S.paywallRestore),
           ),
           const SizedBox(height: 20),
           Obx(
@@ -96,7 +96,7 @@ class SettingsPage extends StatelessWidget {
             key: const Key('logout'),
             onPressed: session.signOut,
             icon: const Icon(Icons.logout_rounded),
-            label: const Text(S.logout),
+            label: Text(S.logout),
           ),
         ],
       ),

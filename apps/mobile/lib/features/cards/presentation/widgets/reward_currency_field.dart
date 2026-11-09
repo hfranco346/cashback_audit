@@ -37,7 +37,7 @@ class RewardCurrencyField extends StatelessWidget {
           controller: controller,
           textCapitalization: TextCapitalization.characters,
           maxLength: 3,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: S.cardRewardCurrency,
             hintText: S.cardRewardCurrencyAuto,
             helperText: S.cardRewardCurrencyHelper,

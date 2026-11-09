@@ -13,17 +13,17 @@ class HistoryPage extends GetView<HistoryController> {
   Future<bool> _confirmDelete(VerificationSummary item) async {
     final ok = await Get.dialog<bool>(
       AlertDialog(
-        title: const Text(S.deleteVerification),
-        content: const Text(S.deleteVerificationBody),
+        title: Text(S.deleteVerification),
+        content: Text(S.deleteVerificationBody),
         actions: [
           TextButton(
             onPressed: () => Get.back<bool>(result: false),
-            child: const Text(S.cancel),
+            child: Text(S.cancel),
           ),
           FilledButton(
             onPressed: () => Get.back<bool>(result: true),
             style: FilledButton.styleFrom(minimumSize: const Size(100, 44)),
-            child: const Text(S.delete),
+            child: Text(S.delete),
           ),
         ],
       ),

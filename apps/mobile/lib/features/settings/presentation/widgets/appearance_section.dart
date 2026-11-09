@@ -20,13 +20,13 @@ class AppearanceSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(S.appearanceTitle, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         SizedBox(
           width: double.infinity,
           child: SegmentedButton<ThemePreference>(
-            key: const Key('theme-selector'),
+            key: Key('theme-selector'),
             showSelectedIcon: false,
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: ThemePreference.system,
                 icon: Icon(Icons.brightness_auto_rounded),

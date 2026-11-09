@@ -86,15 +86,15 @@ class PaywallView extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           FadeInUp(
             child: Text(
               S.paywallHeadline,
               style: theme.textTheme.headlineMedium,
             ),
           ),
-          const SizedBox(height: 18),
-          for (final (i, text) in const [
+          SizedBox(height: 18),
+          for (final (i, text) in [
             S.paywallBenefit1,
             S.paywallBenefit2,
             S.paywallBenefit3,
@@ -125,7 +125,7 @@ class PaywallView extends StatelessWidget {
             const SizedBox(height: 16),
           ],
           if (!configured)
-            const InlineMessage(
+            InlineMessage(
               key: Key('paywall-dev-notice'),
               message: '${S.paywallDevNoticeTitle}. ${S.paywallDevNotice}',
               tone: InlineMessageTone.warning,
@@ -216,7 +216,7 @@ class PaywallView extends StatelessWidget {
           TextButton(
             key: const Key('restore-button'),
             onPressed: (!configured || _busy) ? null : onRestore,
-            child: const Text(S.paywallRestore),
+            child: Text(S.paywallRestore),
           ),
           const SizedBox(height: 8),
           Text(

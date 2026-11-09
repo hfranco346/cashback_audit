@@ -76,7 +76,7 @@ class CardFormView extends StatelessWidget {
             key: const Key('field-alias'),
             controller: alias,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: S.cardAlias,
               hintText: S.cardAliasHint,
             ),
@@ -87,7 +87,7 @@ class CardFormView extends StatelessWidget {
             key: const Key('field-bank'),
             controller: bank,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: S.cardBank),
+            decoration: InputDecoration(labelText: S.cardBank),
             validator: CardValidator.required,
           ),
           const SizedBox(height: 14),
@@ -102,7 +102,7 @@ class CardFormView extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   maxLength: 4,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: S.cardLast4,
                     helperText: S.cardLast4Helper,
                     counterText: '',
@@ -118,7 +118,7 @@ class CardFormView extends StatelessWidget {
                   controller: currency,
                   textCapitalization: TextCapitalization.characters,
                   maxLength: 3,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: S.cardCurrency,
                     counterText: '',
                   ),
@@ -132,7 +132,7 @@ class CardFormView extends StatelessWidget {
             key: const Key('field-network'),
             controller: network,
             textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(labelText: S.cardNetwork),
+            decoration: InputDecoration(labelText: S.cardNetwork),
             validator: (v) =>
                 (v ?? '').trim().length > 30 ? S.fieldTooLong(30) : null,
           ),
@@ -140,7 +140,7 @@ class CardFormView extends StatelessWidget {
           TextFormField(
             key: const Key('field-reward-program'),
             controller: rewardProgram,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: S.cardRewardProgram,
               helperText: S.cardRewardProgramHelper,
             ),
@@ -151,15 +151,15 @@ class CardFormView extends StatelessWidget {
             const SizedBox(height: 14),
             RewardCurrencyField(controller: rewardCurrency),
           ],
-          const SizedBox(height: 22),
+          SizedBox(height: 22),
           Text(
             S.rewardUnitLabel,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           SegmentedButton<RewardUnit>(
-            key: const Key('unit-selector'),
-            segments: const [
+            key: Key('unit-selector'),
+            segments: [
               ButtonSegment(
                 value: RewardUnit.cashbackCurrency,
                 label: Text(S.unitCashback),
@@ -183,7 +183,7 @@ class CardFormView extends StatelessWidget {
                 decimal: true,
               ),
               inputFormatters: [_decimal],
-              decoration: const InputDecoration(labelText: S.pointsPerUnit),
+              decoration: InputDecoration(labelText: S.pointsPerUnit),
               validator: CardValidator.pointsFactor,
             ),
           ],
@@ -193,7 +193,7 @@ class CardFormView extends StatelessWidget {
             controller: baseRate,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [_decimal],
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: S.baseRate,
               helperText: S.baseRateHelper,
               suffixText: '%',
@@ -224,7 +224,7 @@ class CardFormView extends StatelessWidget {
                     height: 22,
                     child: CircularProgressIndicator(strokeWidth: 2.4),
                   )
-                : const Text(S.save),
+                : Text(S.save),
           ),
         ],
       ),

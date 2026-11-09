@@ -78,7 +78,7 @@ class RuleEditor extends StatelessWidget {
           key: const Key('add-rule'),
           onPressed: canAdd ? onAdd : null,
           icon: const Icon(Icons.add_rounded),
-          label: const Text(S.addRule),
+          label: Text(S.addRule),
         ),
       ],
     );
@@ -132,7 +132,7 @@ class _RuleRow extends StatelessWidget {
                   key: Key('rule-category-$index'),
                   initialValue: draft.categoryId,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: S.ruleCategory),
+                  decoration: InputDecoration(labelText: S.ruleCategory),
                   items: [
                     for (final c in categories)
                       DropdownMenuItem(value: c.id, child: Text(c.name)),
@@ -159,7 +159,7 @@ class _RuleRow extends StatelessWidget {
                     decimal: true,
                   ),
                   inputFormatters: [_decimalFormatter],
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: S.ruleRate,
                     suffixText: '%',
                   ),

@@ -59,7 +59,7 @@ class VerificationResultView extends StatelessWidget {
     final verdict = v.verdict;
     final reported = v.reported;
     if (!v.isCompleted || verdict == null || reported == null) {
-      return const Center(child: Text(S.resultNotConfirmed));
+      return Center(child: Text(S.resultNotConfirmed));
     }
     // Reported / expected / difference are in the reward currency, which can
     // differ from the card currency; breakdown and lines stay in the card's.
@@ -158,7 +158,7 @@ class VerificationResultView extends StatelessWidget {
                 key: const Key('recalculate-button'),
                 onPressed: onRecalculate,
                 icon: const Icon(Icons.percent_rounded),
-                label: const Text(S.recalcWithOtherRates),
+                label: Text(S.recalcWithOtherRates),
               ),
             ],
             if (v.loyalty.programs.isNotEmpty) ...[

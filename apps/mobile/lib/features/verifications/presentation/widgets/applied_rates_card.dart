@@ -55,7 +55,7 @@ class AppliedRatesCard extends StatelessWidget {
                 key: const Key('recalculate-button'),
                 onPressed: onRecalculate,
                 icon: const Icon(Icons.percent_rounded),
-                label: const Text(S.recalcWithOtherRates),
+                label: Text(S.recalcWithOtherRates),
               ),
             ],
           ],

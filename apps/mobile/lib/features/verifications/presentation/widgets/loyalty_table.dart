@@ -57,7 +57,7 @@ class LoyaltyTable extends StatelessWidget {
               dataRowMinHeight: 64,
               dataRowMaxHeight: 76,
               columns: [
-                const DataColumn(label: Text(S.loyaltyProgram)),
+                DataColumn(label: Text(S.loyaltyProgram)),
                 col(S.loyaltyAccumulated),
                 col(S.loyaltyAvailable),
                 col(S.loyaltyRedeemed),

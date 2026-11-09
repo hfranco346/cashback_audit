@@ -15,14 +15,14 @@ class MerchantFormSheet extends StatefulWidget {
     super.key,
     required this.categories,
     required this.onSubmit,
-    this.title = S.addMerchant,
+    this.title,
     this.initialName = '',
     this.initialKeywords = const [],
     this.initialCategoryId,
   });
 
   final List<Category> categories;
-  final String title;
+  final String? title;
   final String initialName;
   final List<String> initialKeywords;
   final String? initialCategoryId;
@@ -99,13 +99,16 @@ class _MerchantFormSheetState extends State<MerchantFormSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(widget.title, style: theme.textTheme.titleLarge),
+              Text(
+                widget.title ?? S.addMerchant,
+                style: theme.textTheme.titleLarge,
+              ),
               const SizedBox(height: 16),
               TextFormField(
                 key: const Key('merchant-name'),
                 controller: _name,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: S.merchantName),
+                decoration: InputDecoration(labelText: S.merchantName),
                 validator: (v) {
                   final t = v?.trim() ?? '';
                   if (t.isEmpty) return S.fieldRequired;
@@ -120,7 +123,7 @@ class _MerchantFormSheetState extends State<MerchantFormSheet> {
                 minLines: 1,
                 maxLines: 3,
                 textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: S.merchantKeywords,
                   helperText: S.merchantKeywordsHelper,
                   helperMaxLines: 3,
@@ -131,9 +134,7 @@ class _MerchantFormSheetState extends State<MerchantFormSheet> {
                 key: const Key('merchant-category'),
                 initialValue: _categoryId,
                 isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: S.merchantCategory,
-                ),
+                decoration: InputDecoration(labelText: S.merchantCategory),
                 items: [
                   for (final c in widget.categories)
                     DropdownMenuItem(value: c.id, child: Text(c.name)),
@@ -155,7 +156,7 @@ class _MerchantFormSheetState extends State<MerchantFormSheet> {
                         height: 22,
                         child: CircularProgressIndicator(strokeWidth: 2.4),
                       )
-                    : const Text(S.save),
+                    : Text(S.save),
               ),
             ],
           ),

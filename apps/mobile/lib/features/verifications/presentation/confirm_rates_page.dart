@@ -18,7 +18,7 @@ class ConfirmRatesPage extends GetView<ConfirmRatesController> {
       final v = controller.verification.value;
       if (v == null) {
         return Scaffold(
-          appBar: AppBar(title: const Text(S.confirmRatesTitle)),
+          appBar: AppBar(title: Text(S.confirmRatesTitle)),
           body: controller.loading.value
               ? const Center(child: CircularProgressIndicator())
               : Padding(
