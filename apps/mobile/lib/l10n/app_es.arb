@@ -706,5 +706,19 @@
         "type": "String"
       }
     }
+  },
+  "stepOf": "Paso {step} de {total}",
+  "assignCategory": "Asignar rubro",
+  "showDetails": "Ver detalle",
+  "hideDetails": "Ocultar detalle",
+  "@stepOf": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   }
 }

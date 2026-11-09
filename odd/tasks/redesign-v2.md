@@ -33,7 +33,7 @@ The current UI is the MVP look; the designer delivered a complete system (tokens
 ## Tasks
 - [ ] B1 Backend async lifecycle (statuses, background processor with bounded concurrency, refund on failure, boot recovery, attention + seen endpoints, tests, contract doc). Route: delegated (writer trigger: 2+ non-trivial files).
 - [ ] B2 Backend user preferences (locale, primaryCurrency, currencies with last rate) + credit history endpoint if missing. Route: delegated (same writer as B1).
-- [ ] M1 Mobile foundation: tokens → ColorScheme light/dark + status/creditCard ThemeExtension, atomic components (credit card, verdict card, movement row, rate field with source label, segmented filter, collapsible warning, bottom sheet, nav bar, buttons/chips/pills), ARB ES/EN with gen-l10n, locale detection (`en-*` → English, else Spanish) + Automatic/Español/English preference. Route: delegated.
+- [x] M1 Mobile foundation: tokens → ColorScheme light/dark + status/creditCard ThemeExtension, atomic components (credit card, verdict card, movement row, rate field with source label, segmented filter, collapsible warning, bottom sheet, nav bar, buttons/chips/pills), ARB ES/EN with gen-l10n, locale detection (`en-*` → English, else Spanish) + Automatic/Español/English preference. Route: delegated.
 - [ ] M2 Splash + dynamic onboarding (bank → card → categories/% → login → first PDF → first verdict) + login + Home (empty / just onboarded / continuous use, pending verification banner). Route: delegated.
 - [ ] M3 Card form (basic/advanced) + Categories and merchants (guided empty / populated). Route: delegated.
 - [ ] M4 Verify (pick file, async processing, can leave) + Confirm percentages + Result (under/over/match, movements filter, change-category sheet with "remember"). Route: delegated.
@@ -46,7 +46,7 @@ The current UI is the MVP look; the designer delivered a complete system (tokens
 - All checks green: api `pnpm lint && pnpm test && pnpm test:e2e`, mobile `flutter analyze && flutter test`.
 
 ## Progress / evidence
-(filled per task)
+- M1 done (commits 6b5cd10 l10n+locale; theme+components commit follows on feat/mvp). Checks in apps/mobile: `flutter gen-l10n` ok, `dart format --set-exit-if-changed lib test` 0 changed, `flutter analyze` no issues, `flutter test` 321 passed. Route: delegated writer. New: `lib/core/theme/app_colors.dart` (AppStatusColors), `lib/core/ui/` (atoms/molecules/organisms + `ui.dart` barrel), `lib/l10n/*.arb` (~400 keys), `LocaleController`.
 
 ## Next step
 B1 and M1 in parallel (disjoint directories).

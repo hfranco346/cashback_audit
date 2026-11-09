@@ -1,340 +1,384 @@
 import 'package:flutter/material.dart';
 
-/// Colors with a fixed meaning across the app: the audit verdicts.
-@immutable
-class VerdictColors extends ThemeExtension<VerdictColors> {
-  const VerdictColors({
-    required this.match,
-    required this.matchContainer,
-    required this.underpaid,
-    required this.underpaidContainer,
-    required this.overpaid,
-    required this.overpaidContainer,
-    required this.warning,
-    required this.warningContainer,
-  });
+import 'app_colors.dart';
 
-  final Color match;
-  final Color matchContainer;
-  final Color underpaid;
-  final Color underpaidContainer;
-  final Color overpaid;
-  final Color overpaidContainer;
-  final Color warning;
-  final Color warningContainer;
+export 'app_colors.dart';
 
-  static const light = VerdictColors(
-    match: Color(0xFF0B7A5B),
-    matchContainer: Color(0xFFD7F2E8),
-    underpaid: Color(0xFFC4351F),
-    underpaidContainer: Color(0xFFFFE1DA),
-    overpaid: Color(0xFF4A4FC4),
-    overpaidContainer: Color(0xFFE3E4FF),
-    warning: Color(0xFF8A5A00),
-    warningContainer: Color(0xFFFFEDC2),
-  );
+/// Typeface families bundled in `assets/fonts`.
+abstract final class AppFonts {
+  /// High-contrast serif, only for roles >= 22 px (screen titles, verdicts,
+  /// hero amounts).
+  static const display = 'BodoniModa';
 
-  static const dark = VerdictColors(
-    match: Color(0xFF58D3A8),
-    matchContainer: Color(0xFF0E3A2E),
-    underpaid: Color(0xFFFF8C77),
-    underpaidContainer: Color(0xFF4A1A12),
-    overpaid: Color(0xFFA9ADFF),
-    overpaidContainer: Color(0xFF23265E),
-    warning: Color(0xFFF3C15B),
-    warningContainer: Color(0xFF45310A),
-  );
-
-  @override
-  VerdictColors copyWith({
-    Color? match,
-    Color? matchContainer,
-    Color? underpaid,
-    Color? underpaidContainer,
-    Color? overpaid,
-    Color? overpaidContainer,
-    Color? warning,
-    Color? warningContainer,
-  }) => VerdictColors(
-    match: match ?? this.match,
-    matchContainer: matchContainer ?? this.matchContainer,
-    underpaid: underpaid ?? this.underpaid,
-    underpaidContainer: underpaidContainer ?? this.underpaidContainer,
-    overpaid: overpaid ?? this.overpaid,
-    overpaidContainer: overpaidContainer ?? this.overpaidContainer,
-    warning: warning ?? this.warning,
-    warningContainer: warningContainer ?? this.warningContainer,
-  );
-
-  @override
-  VerdictColors lerp(ThemeExtension<VerdictColors>? other, double t) {
-    if (other is! VerdictColors) return this;
-    return VerdictColors(
-      match: Color.lerp(match, other.match, t)!,
-      matchContainer: Color.lerp(matchContainer, other.matchContainer, t)!,
-      underpaid: Color.lerp(underpaid, other.underpaid, t)!,
-      underpaidContainer: Color.lerp(
-        underpaidContainer,
-        other.underpaidContainer,
-        t,
-      )!,
-      overpaid: Color.lerp(overpaid, other.overpaid, t)!,
-      overpaidContainer: Color.lerp(
-        overpaidContainer,
-        other.overpaidContainer,
-        t,
-      )!,
-      warning: Color.lerp(warning, other.warning, t)!,
-      warningContainer: Color.lerp(
-        warningContainer,
-        other.warningContainer,
-        t,
-      )!,
-    );
-  }
+  /// Geometric sans for UI and body text; has tabular figures for amounts.
+  static const text = 'Manrope';
 }
 
-/// Semantic success/danger colors (e.g. transaction counted / not counted).
-/// Always pair them with an icon and label; never rely on color alone.
-@immutable
-class StatusColors extends ThemeExtension<StatusColors> {
-  const StatusColors({
-    required this.success,
-    required this.successContainer,
-    required this.danger,
-    required this.dangerContainer,
-    required this.neutral,
-    required this.neutralContainer,
-  });
-
-  final Color success;
-  final Color successContainer;
-  final Color danger;
-  final Color dangerContainer;
-
-  /// Lines excluded from the reward (payments, fees...): neither a hit nor a
-  /// miss, so they are grey.
-  final Color neutral;
-  final Color neutralContainer;
-
-  static const light = StatusColors(
-    success: Color(0xFF0B7A5B),
-    successContainer: Color(0xFFD7F2E8),
-    danger: Color(0xFFC4351F),
-    dangerContainer: Color(0xFFFFE1DA),
-    neutral: Color(0xFF5B6665),
-    neutralContainer: Color(0xFFE3E8E7),
-  );
-
-  static const dark = StatusColors(
-    success: Color(0xFF58D3A8),
-    successContainer: Color(0xFF0E3A2E),
-    danger: Color(0xFFFF8C77),
-    dangerContainer: Color(0xFF4A1A12),
-    neutral: Color(0xFFA7B3B1),
-    neutralContainer: Color(0xFF273331),
-  );
-
-  @override
-  StatusColors copyWith({
-    Color? success,
-    Color? successContainer,
-    Color? danger,
-    Color? dangerContainer,
-    Color? neutral,
-    Color? neutralContainer,
-  }) => StatusColors(
-    success: success ?? this.success,
-    successContainer: successContainer ?? this.successContainer,
-    danger: danger ?? this.danger,
-    dangerContainer: dangerContainer ?? this.dangerContainer,
-    neutral: neutral ?? this.neutral,
-    neutralContainer: neutralContainer ?? this.neutralContainer,
-  );
-
-  @override
-  StatusColors lerp(ThemeExtension<StatusColors>? other, double t) {
-    if (other is! StatusColors) return this;
-    return StatusColors(
-      success: Color.lerp(success, other.success, t)!,
-      successContainer: Color.lerp(
-        successContainer,
-        other.successContainer,
-        t,
-      )!,
-      danger: Color.lerp(danger, other.danger, t)!,
-      dangerContainer: Color.lerp(dangerContainer, other.dangerContainer, t)!,
-      neutral: Color.lerp(neutral, other.neutral, t)!,
-      neutralContainer: Color.lerp(
-        neutralContainer,
-        other.neutralContainer,
-        t,
-      )!,
-    );
-  }
+/// Spacing scale (base 4) and layout constants.
+abstract final class AppSpacing {
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 20; // screen margin
+  static const double xxl = 24;
+  static const double xxxl = 32;
+  static const double screen = 20;
 }
 
-extension StatusColorsContext on BuildContext {
-  StatusColors get statusColors =>
-      Theme.of(this).extension<StatusColors>() ?? StatusColors.light;
+/// Corner radii from the design system.
+abstract final class AppRadii {
+  static const double chip = 10;
+  static const double field = 14;
+  static const double card = 20;
+  static const double creditCard = 18;
+  static const double sheet = 28;
+  static const double pill = 999;
 }
 
-extension VerdictColorsContext on BuildContext {
-  VerdictColors get verdictColors =>
-      Theme.of(this).extension<VerdictColors>() ?? VerdictColors.light;
-}
+/// Tabular, lining figures so amounts line up in columns.
+const appFigures = [FontFeature.tabularFigures()];
 
-/// "Ledger" look: deep verdigris ink on a cool paper surface, with numerals
-/// set tabular so amounts line up like a statement.
+const _lightScheme = ColorScheme(
+  brightness: Brightness.light,
+  primary: Color(0xFF0F3D36),
+  onPrimary: Color(0xFFFFFFFF),
+  primaryContainer: Color(0xFFD8E8E3),
+  onPrimaryContainer: Color(0xFF0F3D36),
+  secondary: Color(0xFF3F6B66),
+  onSecondary: Color(0xFFFFFFFF),
+  secondaryContainer: Color(0xFFEFECE5),
+  onSecondaryContainer: Color(0xFF16201E),
+  tertiary: Color(0xFF8A6D33),
+  onTertiary: Color(0xFFFFFFFF),
+  tertiaryContainer: Color(0xFFF8ECCB),
+  onTertiaryContainer: Color(0xFF7A5300),
+  error: Color(0xFFB42318),
+  onError: Color(0xFFFFFFFF),
+  errorContainer: Color(0xFFFBE3DF),
+  onErrorContainer: Color(0xFFB42318),
+  surface: Color(0xFFF6F4EF),
+  onSurface: Color(0xFF16201E),
+  onSurfaceVariant: Color(0xFF5C6664),
+  outline: Color(0xFF8B9490),
+  outlineVariant: Color(0xFFE2DED5),
+  shadow: Color(0xFF16201E),
+  scrim: Color(0xFF000000),
+  inverseSurface: Color(0xFF16201E),
+  onInverseSurface: Color(0xFFF6F4EF),
+  inversePrimary: Color(0xFF8FD3C3),
+  surfaceTint: Colors.transparent,
+  surfaceContainerLowest: Color(0xFFFFFFFF),
+  surfaceContainerLow: Color(0xFFFBFAF7),
+  surfaceContainer: Color(0xFFF3F1EB),
+  surfaceContainerHigh: Color(0xFFEFECE5),
+  surfaceContainerHighest: Color(0xFFE8E4DB),
+);
+
+const _darkScheme = ColorScheme(
+  brightness: Brightness.dark,
+  primary: Color(0xFF8FD3C3),
+  onPrimary: Color(0xFF08201B),
+  primaryContainer: Color(0xFF1F3A35),
+  onPrimaryContainer: Color(0xFFBFE7DD),
+  secondary: Color(0xFF9CC4BB),
+  onSecondary: Color(0xFF08201B),
+  secondaryContainer: Color(0xFF1B2523),
+  onSecondaryContainer: Color(0xFFEDF0EC),
+  tertiary: Color(0xFFCDAE6E),
+  onTertiary: Color(0xFF2A1F08),
+  tertiaryContainer: Color(0xFF3D2C07),
+  onTertiaryContainer: Color(0xFFF0C462),
+  error: Color(0xFFFF907F),
+  onError: Color(0xFF2B0A05),
+  errorContainer: Color(0xFF45150E),
+  onErrorContainer: Color(0xFFFF907F),
+  surface: Color(0xFF0C1211),
+  onSurface: Color(0xFFEDF0EC),
+  onSurfaceVariant: Color(0xFFA2ACA9),
+  outline: Color(0xFF6E7977),
+  outlineVariant: Color(0xFF2A3533),
+  shadow: Color(0xFF000000),
+  scrim: Color(0xFF000000),
+  inverseSurface: Color(0xFFEDF0EC),
+  onInverseSurface: Color(0xFF0C1211),
+  inversePrimary: Color(0xFF0F3D36),
+  surfaceTint: Colors.transparent,
+  // Dark elevation = lighter surfaces, never shadows.
+  surfaceContainerLowest: Color(0xFF141C1B),
+  surfaceContainerLow: Color(0xFF172120),
+  surfaceContainer: Color(0xFF192321),
+  surfaceContainerHigh: Color(0xFF1B2523),
+  surfaceContainerHighest: Color(0xFF222E2C),
+);
+
+/// Ledger look: ivory paper, banking green and a brass hairline. Built from
+/// the tokens in `docs/cashback-audit-design/HANDOFF.md`.
 abstract final class AppTheme {
-  static const _seed = Color(0xFF0B5C54);
+  static ThemeData get light => _build(_lightScheme, AppStatusColors.light);
+  static ThemeData get dark => _build(_darkScheme, AppStatusColors.dark);
 
-  static ThemeData get light => _build(
-    ColorScheme.fromSeed(
-      seedColor: _seed,
-      brightness: Brightness.light,
-    ).copyWith(
-      surface: const Color(0xFFF3F6F5),
-      primary: const Color(0xFF0B5C54),
-      secondary: const Color(0xFF3F6B66),
-    ),
-    VerdictColors.light,
-    StatusColors.light,
-  );
-
-  static ThemeData get dark => _build(
-    ColorScheme.fromSeed(
-      seedColor: _seed,
-      brightness: Brightness.dark,
-    ).copyWith(
-      surface: const Color(0xFF0C1514),
-      primary: const Color(0xFF7FD6C8),
-    ),
-    VerdictColors.dark,
-    StatusColors.dark,
-  );
-
-  static ThemeData _build(
-    ColorScheme scheme,
-    VerdictColors verdicts,
-    StatusColors status,
-  ) {
+  static TextTheme _textTheme(ColorScheme scheme) {
     final base = ThemeData(
+      brightness: scheme.brightness,
+      fontFamily: AppFonts.text,
+    ).textTheme;
+    TextStyle serif(
+      TextStyle? s,
+      double size,
+      FontWeight w,
+      double ls,
+      double h,
+    ) => (s ?? const TextStyle()).copyWith(
+      fontFamily: AppFonts.display,
+      fontSize: size,
+      fontWeight: w,
+      letterSpacing: ls,
+      height: h,
+      fontFeatures: appFigures,
+    );
+    TextStyle sans(
+      TextStyle? s,
+      FontWeight w, {
+      double? ls,
+      bool figs = false,
+    }) => (s ?? const TextStyle()).copyWith(
+      fontFamily: AppFonts.text,
+      fontWeight: w,
+      letterSpacing: ls,
+      fontFeatures: figs ? appFigures : null,
+    );
+    return base
+        .copyWith(
+          // Bodoni Moda only for >= 22 px roles.
+          displayLarge: serif(base.displayLarge, 57, FontWeight.w500, -1, 1.05),
+          displayMedium: serif(
+            base.displayMedium,
+            45,
+            FontWeight.w500,
+            -0.8,
+            1.08,
+          ),
+          displaySmall: serif(
+            base.displaySmall,
+            36,
+            FontWeight.w500,
+            -0.6,
+            1.1,
+          ),
+          headlineLarge: serif(
+            base.headlineLarge,
+            32,
+            FontWeight.w500,
+            -0.5,
+            1.12,
+          ),
+          headlineMedium: serif(
+            base.headlineMedium,
+            28,
+            FontWeight.w500,
+            -0.4,
+            1.15,
+          ),
+          headlineSmall: serif(
+            base.headlineSmall,
+            24,
+            FontWeight.w600,
+            -0.2,
+            1.2,
+          ),
+          // Manrope for everything else.
+          titleLarge: sans(base.titleLarge, FontWeight.w700, ls: -0.2),
+          titleMedium: sans(base.titleMedium, FontWeight.w700),
+          titleSmall: sans(base.titleSmall, FontWeight.w700),
+          bodyLarge: sans(base.bodyLarge, FontWeight.w500),
+          bodyMedium: sans(base.bodyMedium, FontWeight.w500),
+          bodySmall: sans(base.bodySmall, FontWeight.w500),
+          labelLarge: sans(base.labelLarge, FontWeight.w700, figs: true),
+          labelMedium: sans(base.labelMedium, FontWeight.w700, figs: true),
+          labelSmall: sans(base.labelSmall, FontWeight.w700, ls: 1.1),
+        )
+        .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface);
+  }
+
+  static ThemeData _build(ColorScheme scheme, AppStatusColors status) {
+    final text = _textTheme(scheme);
+    final dark = scheme.brightness == Brightness.dark;
+    final cardShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppRadii.card),
+      side: BorderSide(color: scheme.outlineVariant),
+    );
+    OutlineInputBorder border(Color c, [double w = 1]) => OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppRadii.field),
+      borderSide: BorderSide(color: c, width: w),
+    );
+    const pill = StadiumBorder();
+
+    return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       brightness: scheme.brightness,
       fontFamily: AppFonts.text,
-    );
-    const figures = [FontFeature.tabularFigures()];
-    // Display roles use the high-contrast serif (the banknote/cheque voice);
-    // everything people read or compare at small sizes stays in the sans.
-    final text = base.textTheme
-        .copyWith(
-          displaySmall: base.textTheme.displaySmall?.copyWith(
-            fontFamily: AppFonts.display,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.6,
-            height: 1.1,
-            fontFeatures: figures,
-          ),
-          headlineMedium: base.textTheme.headlineMedium?.copyWith(
-            fontFamily: AppFonts.display,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.4,
-            height: 1.15,
-          ),
-          headlineSmall: base.textTheme.headlineSmall?.copyWith(
-            fontFamily: AppFonts.display,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.2,
-            height: 1.2,
-          ),
-          titleLarge: base.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-          ),
-          titleMedium: base.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-          labelLarge: base.textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            fontFeatures: figures,
-          ),
-        )
-        .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface);
-
-    return base.copyWith(
       textTheme: text,
       scaffoldBackgroundColor: scheme.surface,
-      extensions: [verdicts, status],
+      canvasColor: scheme.surface,
+      dividerColor: scheme.outlineVariant,
+      splashFactory: InkSparkle.splashFactory,
+      extensions: [status],
       appBarTheme: AppBarTheme(
         backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: text.titleLarge,
       ),
+      dividerTheme: DividerThemeData(
+        color: scheme.outlineVariant,
+        space: 1,
+        thickness: 1,
+      ),
       cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
-        color: scheme.brightness == Brightness.light
-            ? Colors.white
-            : const Color(0xFF142120),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6)),
-        ),
+        color: scheme.surfaceContainerLowest,
+        surfaceTintColor: Colors.transparent,
+        shape: cardShape,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.brightness == Brightness.light
-            ? Colors.white
-            : const Color(0xFF142120),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+        fillColor: scheme.surfaceContainerLowest,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: scheme.outlineVariant),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: scheme.primary, width: 2),
+        border: border(scheme.outlineVariant),
+        enabledBorder: border(scheme.outlineVariant),
+        focusedBorder: border(scheme.primary, 2),
+        errorBorder: border(scheme.error),
+        focusedErrorBorder: border(scheme.error, 2),
+        labelStyle: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+        helperStyle: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+        errorStyle: text.bodySmall?.copyWith(
+          color: scheme.error,
+          fontWeight: FontWeight.w600,
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
+          minimumSize: const Size(64, 52),
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          shape: pill,
+          textStyle: text.labelLarge?.copyWith(fontSize: 15),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+          minimumSize: const Size(64, 52),
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          foregroundColor: scheme.primary,
+          side: BorderSide(color: scheme.outlineVariant),
+          shape: pill,
+          textStyle: text.labelLarge?.copyWith(fontSize: 15),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          foregroundColor: scheme.primary,
+          shape: pill,
+          textStyle: text.labelLarge,
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.chip),
+        ),
+        side: BorderSide(color: scheme.outlineVariant),
+        backgroundColor: Colors.transparent,
+        selectedColor: scheme.primaryContainer,
+        checkmarkColor: scheme.onPrimaryContainer,
+        labelStyle: text.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+        secondaryLabelStyle: text.labelLarge?.copyWith(
+          color: scheme.onPrimaryContainer,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        showCheckmark: false,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: scheme.surfaceContainerLowest,
+        surfaceTintColor: Colors.transparent,
+        modalBackgroundColor: scheme.surfaceContainerLowest,
+        elevation: dark ? 0 : 8,
+        showDragHandle: true,
+        dragHandleColor: scheme.outlineVariant,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadii.sheet),
           ),
         ),
       ),
-      chipTheme: base.chipTheme.copyWith(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      dialogTheme: DialogThemeData(
+        backgroundColor: scheme.surfaceContainerLowest,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.sheet),
+        ),
       ),
-      snackBarTheme: const SnackBarThemeData(
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: scheme.surfaceContainerLowest,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        height: 68,
+        indicatorColor: scheme.primaryContainer,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            size: 24,
+            color: states.contains(WidgetState.selected)
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => text.labelMedium?.copyWith(
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w800
+                : FontWeight.w600,
+            color: states.contains(WidgetState.selected)
+                ? scheme.onSurface
+                : scheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: SegmentedButton.styleFrom(
+          minimumSize: const Size(0, 44),
+          shape: pill,
+          side: BorderSide(color: scheme.outlineVariant),
+          selectedBackgroundColor: scheme.primaryContainer,
+          selectedForegroundColor: scheme.onPrimaryContainer,
+          foregroundColor: scheme.onSurface,
+          textStyle: text.labelMedium,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
+        backgroundColor: scheme.inverseSurface,
+        contentTextStyle: text.bodyMedium?.copyWith(
+          color: scheme.onInverseSurface,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.field),
+        ),
       ),
+      switchTheme: SwitchThemeData(
+        trackOutlineColor: WidgetStatePropertyAll(scheme.outlineVariant),
+      ),
+      listTileTheme: const ListTileThemeData(minVerticalPadding: 8),
     );
   }
-}
-
-/// Typeface families bundled in `assets/fonts`.
-abstract final class AppFonts {
-  /// High-contrast serif for headlines, verdicts and hero figures.
-  static const display = 'BodoniModa';
-
-  /// Geometric sans for UI and body text; has tabular figures for amounts.
-  static const text = 'Manrope';
 }

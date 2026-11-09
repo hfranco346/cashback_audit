@@ -1352,4 +1352,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String subscriptionEnds(String date) {
     return 'Active until $date';
   }
+
+  @override
+  String stepOf(int step, int total) {
+    return 'Step $step of $total';
+  }
+
+  @override
+  String get assignCategory => 'Assign category';
+
+  @override
+  String get showDetails => 'Show details';
+
+  @override
+  String get hideDetails => 'Hide details';
 }

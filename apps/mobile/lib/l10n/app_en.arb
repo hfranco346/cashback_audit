@@ -374,5 +374,9 @@
   "packTitle": "{n, plural, =1{1 check} other{{n} checks}}",
   "paywallFreeBanner": "{n, plural, =1{You have 1 free check. Use it before buying anything.} other{You have {n} free checks. Use them before buying anything.}}",
   "subscriptionRenews": "Renews on {date}",
-  "subscriptionEnds": "Active until {date}"
+  "subscriptionEnds": "Active until {date}",
+  "stepOf": "Step {step} of {total}",
+  "assignCategory": "Assign category",
+  "showDetails": "Show details",
+  "hideDetails": "Hide details"
 }

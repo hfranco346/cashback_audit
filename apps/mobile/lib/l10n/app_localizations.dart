@@ -2347,6 +2347,30 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Activa hasta el {date}'**
   String subscriptionEnds(String date);
+
+  /// No description provided for @stepOf.
+  ///
+  /// In es, this message translates to:
+  /// **'Paso {step} de {total}'**
+  String stepOf(int step, int total);
+
+  /// No description provided for @assignCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Asignar rubro'**
+  String get assignCategory;
+
+  /// No description provided for @showDetails.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver detalle'**
+  String get showDetails;
+
+  /// No description provided for @hideDetails.
+  ///
+  /// In es, this message translates to:
+  /// **'Ocultar detalle'**
+  String get hideDetails;
 }
 
 class _AppLocalizationsDelegate
