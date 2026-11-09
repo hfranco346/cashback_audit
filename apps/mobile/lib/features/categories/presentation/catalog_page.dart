@@ -21,7 +21,10 @@ class CatalogPage extends GetView<CatalogController> {
   final CardsController? cards;
 
   CardsController? _cards() =>
-      cards ?? (Get.isRegistered<CardsController>() ? Get.find() : null);
+      cards ??
+      (Get.isRegistered<CardsController>()
+          ? Get.find<CardsController>()
+          : null);
 
   void _notify(BuildContext context, String title, [String? body]) {
     ScaffoldMessenger.of(context).showSnackBar(
