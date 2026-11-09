@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/ui/ui.dart';
-import '../../../../shared/widgets/molecules/inline_message.dart';
 import '../../domain/catalog_entities.dart';
 import '../catalog_controller.dart' show parseKeywords;
 
@@ -193,7 +192,7 @@ class _MerchantFormSheetState extends State<MerchantFormSheet> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 14),
-              InlineMessage(message: _error!),
+              InlineNotice(message: _error!),
             ],
           ],
         ),

@@ -8,7 +8,7 @@ import '../../../../core/ui/ui.dart';
 import '../../../../core/utils/decimal_utils.dart';
 import '../../../cards/domain/card_entities.dart';
 import '../../domain/verification_entities.dart';
-import '../excluded_reason_text.dart';
+import '../warning_text.dart';
 import '../format_reward.dart';
 
 /// Rows of a card separated by hairlines (`.card` + `.kv`).
@@ -160,7 +160,7 @@ class ResultSummaryTab extends StatelessWidget {
 
     final warnings = [
       for (final w in v.warnings)
-        if (warningText(w) != null) (w, warningText(w)!),
+        if (warningText(l10n, w) != null) (w, warningText(l10n, w)!),
     ];
     final hasMissingRate = warnings.any((e) => e.$1.code == 'NO_EXCHANGE_RATE');
     final hasCumulative = warnings.any(

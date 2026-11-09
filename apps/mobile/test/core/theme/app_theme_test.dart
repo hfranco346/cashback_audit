@@ -88,10 +88,4 @@ void main() {
       expect(theme.navigationBarTheme.height, greaterThanOrEqualTo(64));
     }
   });
-
-  test('legacy accessors map onto the new tokens', () {
-    expect(StatusColors.light.success, AppStatusColors.light.success.fg);
-    expect(StatusColors.dark.danger, AppStatusColors.dark.error.fg);
-    expect(VerdictColors.light.overpaid, AppStatusColors.light.overpaid.fg);
-  });
 }

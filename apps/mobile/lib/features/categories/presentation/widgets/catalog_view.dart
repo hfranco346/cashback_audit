@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/ui.dart';
-import '../../../../shared/widgets/atoms/staggered_entrance.dart';
-import '../../../../shared/widgets/molecules/inline_message.dart';
 import '../../domain/catalog_entities.dart';
 import 'dashed_suggestion_tile.dart';
 
@@ -105,15 +103,15 @@ class CatalogView extends StatelessWidget {
                           if (offline)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 12),
-                              child: InlineMessage(
+                              child: InlineNotice(
                                 message: l10n.offlineBanner,
-                                tone: InlineMessageTone.info,
+                                kind: StatusKind.neutral,
                               ),
                             ),
                           if (errorMessage != null)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 12),
-                              child: InlineMessage(
+                              child: InlineNotice(
                                 message: errorMessage!,
                                 actionLabel: l10n.retry,
                                 onAction: () => onRefresh(),

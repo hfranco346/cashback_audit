@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'core/di/initial_binding.dart';
+import 'core/l10n/l10n_context.dart';
 import 'core/l10n/strings.dart';
-import 'l10n/app_localizations.dart';
+import 'core/routing/app_navigator.dart';
 import 'core/routing/app_pages.dart';
 import 'core/routing/app_routes.dart';
 import 'core/theme/app_theme.dart';
@@ -16,7 +17,8 @@ class CashbackAuditApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      onGenerateTitle: (_) => S.appName,
+      scaffoldMessengerKey: appMessengerKey,
+      onGenerateTitle: (context) => context.l10n.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

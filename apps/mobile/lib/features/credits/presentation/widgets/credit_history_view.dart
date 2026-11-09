@@ -5,8 +5,6 @@ import '../../../../core/l10n/active_locale.dart';
 import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/ui.dart';
-import '../../../../shared/widgets/atoms/staggered_entrance.dart';
-import '../../../../shared/widgets/molecules/empty_state.dart';
 import '../../domain/credit_entities.dart';
 
 String creditReasonTitle(AppLocalizations l10n, CreditReason r) => switch (r) {

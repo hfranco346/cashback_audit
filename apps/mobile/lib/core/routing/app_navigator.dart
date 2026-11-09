@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 /// Navigation port so controllers stay testable without a running app.
@@ -21,6 +22,10 @@ abstract class AppNavigator {
   void showNotice(String title, String message);
 }
 
+/// Key of the app-wide [ScaffoldMessenger] (wired in `CashbackAuditApp`), so
+/// context-less code can show notices without GetX snackbars.
+final appMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 class GetAppNavigator implements AppNavigator {
   @override
   void offAll(String route) => Get.offAllNamed<void>(route);
@@ -41,5 +46,22 @@ class GetAppNavigator implements AppNavigator {
   void pop({Object? result}) => Get.back<Object?>(result: result);
 
   @override
-  void showNotice(String title, String message) => Get.snackbar(title, message);
+  void showNotice(String title, String message) {
+    final messenger = appMessengerKey.currentState;
+    if (messenger == null) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+              if (message.isNotEmpty) Text(message),
+            ],
+          ),
+        ),
+      );
+  }
 }

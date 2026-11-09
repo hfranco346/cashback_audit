@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/ui.dart';
-import '../../../../shared/widgets/molecules/inline_message.dart';
 import '../../../categories/domain/catalog_entities.dart';
 import '../../domain/card_entities.dart';
 import '../../domain/card_validator.dart';
@@ -241,7 +240,7 @@ class CardFormView extends StatelessWidget {
                 ),
                 if (errorMessage != null) ...[
                   gap,
-                  InlineMessage(message: errorMessage!),
+                  InlineNotice(message: errorMessage!),
                 ],
               ],
             ),

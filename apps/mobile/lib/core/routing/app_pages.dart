@@ -16,7 +16,6 @@ import '../../features/categories/domain/catalog_repositories.dart';
 import '../../features/categories/presentation/catalog_controller.dart';
 import '../../features/categories/presentation/catalog_page.dart';
 import '../../features/settings/presentation/language_currencies_page.dart';
-import '../../features/settings/presentation/settings_page.dart';
 import '../../features/verifications/domain/pdf_picker.dart';
 import '../../features/verifications/domain/verification_entities.dart';
 import '../../features/verifications/domain/verification_repository.dart';
@@ -26,7 +25,6 @@ import '../../features/verifications/presentation/verification_progress_controll
 import '../../features/verifications/presentation/verification_progress_page.dart';
 import '../../features/verifications/presentation/confirm_rates_page.dart';
 import '../../features/verifications/presentation/history_controller.dart';
-import '../../features/verifications/presentation/history_page.dart';
 import '../../features/verifications/presentation/result_controller.dart';
 import '../../features/verifications/presentation/result_page.dart';
 import '../../features/verifications/presentation/upload_controller.dart';
@@ -251,21 +249,6 @@ abstract final class AppPages {
       }),
     ),
     GetPage(
-      name: Routes.history,
-      page: () => const HistoryPage(),
-      binding: BindingsBuilder(() {
-        Get.lazyPut(
-          () => HistoryController(
-            repository: Get.find<VerificationRepository>(),
-            navigator: Get.find<AppNavigator>(),
-            initialCardId: Get.arguments is String
-                ? Get.arguments as String
-                : null,
-          ),
-        );
-      }),
-    ),
-    GetPage(
       name: Routes.paywall,
       page: () => const PaywallPage(),
       fullscreenDialog: true,
@@ -292,7 +275,6 @@ abstract final class AppPages {
       }),
     ),
     GetPage(name: Routes.catalog, page: () => const CatalogPage()),
-    GetPage(name: Routes.settings, page: () => const SettingsPage()),
     GetPage(
       name: Routes.languageCurrencies,
       page: () => const LanguageCurrenciesPage(),

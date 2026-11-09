@@ -9,9 +9,7 @@ abstract final class Routes {
   static const verificationProgress = '/verification-progress';
   static const confirmRates = '/confirm-rates';
   static const result = '/result';
-  static const history = '/history';
   static const paywall = '/paywall';
   static const creditHistory = '/credits/history';
-  static const settings = '/settings';
   static const languageCurrencies = '/settings/language-currencies';
 }

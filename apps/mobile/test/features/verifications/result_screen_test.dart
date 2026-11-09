@@ -6,8 +6,6 @@ import 'package:cashback_audit/core/ui/ui.dart';
 import 'package:cashback_audit/features/categories/domain/catalog_entities.dart';
 import 'package:cashback_audit/features/categories/presentation/catalog_controller.dart';
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
-import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
-import 'package:cashback_audit/features/verifications/presentation/excluded_reason_text.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_page.dart';
 import 'package:cashback_audit/l10n/app_localizations.dart';
@@ -569,22 +567,5 @@ void main() {
       expect(find.text(l10n.noCategoriesToAssign), findsOneWidget);
       expect(find.byKey(const Key('change-apply')), findsOneWidget);
     });
-  });
-
-  test('excluded reasons per kind', () {
-    VerificationTransaction t(String kind, {String? reason}) =>
-        VerificationMapper.detail(
-          verificationJson(
-            transactions: [
-              txJson(0, 'X', '1', kind: kind, excludedReason: reason),
-            ],
-          ),
-        ).transactions.single;
-    expect(excludedReasonText(t('PAYMENT')), S.excludedPayment);
-    expect(excludedReasonText(t('FEE')), S.excludedFee);
-    expect(excludedReasonText(t('INTEREST')), S.excludedInterest);
-    expect(excludedReasonText(t('INSURANCE')), S.excludedInsurance);
-    expect(excludedReasonText(t('OTHER')), S.excludedOther);
-    expect(excludedReasonText(t('PURCHASE')), isNull);
   });
 }

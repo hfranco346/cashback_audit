@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/ui/ui.dart';
-import '../../../../shared/widgets/atoms/staggered_entrance.dart';
-import '../../../../shared/widgets/molecules/empty_state.dart';
 import '../../../cards/domain/card_entities.dart';
 import '../../domain/verification_entities.dart';
 import 'history_row.dart';

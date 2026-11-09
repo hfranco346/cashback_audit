@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/ui/ui.dart';
-import '../../../../shared/widgets/molecules/inline_message.dart';
 
 /// Bottom-sheet form to create or rename a category.
 class CategoryFormSheet extends StatefulWidget {
@@ -106,7 +105,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              InlineMessage(message: _error!),
+              InlineNotice(message: _error!),
             ],
           ],
         ),
