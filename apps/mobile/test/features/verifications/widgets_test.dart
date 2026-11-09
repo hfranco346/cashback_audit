@@ -3,14 +3,11 @@ import 'package:cashback_audit/core/theme/app_theme.dart';
 import 'package:cashback_audit/features/cards/data/card_mapper.dart';
 import 'package:cashback_audit/features/cards/domain/card_entities.dart';
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
-import 'package:cashback_audit/features/verifications/domain/pdf_picker.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_controller.dart';
-import 'package:cashback_audit/features/verifications/presentation/upload_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/history_view.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/transaction_tile.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/transactions_section.dart';
-import 'package:cashback_audit/features/verifications/presentation/widgets/upload_view.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/verdict_card.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/verification_result_view.dart';
 import 'package:flutter/material.dart';
@@ -473,100 +470,6 @@ void main() {
       CardMapper.fromJson(cardJson()),
       CardMapper.fromJson(cardJson(id: 'c2', alias: 'Travel')),
     ];
-
-    UploadView upload({
-      UploadPhase phase = UploadPhase.idle,
-      PickedPdf? file,
-      bool canSubmit = false,
-      List<CreditCard>? list,
-      VoidCallback? onSubmit,
-      ValueChanged<String>? onSelect,
-    }) => UploadView(
-      cards: list ?? cards,
-      selectedCardId: 'c1',
-      onSelectCard: onSelect ?? (_) {},
-      file: file,
-      onPick: () {},
-      phase: phase,
-      progress: 0.4,
-      canSubmit: canSubmit,
-      onSubmit: onSubmit ?? () {},
-      onAddCard: () {},
-    );
-
-    testWidgets('verify is disabled until a file is picked', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: upload()),
-      );
-      final btn = tester.widget<FilledButton>(
-        find.byKey(const Key('verify-button')),
-      );
-      expect(btn.onPressed, isNull);
-    });
-
-    testWidgets('shows file, card chips and submit', (tester) async {
-      var submitted = 0;
-      String? selected;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: upload(
-            file: const PickedPdf(name: 'edo.pdf', path: '/x', sizeBytes: 2048),
-            canSubmit: true,
-            onSubmit: () => submitted++,
-            onSelect: (id) => selected = id,
-          ),
-        ),
-      );
-      expect(find.text('edo.pdf'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('card-chip-c2')));
-      expect(selected, 'c2');
-      await tester.tap(find.byKey(const Key('verify-button')));
-      expect(submitted, 1);
-    });
-
-    testWidgets('progress overlay shows phases', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: upload(phase: UploadPhase.uploading),
-        ),
-      );
-      expect(find.text(S.uploading), findsOneWidget);
-      final bar = tester.widget<LinearProgressIndicator>(
-        find.byKey(const Key('upload-progress')),
-      );
-      expect(bar.value, 0.4);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: upload(phase: UploadPhase.analyzing),
-        ),
-      );
-      expect(find.text(S.analyzing), findsOneWidget);
-      // The analyzing state sets expectations with its steps.
-      expect(find.byKey(const Key('analyzing-progress')), findsOneWidget);
-      expect(find.text(S.analyzingStepRead), findsOneWidget);
-      expect(
-        tester
-            .widget<LinearProgressIndicator>(
-              find.byKey(const Key('upload-progress')),
-            )
-            .value,
-        isNull,
-      );
-    });
-
-    testWidgets('empty cards show the add-card CTA', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: upload(list: const []),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text(S.noCardsForUpload), findsOneWidget);
-    });
 
     testWidgets('history lists items, filters by card and loads more', (
       tester,

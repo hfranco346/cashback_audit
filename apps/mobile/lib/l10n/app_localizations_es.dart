@@ -1989,4 +1989,85 @@ class AppLocalizationsEs extends AppLocalizations {
   String catalogRuleTag(String card, String rate) {
     return '$card $rate';
   }
+
+  @override
+  String get verifyStepCard => '1 · ¿De qué tarjeta es?';
+
+  @override
+  String get verifyStepFile => '2 · El PDF del banco';
+
+  @override
+  String get verifyPickHint =>
+      'El original que descargas de la banca en línea. Se lee en memoria y no se guarda.';
+
+  @override
+  String verifyCardCashback(String currency, String rules) {
+    return 'Cashback en $currency · $rules';
+  }
+
+  @override
+  String verifyCardPoints(String rules) {
+    return 'Puntos · $rules';
+  }
+
+  @override
+  String verifyAvailablePill(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n disponibles',
+      one: '1 disponible',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get verifyNoneLeftPill => 'Sin verificaciones';
+
+  @override
+  String get verifyCreditNote =>
+      'Se usa una verificación solo si la lectura sale bien. Recalcular es gratis.';
+
+  @override
+  String get verifyCta => 'Analizar';
+
+  @override
+  String get verifyCtaPickFile => 'Analizar · elige un PDF';
+
+  @override
+  String get verifyCtaPickCard => 'Analizar · elige una tarjeta';
+
+  @override
+  String get verifyClose => 'Cerrar';
+
+  @override
+  String get processingBackground => 'Seguir en segundo plano';
+
+  @override
+  String get processingFileBadge => 'PDF';
+
+  @override
+  String get processingUploadingEta => 'subiendo…';
+
+  @override
+  String get failureRefundedPill => 'Verificación devuelta';
+
+  @override
+  String get failureRetry => 'Intentar de nuevo';
+
+  @override
+  String get failureChooseAnother => 'Elegir otro PDF';
+
+  @override
+  String get failureTitleNotAStatement => 'No parece un estado de cuenta';
+
+  @override
+  String get failureTitleExtraction => 'No pudimos leerlo';
+
+  @override
+  String get failureTitleInterrupted => 'Se interrumpió el análisis';
+
+  @override
+  String get errVerificationNotReady =>
+      'Tu estado de cuenta todavía se está analizando. Espera a que termine.';
 }

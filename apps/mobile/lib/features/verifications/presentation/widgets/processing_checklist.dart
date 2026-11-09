@@ -16,7 +16,20 @@ class ProcessingChecklist extends StatefulWidget {
     super.key,
     this.cardLine,
     this.stepDuration = const Duration(seconds: 9),
+    this.progress,
+    this.title,
+    this.etaLabel,
   });
+
+  /// Real upload progress (0..1). When null the track eases from 12% to 58%
+  /// like the design while the backend reads the statement.
+  final double? progress;
+
+  /// Overrides "Analyzing with AI" (e.g. "Uploading file…").
+  final String? title;
+
+  /// Overrides the "about 40 s" hint.
+  final String? etaLabel;
 
   /// Detail under the first step, e.g. `BAC Credomatic · ends in 4821`.
   final String? cardLine;
@@ -64,14 +77,14 @@ class _ProcessingChecklistState extends State<ProcessingChecklist> {
           children: [
             Expanded(
               child: Text(
-                l10n.processingAnalyzing,
+                widget.title ?? l10n.processingAnalyzing,
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ),
             Text(
-              l10n.processingEta,
+              widget.etaLabel ?? l10n.processingEta,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: muted,
                 fontFeatures: appFigures,
@@ -82,7 +95,24 @@ class _ProcessingChecklistState extends State<ProcessingChecklist> {
         const SizedBox(height: AppSpacing.sm),
         ClipRRect(
           borderRadius: BorderRadius.circular(AppRadii.pill),
-          child: const LinearProgressIndicator(minHeight: 6),
+          child: widget.progress != null
+              ? LinearProgressIndicator(
+                  key: const Key('processing-track'),
+                  value: widget.progress!.clamp(0.0, 1.0),
+                  minHeight: 6,
+                  backgroundColor: theme.colorScheme.outlineVariant,
+                )
+              : TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.12, end: 0.58),
+                  duration: const Duration(seconds: 8),
+                  curve: Curves.easeOut,
+                  builder: (_, value, _) => LinearProgressIndicator(
+                    key: const Key('processing-track'),
+                    value: value,
+                    minHeight: 6,
+                    backgroundColor: theme.colorScheme.outlineVariant,
+                  ),
+                ),
         ),
         const SizedBox(height: AppSpacing.lg),
         Card(

@@ -13,6 +13,7 @@ import 'package:cashback_audit/features/verifications/presentation/confirm_rates
 import 'package:cashback_audit/features/verifications/presentation/history_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/upload_controller.dart';
+import 'package:cashback_audit/features/verifications/presentation/verification_progress_controller.dart';
 import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
@@ -102,7 +103,9 @@ void main() {
       await c.submit();
       // The upload only starts the analysis: the progress page watches it.
       expect(nav.replaced, ['/verification-progress']);
-      expect(nav.replacedArgs.single, 'v1');
+      final args = nav.replacedArgs.single as VerificationProgressArgs;
+      expect(args.verificationId, 'v1');
+      expect(args.fileName, c.file.value?.name);
       expect(verified, 1);
       expect(c.phase.value, UploadPhase.idle);
     });

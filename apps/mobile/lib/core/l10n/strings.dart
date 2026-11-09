@@ -45,6 +45,7 @@ abstract final class S {
   static String get errValidation => _l.errValidation;
   static String get errNotFound => _l.errNotFound;
   static String get errConflict => _l.errConflict;
+  static String get errVerificationNotReady => _l.errVerificationNotReady;
   static String get errTooLarge => _l.errTooLarge;
   static String get errNotPdf => _l.errNotPdf;
   static String get errRateLimited => _l.errRateLimited;

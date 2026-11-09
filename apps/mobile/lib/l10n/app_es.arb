@@ -1061,5 +1061,51 @@
         "type": "String"
       }
     }
-  }
+  },
+  "verifyStepCard": "1 · ¿De qué tarjeta es?",
+  "verifyStepFile": "2 · El PDF del banco",
+  "verifyPickHint": "El original que descargas de la banca en línea. Se lee en memoria y no se guarda.",
+  "verifyCardCashback": "Cashback en {currency} · {rules}",
+  "@verifyCardCashback": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "rules": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyCardPoints": "Puntos · {rules}",
+  "@verifyCardPoints": {
+    "placeholders": {
+      "rules": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyAvailablePill": "{n, plural, =1{1 disponible} other{{n} disponibles}}",
+  "@verifyAvailablePill": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "verifyNoneLeftPill": "Sin verificaciones",
+  "verifyCreditNote": "Se usa una verificación solo si la lectura sale bien. Recalcular es gratis.",
+  "verifyCta": "Analizar",
+  "verifyCtaPickFile": "Analizar · elige un PDF",
+  "verifyCtaPickCard": "Analizar · elige una tarjeta",
+  "verifyClose": "Cerrar",
+  "processingBackground": "Seguir en segundo plano",
+  "processingFileBadge": "PDF",
+  "processingUploadingEta": "subiendo…",
+  "failureRefundedPill": "Verificación devuelta",
+  "failureRetry": "Intentar de nuevo",
+  "failureChooseAnother": "Elegir otro PDF",
+  "failureTitleNotAStatement": "No parece un estado de cuenta",
+  "failureTitleExtraction": "No pudimos leerlo",
+  "failureTitleInterrupted": "Se interrumpió el análisis",
+  "errVerificationNotReady": "Tu estado de cuenta todavía se está analizando. Espera a que termine."
 }

@@ -11,6 +11,7 @@ export 'molecules/app_segmented.dart';
 export 'molecules/collapsible_warning.dart';
 export 'molecules/credit_card_view.dart';
 export 'molecules/filter_segmented.dart';
+export 'molecules/inline_notice.dart';
 export 'molecules/movement_row.dart';
 export 'molecules/rate_field.dart';
 export 'molecules/step_progress.dart';

@@ -40,6 +40,8 @@ String userMessageFor(Object error) {
       return S.errTransactionNotFound;
     case 'TRANSACTION_NOT_CLASSIFIABLE':
       return S.errTransactionNotClassifiable;
+    case 'VERIFICATION_NOT_READY':
+      return S.errVerificationNotReady;
     case 'VERIFICATION_NOT_FOUND':
       return S.errVerificationNotFound;
     case 'DUPLICATE_RULE_CATEGORY':

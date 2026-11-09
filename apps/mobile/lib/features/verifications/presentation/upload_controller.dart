@@ -10,6 +10,7 @@ import '../../cards/presentation/cards_controller.dart';
 import '../../credits/presentation/credits_controller.dart';
 import '../domain/pdf_picker.dart';
 import '../domain/verification_repository.dart';
+import 'verification_progress_controller.dart' show VerificationProgressArgs;
 
 enum UploadPhase { idle, uploading, analyzing }
 
@@ -110,7 +111,10 @@ class UploadController extends GetxController {
       // The analysis runs in the backend: the progress page polls it.
       _navigator.replace(
         Routes.verificationProgress,
-        arguments: verification.id,
+        arguments: VerificationProgressArgs(
+          verification.id,
+          fileName: file.value?.name,
+        ),
       );
     } on AppException catch (e) {
       _handleError(e);

@@ -193,9 +193,12 @@ abstract final class AppPages {
       name: Routes.verificationProgress,
       page: () => const VerificationProgressPage(),
       binding: BindingsBuilder(() {
+        final progress = VerificationProgressArgs.from(Get.arguments);
         Get.lazyPut(
           () => VerificationProgressController(
-            verificationId: Get.arguments as String,
+            verificationId: progress.verificationId,
+            fileName: progress.fileName,
+            cards: Get.find<CardsController>(),
             repository: Get.find<VerificationRepository>(),
             navigator: Get.find<AppNavigator>(),
             attention: Get.find<AttentionController>(),

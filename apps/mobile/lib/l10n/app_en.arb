@@ -559,5 +559,27 @@
         "type": "String"
       }
     }
-  }
+  },
+  "verifyStepCard": "1 · Which card is it for?",
+  "verifyStepFile": "2 · The bank's PDF",
+  "verifyPickHint": "The original you download from online banking. It's read in memory and never stored.",
+  "verifyCardCashback": "Cashback in {currency} · {rules}",
+  "verifyCardPoints": "Points · {rules}",
+  "verifyAvailablePill": "{n} available",
+  "verifyNoneLeftPill": "None left",
+  "verifyCreditNote": "A check is only used if the read succeeds. Recalculating is free.",
+  "verifyCta": "Analyze",
+  "verifyCtaPickFile": "Analyze · choose a PDF",
+  "verifyCtaPickCard": "Analyze · choose a card",
+  "verifyClose": "Close",
+  "processingBackground": "Keep running in the background",
+  "processingFileBadge": "PDF",
+  "processingUploadingEta": "uploading…",
+  "failureRefundedPill": "Check refunded",
+  "failureRetry": "Try again",
+  "failureChooseAnother": "Choose another PDF",
+  "failureTitleNotAStatement": "That doesn't look like a statement",
+  "failureTitleExtraction": "We couldn't read it",
+  "failureTitleInterrupted": "The analysis was interrupted",
+  "errVerificationNotReady": "Your statement is still being analyzed. Wait for it to finish."
 }

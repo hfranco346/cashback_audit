@@ -9,7 +9,6 @@ import 'package:cashback_audit/features/cards/presentation/cards_controller.dart
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
 import 'package:cashback_audit/features/verifications/presentation/confirm_rates_controller.dart';
-import 'package:cashback_audit/features/verifications/presentation/widgets/analyzing_progress.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/confirm_rates_view.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/verification_summary_tile.dart';
 import 'package:decimal/decimal.dart';
@@ -516,31 +515,6 @@ void main() {
   });
 
   group('analyzing and history widgets', () {
-    testWidgets('analyzing steps advance with elapsed time', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: const Scaffold(body: AnalyzingProgress(readSeconds: 3)),
-        ),
-      );
-      expect(find.text(S.analyzingStepRead), findsOneWidget);
-      expect(find.text(S.analyzingStepClassify), findsOneWidget);
-      expect(find.text(S.analyzingExpect), findsOneWidget);
-      IconData iconOf(String key) => tester
-          .widget<Icon>(
-            find.descendant(
-              of: find.byKey(Key(key)),
-              matching: find.byType(Icon),
-            ),
-          )
-          .icon!;
-      expect(iconOf('step-classify'), Icons.radio_button_unchecked_rounded);
-      expect(iconOf('step-read'), Icons.autorenew_rounded);
-      await tester.pump(const Duration(seconds: 4));
-      expect(iconOf('step-read'), Icons.check_circle_rounded);
-      expect(iconOf('step-classify'), Icons.autorenew_rounded);
-    });
-
     testWidgets('history shows the pending chip for AWAITING_RATES', (
       tester,
     ) async {

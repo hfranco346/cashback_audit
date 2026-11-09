@@ -3,11 +3,27 @@ import 'package:get/get.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/routing/app_navigator.dart';
 import '../../../core/routing/app_routes.dart';
+import '../../cards/presentation/cards_controller.dart';
 import '../domain/verification_entities.dart';
 import '../domain/verification_repository.dart';
 import 'attention_controller.dart';
 import 'confirm_rates_controller.dart';
 import 'verification_poller.dart';
+
+/// Route arguments of the progress page. The bare id (from Home or History)
+/// is also accepted; the file name is only known right after an upload.
+class VerificationProgressArgs {
+  const VerificationProgressArgs(this.verificationId, {this.fileName});
+
+  factory VerificationProgressArgs.from(Object? raw) => switch (raw) {
+    final VerificationProgressArgs a => a,
+    final String id => VerificationProgressArgs(id),
+    _ => throw ArgumentError('Unsupported progress arguments: $raw'),
+  };
+
+  final String verificationId;
+  final String? fileName;
+}
 
 /// Watches one `PROCESSING` verification: polls it every few seconds while
 /// the screen is open, sends the user to the rates when it is ready and shows
@@ -20,6 +36,8 @@ class VerificationProgressController extends GetxController {
     required this._navigator,
     VerificationPoller? poller,
     this.attention,
+    this.cards,
+    this.fileName,
   }) : poller = poller ?? VerificationPoller(repository: _repository);
 
   final String verificationId;
@@ -27,8 +45,19 @@ class VerificationProgressController extends GetxController {
   final AppNavigator _navigator;
   final VerificationPoller poller;
   final AttentionController? attention;
+  final CardsController? cards;
+
+  /// Name of the PDF just uploaded (unknown when reopened from Home).
+  final String? fileName;
 
   final verification = Rxn<Verification>();
+
+  /// `BAC Cash •••• 4821` once the card is known.
+  String? get cardLabel {
+    final id = verification.value?.cardId;
+    final card = id == null ? null : cards?.byId(id);
+    return card == null ? null : '${card.alias} •••• ${card.last4}';
+  }
 
   /// Non-fatal connectivity problem shown as a hint while polling continues.
   final errorMessage = RxnString();
@@ -80,6 +109,14 @@ class VerificationProgressController extends GetxController {
     poller.stop();
     attention?.reload();
     _navigator.pop();
+  }
+
+  /// "Try again" / "Choose another PDF": the failure is acknowledged and the
+  /// verify screen opens on the same card.
+  Future<void> retryUpload() async {
+    final v = verification.value;
+    await attention?.markSeen(verificationId);
+    _navigator.replace(Routes.upload, arguments: v?.cardId);
   }
 
   /// Acknowledge a failure: the credit was refunded.

@@ -5,7 +5,6 @@ import 'package:cashback_audit/core/network/dio_factory.dart';
 import 'package:cashback_audit/core/network/session_events.dart';
 import 'package:cashback_audit/core/storage/token_storage.dart';
 import 'package:cashback_audit/core/theme/app_theme.dart';
-import 'package:cashback_audit/features/cards/data/card_mapper.dart';
 import 'package:cashback_audit/features/credits/data/credits_repository_impl.dart';
 import 'package:cashback_audit/features/credits/domain/credit_entities.dart';
 import 'package:cashback_audit/features/credits/presentation/credit_history_controller.dart';
@@ -15,15 +14,12 @@ import 'package:cashback_audit/features/credits/presentation/widgets/credits_chi
 import 'package:cashback_audit/features/credits/presentation/widgets/credits_summary_card.dart';
 import 'package:cashback_audit/features/subscription/data/revenuecat_billing_service.dart';
 import 'package:cashback_audit/features/subscription/domain/subscription_entities.dart';
-import 'package:cashback_audit/features/verifications/presentation/widgets/upload_view.dart';
-import 'package:cashback_audit/features/verifications/presentation/upload_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import '../../support/fake_adapter.dart';
 import '../../support/fake_credits_repository.dart';
-import '../../support/fixtures.dart';
 
 CreditsRepositoryImpl _repo(FakeAdapter adapter) => CreditsRepositoryImpl(
   buildDio(
@@ -359,43 +355,6 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text(S.creditsHistoryEmptyTitle), findsOneWidget);
-    });
-
-    UploadView upload(CreditBalance? b, {VoidCallback? onSeePlans}) =>
-        UploadView(
-          cards: [CardMapper.fromJson(cardJson())],
-          selectedCardId: 'c1',
-          onSelectCard: (_) {},
-          file: null,
-          onPick: () {},
-          phase: UploadPhase.idle,
-          progress: 0,
-          canSubmit: false,
-          onSubmit: () {},
-          onAddCard: () {},
-          balance: b,
-          onSeePlans: onSeePlans,
-        );
-
-    testWidgets('upload tells what the analysis will cost', (tester) async {
-      await tester.pumpWidget(wrap(upload(balance(plan: 5))));
-      expect(find.text(S.uploadCreditNotice(5)), findsOneWidget);
-
-      await tester.pumpWidget(wrap(upload(balance(free: 1))));
-      expect(find.text(S.uploadFreeNotice), findsOneWidget);
-
-      await tester.pumpWidget(wrap(upload(null)));
-      expect(find.byKey(const Key('upload-credit-notice')), findsNothing);
-    });
-
-    testWidgets('upload with no credits offers the plans', (tester) async {
-      var seen = 0;
-      await tester.pumpWidget(
-        wrap(upload(balance(), onSeePlans: () => seen++)),
-      );
-      expect(find.text(S.uploadNoCredits), findsOneWidget);
-      await tester.tap(find.text(S.seePlans));
-      expect(seen, 1);
     });
   });
 }

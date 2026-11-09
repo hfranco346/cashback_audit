@@ -1987,4 +1987,79 @@ class AppLocalizationsEn extends AppLocalizations {
   String catalogRuleTag(String card, String rate) {
     return '$card $rate';
   }
+
+  @override
+  String get verifyStepCard => '1 · Which card is it for?';
+
+  @override
+  String get verifyStepFile => '2 · The bank\'s PDF';
+
+  @override
+  String get verifyPickHint =>
+      'The original you download from online banking. It\'s read in memory and never stored.';
+
+  @override
+  String verifyCardCashback(String currency, String rules) {
+    return 'Cashback in $currency · $rules';
+  }
+
+  @override
+  String verifyCardPoints(String rules) {
+    return 'Points · $rules';
+  }
+
+  @override
+  String verifyAvailablePill(int n) {
+    return '$n available';
+  }
+
+  @override
+  String get verifyNoneLeftPill => 'None left';
+
+  @override
+  String get verifyCreditNote =>
+      'A check is only used if the read succeeds. Recalculating is free.';
+
+  @override
+  String get verifyCta => 'Analyze';
+
+  @override
+  String get verifyCtaPickFile => 'Analyze · choose a PDF';
+
+  @override
+  String get verifyCtaPickCard => 'Analyze · choose a card';
+
+  @override
+  String get verifyClose => 'Close';
+
+  @override
+  String get processingBackground => 'Keep running in the background';
+
+  @override
+  String get processingFileBadge => 'PDF';
+
+  @override
+  String get processingUploadingEta => 'uploading…';
+
+  @override
+  String get failureRefundedPill => 'Check refunded';
+
+  @override
+  String get failureRetry => 'Try again';
+
+  @override
+  String get failureChooseAnother => 'Choose another PDF';
+
+  @override
+  String get failureTitleNotAStatement => 'That doesn\'t look like a statement';
+
+  @override
+  String get failureTitleExtraction => 'We couldn\'t read it';
+
+  @override
+  String get failureTitleInterrupted => 'The analysis was interrupted';
+
+  @override
+  String get errVerificationNotReady =>
+      'Your statement is still being analyzed. Wait for it to finish.';
 }

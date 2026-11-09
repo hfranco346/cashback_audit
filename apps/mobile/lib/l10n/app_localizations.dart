@@ -3397,6 +3397,138 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'{card} {rate}'**
   String catalogRuleTag(String card, String rate);
+
+  /// No description provided for @verifyStepCard.
+  ///
+  /// In es, this message translates to:
+  /// **'1 · ¿De qué tarjeta es?'**
+  String get verifyStepCard;
+
+  /// No description provided for @verifyStepFile.
+  ///
+  /// In es, this message translates to:
+  /// **'2 · El PDF del banco'**
+  String get verifyStepFile;
+
+  /// No description provided for @verifyPickHint.
+  ///
+  /// In es, this message translates to:
+  /// **'El original que descargas de la banca en línea. Se lee en memoria y no se guarda.'**
+  String get verifyPickHint;
+
+  /// No description provided for @verifyCardCashback.
+  ///
+  /// In es, this message translates to:
+  /// **'Cashback en {currency} · {rules}'**
+  String verifyCardCashback(String currency, String rules);
+
+  /// No description provided for @verifyCardPoints.
+  ///
+  /// In es, this message translates to:
+  /// **'Puntos · {rules}'**
+  String verifyCardPoints(String rules);
+
+  /// No description provided for @verifyAvailablePill.
+  ///
+  /// In es, this message translates to:
+  /// **'{n, plural, =1{1 disponible} other{{n} disponibles}}'**
+  String verifyAvailablePill(int n);
+
+  /// No description provided for @verifyNoneLeftPill.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin verificaciones'**
+  String get verifyNoneLeftPill;
+
+  /// No description provided for @verifyCreditNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Se usa una verificación solo si la lectura sale bien. Recalcular es gratis.'**
+  String get verifyCreditNote;
+
+  /// No description provided for @verifyCta.
+  ///
+  /// In es, this message translates to:
+  /// **'Analizar'**
+  String get verifyCta;
+
+  /// No description provided for @verifyCtaPickFile.
+  ///
+  /// In es, this message translates to:
+  /// **'Analizar · elige un PDF'**
+  String get verifyCtaPickFile;
+
+  /// No description provided for @verifyCtaPickCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Analizar · elige una tarjeta'**
+  String get verifyCtaPickCard;
+
+  /// No description provided for @verifyClose.
+  ///
+  /// In es, this message translates to:
+  /// **'Cerrar'**
+  String get verifyClose;
+
+  /// No description provided for @processingBackground.
+  ///
+  /// In es, this message translates to:
+  /// **'Seguir en segundo plano'**
+  String get processingBackground;
+
+  /// No description provided for @processingFileBadge.
+  ///
+  /// In es, this message translates to:
+  /// **'PDF'**
+  String get processingFileBadge;
+
+  /// No description provided for @processingUploadingEta.
+  ///
+  /// In es, this message translates to:
+  /// **'subiendo…'**
+  String get processingUploadingEta;
+
+  /// No description provided for @failureRefundedPill.
+  ///
+  /// In es, this message translates to:
+  /// **'Verificación devuelta'**
+  String get failureRefundedPill;
+
+  /// No description provided for @failureRetry.
+  ///
+  /// In es, this message translates to:
+  /// **'Intentar de nuevo'**
+  String get failureRetry;
+
+  /// No description provided for @failureChooseAnother.
+  ///
+  /// In es, this message translates to:
+  /// **'Elegir otro PDF'**
+  String get failureChooseAnother;
+
+  /// No description provided for @failureTitleNotAStatement.
+  ///
+  /// In es, this message translates to:
+  /// **'No parece un estado de cuenta'**
+  String get failureTitleNotAStatement;
+
+  /// No description provided for @failureTitleExtraction.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos leerlo'**
+  String get failureTitleExtraction;
+
+  /// No description provided for @failureTitleInterrupted.
+  ///
+  /// In es, this message translates to:
+  /// **'Se interrumpió el análisis'**
+  String get failureTitleInterrupted;
+
+  /// No description provided for @errVerificationNotReady.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu estado de cuenta todavía se está analizando. Espera a que termine.'**
+  String get errVerificationNotReady;
 }
 
 class _AppLocalizationsDelegate
