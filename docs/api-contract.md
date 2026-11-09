@@ -256,11 +256,45 @@ unknown or already revoked tokens also return `204`. Revokes the whole session.
   "provider": "GOOGLE",
   "email": "ana@example.com",
   "name": "Ana Perez",
-  "createdAt": "2026-01-01T00:00:00.000Z"
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "locale": "auto",
+  "primaryCurrency": "HNL",
+  "currencies": [
+    { "code": "USD", "lastRateToPrimary": "24.65", "updatedAt": "2026-01-02T00:00:00.000Z" }
+  ]
 }
 ```
 
 `provider` is `"GOOGLE"` or `"APPLE"`. Errors: `401`.
+
+`locale` (`"auto" | "es" | "en"`, default `"auto"` = follow the phone),
+`primaryCurrency` (ISO 4217 or `null` until chosen) and `currencies` (the
+currencies the user works with, sorted by `code`) are the user's preferences.
+`lastRateToPrimary` is a decimal string (primary-currency units per 1 unit of
+`code`) or `null`; `updatedAt` is when the rate was last stored.
+
+### PATCH /me/preferences
+
+`Content-Type: application/json`. Every field is optional; unknown fields are
+`400`.
+
+| Field | Notes |
+| --- | --- |
+| `locale` | `"auto"`, `"es"` or `"en"` (case-insensitive) |
+| `primaryCurrency` | ISO 4217 code (case-insensitive), or `null` to clear it |
+| `currencies` | The **complete** list: `[{ "code": "USD", "lastRateToPrimary": "24.65" }]`. Codes not listed are removed. For a listed code, omitting `lastRateToPrimary` keeps the stored rate, `null` clears it, a value (`> 0`, max 6 decimals, number or string) replaces it. Max 30 entries; no repeated code and not the primary currency (`400 INVALID_CURRENCIES`) |
+
+`200` returns the resulting preferences:
+`{ "locale": "en", "primaryCurrency": "HNL", "currencies": [ ... ] }`.
+
+Changing `primaryCurrency` clears every stored `lastRateToPrimary` (they were
+relative to the old currency) and drops the new primary from `currencies`.
+
+The server also keeps `currencies` up to date by itself: when a verification is
+confirmed with `exchangeRates` (or a user-entered `rewardExchangeRate`), those
+currencies are upserted with the rate used, **provided** the user's
+`primaryCurrency` is `null` or equals the card currency of that verification.
+Errors: `400` (validation), `401`.
 
 ---
 
@@ -503,12 +537,17 @@ card. Errors: `400`, `404 CARD_NOT_FOUND`, `404 CATEGORY_NOT_FOUND`.
 
 ## 8. Verifications
 
-A verification audits one statement in **two steps**:
+A verification audits one statement in **two steps**, and the first one runs
+**in the background**:
 
-1. **Upload** (`POST /verifications`): the backend has Claude read the PDF,
-   classifies the lines into your categories and stores the result as
-   `AWAITING_RATES`. It also proposes the reward rates to audit (from the
-   statement, from the card, or nothing). **No reward is computed yet.**
+1. **Upload** (`POST /verifications`): validates the request, spends one credit
+   and answers **`202` immediately** with the verification in `PROCESSING`. The
+   backend then has Claude read the PDF, classifies the lines into your
+   categories and proposes the reward rates to audit (from the statement, from
+   the card, or nothing); the verification ends in `AWAITING_RATES` (ready for
+   the user to review) or in `FAILED`. **No reward is computed yet.** The user
+   can close the app meanwhile: poll `GET /verifications/:id` while the screen
+   is open and use `GET /verifications/attention` to find pending work later.
 2. **Confirm** (`POST /verifications/:id/confirm`): the user confirms or edits
    the rates; the backend computes the reward the card *should* have earned
    deterministically and compares it with the reward the bank reported. The same
@@ -521,13 +560,40 @@ the proposed rates to the user and let them confirm or edit before step 2.
 **The PDF is processed in memory and discarded; only extracted results are
 stored.**
 
-`status`: `AWAITING_RATES` (after step 1) or `COMPLETED` (after step 2).
+`status`:
+
+| Status | Meaning |
+| --- | --- |
+| `PROCESSING` | Accepted; being read and classified in the background |
+| `AWAITING_RATES` | Processed; waiting for the user to confirm the rates (step 2) |
+| `COMPLETED` | Confirmed and audited |
+| `FAILED` | Processing ended without a result; **the credit was refunded**. `failureCode` says why |
+
+`PROCESSING` -> `AWAITING_RATES` or `FAILED`; `AWAITING_RATES` -> `COMPLETED`
+(confirm; a `COMPLETED` one can be recalculated). `failureCode` (only when
+`FAILED`, otherwise `null`):
+
+| `failureCode` | Cause |
+| --- | --- |
+| `NOT_A_STATEMENT` | The file is not a readable credit card statement (scanned, password protected, wrong document, or too large to analyze) |
+| `EXTRACTION_FAILED` | The analysis service failed or returned an unusable result; uploading again usually works |
+| `INTERRUPTED` | The server restarted while it was processing (the PDF is never stored, so it cannot resume) |
+
+Every verification object (and every list item) also carries `failureCode` and
+`seenAt` (ISO 8601 or `null`: when the user opened a `FAILED`/`COMPLETED`
+result, see `POST /verifications/:id/seen`).
+
+While `PROCESSING` or `FAILED` there is no extracted data: `statement` fields
+are `null`, `detectedRates`, `rateProposal`, `transactions`, `warnings`,
+`breakdown` and `currencies` are `[]`, and `confirm`,
+`categories-from-suggestions` and `PATCH .../transactions/:index` answer
+`409 VERIFICATION_NOT_READY`. `GET` and `DELETE` work in every status.
 While `AWAITING_RATES` the fields `reported`, `expected`, `difference`,
 `tolerance`, `verdict`, `appliedRates` are `null`, `breakdown` and `currencies`
 are `[]`, and per-transaction `expectedReward`, `appliedRatePercent` and
 `convertedAmount` are `null`.
 
-### POST /verifications  (step 1)
+### POST /verifications  (step 1, asynchronous)
 
 `Content-Type: multipart/form-data` with these parts:
 
@@ -552,16 +618,45 @@ await dio.post('/verifications', data: form,
     options: Options(receiveTimeout: const Duration(minutes: 3)));
 ```
 
-**Latency**: analysis typically takes 10-60 seconds and can take longer for large
-statements. Use a receive timeout of at least 3 minutes and show a progress UI.
-The request is not idempotent: do not auto-retry on timeout without asking
-the user (each call consumes quota); check `GET /verifications` first.
+**Response**: `202 Accepted` with the verification summary object below in
+`status: "PROCESSING"` (the upload itself takes as long as the file transfer;
+the analysis, typically 10-60 seconds, runs afterwards on the server). The
+request is not idempotent: do not auto-retry on timeout without asking the user
+(each accepted call consumes a credit); check `GET /verifications/attention`
+first. The PDF is held in server memory only while it is processed; if the
+server restarts first, the verification becomes `FAILED` / `INTERRUPTED` and the
+credit is refunded. Statements are processed a few at a time
+(`VERIFICATION_CONCURRENCY`, default 2), so a `PROCESSING` verification may wait
+in a queue.
+
+```json
+{
+  "id": "e5f6...",
+  "cardId": "c3d4...",
+  "status": "PROCESSING",
+  "failureCode": null,
+  "seenAt": null,
+  "statement": { "bank": null, "cardLast4": null, "periodStart": null, "periodEnd": null, "currency": null },
+  "primaryCurrency": "HNL",
+  "rewardUnit": "CASHBACK_CURRENCY",
+  "rewardCurrency": null,
+  "reportedAmount": null,
+  "expectedAmount": null,
+  "difference": null,
+  "verdict": null,
+  "createdAt": "2026-02-01T10:00:00.000Z"
+}
+```
+
+(This is the *summary* shape, the same as the `GET /verifications` items; fetch
+`GET /verifications/:id` for the full object.)
 
 **Order of checks** (first failure wins): auth (`401`) -> rate limit (`429`) ->
 credits (`402 NO_CREDITS`, step 1 only: this is where the analysis cost is) -> upload
 type/size (`415`/`413`) -> field validation (`400`) -> PDF signature
 (`400 INVALID_PDF`) -> card ownership (`404`) -> credit reservation (`402`, atomic)
--> analysis (`422`/`502`/`503`, credit refunded).
+-> `202`. Everything after that (analysis failures included) is reported through
+the verification's `status` / `failureCode`, never as an HTTP error of this call.
 
 **Multi-currency.** Statements can have one amount column per currency (e.g.
 Lempiras and Dolares). Every transaction carries its own `currency` (ISO 4217).
@@ -644,7 +739,7 @@ way, with the original wording in `unitNote`; `evidence` is a short quote).
 `GET /verifications/:id` always recomputes the proposal against the current card
 rules and classification, so it also prefills a recalculation.
 
-`201` response (full verification object, here after step 1):
+Full verification object (what `GET /verifications/:id` returns once step 1 finished, `status: "AWAITING_RATES"`):
 
 ```json
 {
@@ -705,10 +800,12 @@ Errors of step 1:
 | 404 | `CARD_NOT_FOUND` | Card missing or not yours |
 | 413 | `PAYLOAD_TOO_LARGE` | File over 10 MB |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Not `application/pdf` |
-| 422 | `UNREADABLE_STATEMENT` | Not a readable credit card statement (scanned, password protected, wrong document). Ask for the original PDF from the bank |
 | 429 | `TOO_MANY_REQUESTS` | Slow down |
-| 502 | `EXTRACTION_FAILED` | The analysis returned an unusable result; retrying usually works |
-| 503 | `EXTRACTION_UNAVAILABLE` | Analysis service busy or down; try again later |
+| 202 | (success) | Accepted; see above |
+
+`UNREADABLE_STATEMENT`, `EXTRACTION_FAILED` and `EXTRACTION_UNAVAILABLE` are no
+longer returned by this call: they surface as `status: "FAILED"` with
+`failureCode` `NOT_A_STATEMENT` / `EXTRACTION_FAILED`.
 
 ### POST /verifications/:id/confirm  (step 2 and recalculation)
 
@@ -1011,8 +1108,8 @@ on the statement in the opposite direction are inverted by the server.
 ### GET /verifications
 
 Query: `cardId` (optional uuid; `404` if not yours), `status` (optional,
-`AWAITING_RATES` or `COMPLETED`), `page` (default 1, >= 1), `pageSize`
-(default 20, 1-100). Newest first. Both statuses are listed.
+`PROCESSING`, `AWAITING_RATES`, `COMPLETED` or `FAILED`), `page` (default 1,
+>= 1), `pageSize` (default 20, 1-100). Newest first. Every status is listed.
 
 ```json
 {
@@ -1021,6 +1118,8 @@ Query: `cardId` (optional uuid; `404` if not yours), `status` (optional,
       "id": "e5f6...",
       "cardId": "c3d4...",
       "status": "COMPLETED",
+      "failureCode": null,
+      "seenAt": null,
       "statement": {
         "bank": "BBVA",
         "cardLast4": "4321",
@@ -1045,22 +1144,48 @@ Query: `cardId` (optional uuid; `404` if not yours), `status` (optional,
 
 Items are summaries (no `breakdown`, `transactions`, `warnings`, `conversion`,
 `currencies`, `loyalty` or rates); fetch the detail for those. For
-`AWAITING_RATES` items `reportedAmount`, `expectedAmount`, `difference` and
+`PROCESSING`, `FAILED` and `AWAITING_RATES` items `reportedAmount`, `expectedAmount`, `difference` and
 `verdict` are `null`. This endpoint is **not** paywalled: users keep access to their
 history after a subscription lapses.
 
+### GET /verifications/attention
+
+What needs the user's attention, newest first, for the Home banner and badges:
+`PROCESSING`, `AWAITING_RATES`, and `FAILED` / `COMPLETED` that have not been
+marked seen (`seenAt == null`). Only the caller's verifications. Not paginated.
+
+```json
+{ "items": [ { "id": "e5f6...", "cardId": "c3d4...", "status": "FAILED",
+               "failureCode": "NOT_A_STATEMENT", "seenAt": null, "...": "same summary shape as GET /verifications items" } ] }
+```
+
+Call it on Home load and on app resume. An item leaves the list when it is
+resolved: `PROCESSING` ends, `AWAITING_RATES` is confirmed or deleted,
+`FAILED` / `COMPLETED` are marked seen.
+
+### POST /verifications/:id/seen
+
+`204`, no body. Sets `seenAt` (once: later calls keep the first timestamp, so it
+is idempotent). Call it when the user opens a `FAILED` or `COMPLETED` result.
+Allowed in any status. `400` (bad id), `404 VERIFICATION_NOT_FOUND` (missing or
+not yours).
+
 ### GET /verifications/:id
 
-Full verification object (as in the `POST` responses, with the current
-`rateProposal`). `404 VERIFICATION_NOT_FOUND`.
+Full verification object (as in the step 1 object above, with the current
+`rateProposal`), in **any** status. While `PROCESSING` or `FAILED` it carries no
+extracted data (see the status table). Poll it (about every 4 seconds) while the
+user waits for a `PROCESSING` verification. `404 VERIFICATION_NOT_FOUND`.
 
 ### DELETE /verifications/:id
 
-`204`. `404 VERIFICATION_NOT_FOUND`.
+`204`. `404 VERIFICATION_NOT_FOUND`. Deleting a `PROCESSING` verification
+discards its result when the analysis ends; its credit is not refunded.
 
 **Abandoned uploads.** `AWAITING_RATES` verifications that are not confirmed
 within 7 days (server setting `AWAITING_RATES_TTL_DAYS`) are deleted by a
-periodic server job; `COMPLETED` ones are never deleted automatically. Clients
+periodic server job; `PROCESSING`, `FAILED` and `COMPLETED` ones are never
+deleted automatically. Clients
 should treat a `404` on an old awaiting verification as expected.
 
 ---
@@ -1183,18 +1308,27 @@ ledger:
 ```
 
 `bucket`: `FREE | PLAN | PURCHASED`. `reason`: `GRANT_FREE`, `GRANT_PLAN`,
-`GRANT_PACK`, `CONSUME`, `REFUND` (a credit given back after a failed analysis, or
-a refunded pack), `EXPIRE_PLAN` (left-over plan credits at renewal). `source`:
-`APPLE | GOOGLE | WEB | SYSTEM`. `periodEnd` is set for `PLAN` entries.
+`GRANT_PACK`, `CONSUME`, `REFUND` (a credit given back after a `FAILED`
+verification, or a refunded pack), `EXPIRE_PLAN` (left-over plan credits at
+renewal). `source` (where the entry comes from): `APPLE | GOOGLE | WEB |
+SYSTEM`. `periodEnd` is set for `PLAN` entries. `verificationId` links
+`CONSUME` / `REFUND` entries to their verification.
+
+This is the credit history endpoint (there is no separate `/credits/history`):
+the credit-history screen should show `bucket` (`FREE | PLAN | PURCHASED`) as the
+kind of credit, `delta` and `reason`. It is paginated by `page`/`pageSize` like
+the other lists. A refunded verification shows two entries: the `CONSUME` and
+its `REFUND`.
 
 ### Spending credits: POST /verifications
 
 The credit is spent **atomically and before Claude is called**
 (free -> plan -> purchased); two parallel uploads can never spend the same
-credit. If the analysis fails for any reason (`422`, `502`, `503`, `500`) the
-credit is **refunded** to the same bucket. Invalid requests (`400`, `404`,
-`413`, `415`) never reserve one. A cheap pre-check answers before the upload is
-processed. With no credits:
+credit. If the verification ends `FAILED` (`NOT_A_STATEMENT`,
+`EXTRACTION_FAILED` or `INTERRUPTED`) the credit is **refunded** to the same
+bucket, exactly once (also after a server restart). Invalid requests (`400`,
+`404`, `413`, `415`) never reserve one. A cheap pre-check answers before the
+upload is processed. With no credits:
 
 ```json
 {
@@ -1287,21 +1421,46 @@ consumable products in RevenueCat/the stores.
 | 402 | `NO_CREDITS` | Paywall (see section 9) |
 | 404 | `CARD_NOT_FOUND`, `CATEGORY_NOT_FOUND`, `MERCHANT_NOT_FOUND`, `VERIFICATION_NOT_FOUND` | Missing **or not yours** |
 | 409 | `CATEGORY_NAME_TAKEN`, `MERCHANT_NAME_TAKEN` | Duplicate name for this user |
+| 409 | `VERIFICATION_NOT_READY` | The verification is `PROCESSING` or `FAILED`: nothing to confirm or edit yet |
 | 409 | `CATEGORY_IN_USE` | Delete a category that still has merchants/card rules (`details.merchants`, `details.cardRules`) |
 | 413 | `PAYLOAD_TOO_LARGE` | PDF over 10 MB |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Upload is not a PDF |
 | 400 | `INVALID_EXCHANGE_RATE` | See verifications |
-| 422 | `UNREADABLE_STATEMENT`, `REPORTED_REWARD_NOT_FOUND`, `REWARD_PROGRAM_AMBIGUOUS`, `REWARD_EXCHANGE_RATE_REQUIRED` | See verifications |
+| 400 | `INVALID_CURRENCIES` | `PATCH /me/preferences`: repeated currency code or the primary currency in the list |
+| 422 | `REPORTED_REWARD_NOT_FOUND`, `REWARD_PROGRAM_AMBIGUOUS`, `REWARD_EXCHANGE_RATE_REQUIRED` | See verifications |
 | 429 | `TOO_MANY_REQUESTS` | Rate limit |
 | 500 | `INTERNAL_ERROR` | Unexpected; generic message, nothing leaked |
-| 502 | `EXTRACTION_FAILED` | Analysis returned an unusable response |
 | 503 | `IDENTITY_PROVIDER_UNAVAILABLE` | Google/Apple sign-in not configured |
-| 503 | `EXTRACTION_UNAVAILABLE` | Analysis service busy/unavailable |
 | 503 | (health) | Database down |
 
 ---
 
 ## 12. Changelog (breaking changes)
+
+### Asynchronous verification, attention, seen and preferences (redesign v2)
+
+- **Breaking**: `POST /verifications` now answers **`202`** (was `201`) with the
+  summary of a `PROCESSING` verification, before the statement is analyzed. The
+  analysis runs in the background; `GET /verifications/:id` shows the outcome.
+  Analysis errors (`422 UNREADABLE_STATEMENT`, `502 EXTRACTION_FAILED`,
+  `503 EXTRACTION_UNAVAILABLE`) are no longer HTTP errors of the upload: they
+  become `status: "FAILED"` with `failureCode` `NOT_A_STATEMENT` or
+  `EXTRACTION_FAILED`, and the credit is refunded. Request validation errors
+  (`400`, `402`, `404`, `413`, `415`, `429`) are unchanged and synchronous.
+- New statuses `PROCESSING` and `FAILED`; new fields `failureCode` and `seenAt`
+  on every verification and list item; new `failureCode` `INTERRUPTED` for work
+  lost to a server restart (boot recovery fails it and refunds the credit).
+- New `GET /verifications/attention` and `POST /verifications/:id/seen`; the
+  `status` list filter accepts the new statuses. Verifications that were already
+  `COMPLETED` before this change count as seen.
+- New `409 VERIFICATION_NOT_READY` on confirm / categories-from-suggestions /
+  transaction PATCH while `PROCESSING` or `FAILED`.
+- `GET /me` gained `locale`, `primaryCurrency` and `currencies`; new
+  `PATCH /me/preferences`; confirming with exchange rates remembers them in
+  `currencies[].lastRateToPrimary`.
+- The credit history already existed as `GET /credits/me/history`; `REFUND`
+  entries now also come from `FAILED` verifications.
+- New server setting `VERIFICATION_CONCURRENCY` (default 2).
 
 ### Credit labeling
 
