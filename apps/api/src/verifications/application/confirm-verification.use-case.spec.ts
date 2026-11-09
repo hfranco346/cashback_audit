@@ -1,3 +1,4 @@
+import type { Decimal } from 'decimal.js';
 import type { Card } from '../../cards/domain/card.js';
 import { CardRepository } from '../../cards/domain/card.repository.js';
 import { CategoryRepository } from '../../categories/domain/category.repository.js';
@@ -26,6 +27,7 @@ import type {
   VerificationUpdate,
 } from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
+import type { UserRepository } from '../../users/domain/user.repository.js';
 import { ConfirmVerificationUseCase } from './confirm-verification.use-case.js';
 import { ProcessVerificationUseCase } from './process-verification.use-case.js';
 import { RateProposalService } from './rate-proposal.service.js';
@@ -99,6 +101,10 @@ function world(
       })),
   } as unknown as CategoryRepository;
   let extractions = 0;
+  const recorded: {
+    currency: string;
+    rates: { code: string; rate: Decimal }[];
+  }[] = [];
   const process = new ProcessVerificationUseCase(
     categoriesRepo,
     {
@@ -148,11 +154,21 @@ function world(
     categoriesRepo,
     new RateProposalService(cardsRepo, categoriesRepo),
     { explain } as unknown as ResultExplainer,
+    {
+      recordCurrencyRates: async (
+        _user: string,
+        currency: string,
+        rates: { code: string; rate: Decimal }[],
+      ) => {
+        recorded.push({ currency, rates });
+      },
+    } as unknown as UserRepository,
   );
   return {
     card,
     stored,
     extractions: () => extractions,
+    recorded,
     /** Processes the upload as the background processor would. */
     start: async (
       extra: { exchangeRate?: string; rewardProgramName?: string } = {},
@@ -388,6 +404,19 @@ describe('ConfirmVerificationUseCase (step 2)', () => {
     const classify = {
       'SUPERMERCADO LA COLONIA': { categoryId: CAT_SUPER },
     };
+
+    it('remembers the per-currency rates used, and nothing when none were sent', async () => {
+      const w = world(hnlUsdTwoProgramsStatement(), hnl, classify);
+      await w.start();
+      await w.confirm();
+      expect(w.recorded.at(-1)).toEqual({ currency: 'HNL', rates: [] });
+      await w.confirm({ exchangeRates: { USD: '25.5' } });
+      const last = w.recorded.at(-1)!;
+      expect(last.currency).toBe('HNL');
+      expect(last.rates.map((r) => [r.code, r.rate.toString()])).toEqual([
+        ['USD', '25.5'],
+      ]);
+    });
 
     it('excludes USD lines without a rate, then includes them when one is sent', async () => {
       const w = world(hnlUsdTwoProgramsStatement(), hnl, classify);

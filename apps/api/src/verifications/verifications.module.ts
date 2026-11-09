@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { CardsModule } from '../cards/cards.module.js';
 import { CategoriesModule } from '../categories/categories.module.js';
 import { CreditsModule } from '../credits/credits.module.js';
+import { UsersModule } from '../users/users.module.js';
 import type { Env } from '../config/env.js';
 import { CleanupAwaitingRatesService } from './application/cleanup-awaiting-rates.service.js';
 import { CategoriesFromSuggestionsUseCase } from './application/categories-from-suggestions.use-case.js';
@@ -40,7 +41,7 @@ import { PrismaVerificationRepository } from './infrastructure/prisma-verificati
 import { VerificationsController } from './infrastructure/verifications.controller.js';
 
 @Module({
-  imports: [CardsModule, CategoriesModule, CreditsModule],
+  imports: [CardsModule, CategoriesModule, CreditsModule, UsersModule],
   controllers: [VerificationsController],
   providers: [
     CreateVerificationUseCase,

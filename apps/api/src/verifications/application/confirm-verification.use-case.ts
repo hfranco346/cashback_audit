@@ -16,6 +16,7 @@ import {
   appliedRateSource,
   findMissingRates,
 } from '../domain/rate-proposal.js';
+import { UserRepository } from '../../users/domain/user.repository.js';
 import { ResultExplainer } from '../domain/statement-extractor.js';
 import {
   InvalidExchangeRateError,
@@ -73,6 +74,7 @@ export class ConfirmVerificationUseCase {
     private readonly categories: CategoryRepository,
     private readonly proposals: RateProposalService,
     private readonly explainer: ResultExplainer,
+    private readonly users: UserRepository,
   ) {}
 
   async execute(input: ConfirmVerificationInput): Promise<Verification> {
@@ -239,6 +241,22 @@ export class ConfirmVerificationUseCase {
     );
     if (!updated) throw new VerificationNotFoundError();
 
+    // Remember the rates used (best effort: never fails the confirmation).
+    const rewardRate = audit.rewardExchangeRate;
+    const used = [
+      ...Object.entries(requestedRates).map(([code, rate]) => ({
+        code,
+        rate,
+      })),
+      ...(rewardRate?.source === 'USER_ENTERED'
+        ? [{ code: rewardRate.toCurrency, rate: rewardRate.rate }]
+        : []),
+    ];
+    try {
+      await this.users.recordCurrencyRates(input.userId, card.currency, used);
+    } catch {
+      /* the last-used rates are a convenience only */
+    }
     return updated;
   }
 }

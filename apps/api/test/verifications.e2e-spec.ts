@@ -1372,6 +1372,42 @@ describe('Verifications (e2e)', () => {
     });
   });
 
+  describe('last-used currency rates', () => {
+    const profile = async () =>
+      (await http().get('/api/v1/me').set(alice.auth).expect(200)).body;
+
+    it('confirming with exchange rates remembers them in the user currencies', async () => {
+      const v = (await start(alice)).body;
+      await confirm(alice, v.id, { exchangeRates: { USD: '24.5' } }).expect(
+        200,
+      );
+      expect((await profile()).currencies).toEqual([
+        expect.objectContaining({ code: 'USD', lastRateToPrimary: '24.5' }),
+      ]);
+      // a newer confirmation updates the last rate
+      await confirm(alice, v.id, { exchangeRates: { USD: '25' } }).expect(200);
+      expect((await profile()).currencies).toEqual([
+        expect.objectContaining({ code: 'USD', lastRateToPrimary: '25' }),
+      ]);
+      // confirming without rates changes nothing
+      await confirm(alice, v.id).expect(200);
+      expect((await profile()).currencies).toHaveLength(1);
+    });
+
+    it('skips them when the user primary currency differs from the card currency', async () => {
+      await http()
+        .patch('/api/v1/me/preferences')
+        .set(alice.auth)
+        .send({ primaryCurrency: 'HNL' })
+        .expect(200);
+      const v = (await start(alice)).body; // the card is MXN
+      await confirm(alice, v.id, { exchangeRates: { USD: '24.5' } }).expect(
+        200,
+      );
+      expect((await profile()).currencies).toEqual([]);
+    });
+  });
+
   describe('attention and seen', () => {
     it('lists in-flight, awaiting and unseen results, newest first, per user', async () => {
       const completed = (await start(alice)).body;
