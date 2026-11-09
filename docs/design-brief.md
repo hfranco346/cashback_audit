@@ -3,6 +3,36 @@
 > Nombre provisional. La app todavía no tiene nombre ni marca definitivos.
 > Estado al 8 de noviembre de 2026: MVP funcional, probado con estados de cuenta reales (BAC Credomatic y Banco Ficohsa, Honduras), sin publicar en tiendas.
 
+## Encargo para Claude Design
+
+**Qué se pide:** rediseñar la app móvil completa (las 13 pantallas de la sección 4) con una identidad propia, elegante y de "banca privada", resolviendo los problemas de la sección 9. La funcionalidad no cambia: el flujo, los datos y las reglas de las secciones 2 a 6 son fijos.
+
+**Entregables:**
+1. **Pantallas** en marco de teléfono de 390 × 844 pt (iPhone), cada una en **tema claro y oscuro**.
+2. Para las pantallas con estados distintos, una variante por estado:
+   - **Resultado:** "te pagaron de menos", "de más" y "bien"; lista de movimientos con verdes, rojos y grises.
+   - **Confirmar porcentajes:** campos prellenados desde el estado de cuenta, un campo obligatorio vacío y el bloque de tipo de cambio.
+   - **Home:** sin tarjetas (primer uso) y con tarjetas y verificaciones.
+   - **Verificar:** eligiendo el archivo y analizando (espera de ~40 s).
+   - **Paywall:** con verificación gratis disponible y sin créditos.
+3. **Design system** resumido: paleta (claro y oscuro), escala tipográfica, espaciado, radios, elevación y los componentes clave (tarjeta de crédito, tarjeta de veredicto, fila de movimiento, campo de porcentaje con etiqueta de origen, chips, filtros, avisos).
+4. **Notas breves por pantalla** que expliquen las decisiones, sobre todo cómo se resuelve cada problema de la sección 9.
+
+**Restricciones:**
+- Se construye en **Flutter con Material 3**: componentes y patrones nativos de móvil (hojas inferiores, chips, segmented buttons, listas, tarjetas). Nada que dependa de hover ni de efectos solo web.
+- **Todo el texto en español neutro** (para Latinoamérica), en tono claro y directo, sin tecnicismos.
+- **Montos siempre con código de moneda** ("HNL 1,526.84", "USD 42.00") y números tabulares alineados a la derecha. Los montos pueden ser largos y estar en monedas distintas en la misma pantalla.
+- Los estados verde, rojo y gris de los movimientos **siempre llevan ícono y texto**, nunca solo color. Contraste AA en claro y oscuro.
+- **Máximo 2–3 familias tipográficas.** Hoy se usan Bodoni Moda y Manrope (sección 7); se pueden cambiar si la propuesta lo justifica, siempre que sean de licencia libre.
+- **Sin pantallas para funciones que no existen** (foto del estado de cuenta, ingreso manual, conexión al banco, comparación entre meses), salvo que se marquen como propuesta futura.
+- **En el paywall no puede aparecer** ninguna mención a pagar fuera de la App Store o Google Play.
+
+**Material de referencia adjunto:**
+- capturas del diseño actual en claro y oscuro (`1_onboarding_login.png`, `2_home_tarjetas_rubros.png`, `3_confirmar_y_resultado.png`, `4_historial_paywall_ajustes.png`, `modo_oscuro.png`, `flujo_ficohsa.png`);
+- este documento.
+
+Usar los **datos de ejemplo de la sección 10** en lugar de inventar contenido.
+
 ---
 
 ## 1. Propósito
@@ -274,3 +304,44 @@ Los estados verde, rojo y gris **siempre van acompañados de ícono y texto**, n
 - **La pantalla de rubros y comercios** es funcional pero plana. No guía al usuario nuevo sobre por qué crear rubros.
 - **El formulario de tarjeta es largo** y mezcla campos básicos (alias, banco) con avanzados (puntos por unidad, programa, moneda de recompensa).
 - **El paywall** no muestra precios mientras las compras no estén configuradas, así que no se puede evaluar su diseño final.
+
+---
+
+## 10. Datos de ejemplo para las pantallas
+
+Montos redondeados e ilustrativos, basados en las pruebas reales.
+
+**Usuario:** Ana Martínez · ana@correo.com · 1 verificación gratis disponible.
+
+**Tarjetas**
+| Alias | Banco | Últimos 4 | Recompensa | Tasa base | Reglas |
+|---|---|---|---|---|---|
+| BAC Cash | BAC Credomatic | 4821 | Cashback en HNL, programa "CASH BAC CREDOMATIC" | 0% | Supermercados 7% · Farmacia 7% |
+| Ficohsa Signature | Banco Ficohsa | 3618 | Cashback en USD, programa "Cash Back" | 0% | Supermercados 7% · Farmacia 7% · Restaurantes y Comida rápida 7% |
+
+**Rubros:** Supermercados (Del Corral, Maxi Despensa, La Colonia) · Farmacia (Kielsa, Farmacias del Ahorro) · Restaurantes y Comida rápida.
+
+**Verificación 1 — BAC, 3 oct – 3 nov 2026 · Te pagaron de menos**
+- 52 movimientos: 26 en rubro, 12 sin rubro, 14 excluidos. Moneda principal HNL; 8 compras en USD sin tipo de cambio.
+- Supermercados: HNL 20,686.07 en 23 movimientos → HNL 1,448.02.
+- Farmacia: HNL 1,125.97 en 3 movimientos → HNL 78.82.
+- Esperado **HNL 1,526.84** · Reportado **HNL 0.00** (CASH BAC CREDOMATIC) · Diferencia **–HNL 1,526.84**.
+- Avisos: compras en moneda extranjera sin tipo de cambio.
+- Movimientos de ejemplo:
+  - verde: "SUPERMERCADOS DEL CORRAL COMAYAGUA HN · HNL 1,140.56 · Supermercados · IA · 7% · +HNL 79.84";
+  - rojo: "COMIDAS ESPECIALES EBERSO · HNL 297.86 · Sin rubro · tasa base 0%";
+  - gris: "PAGO RECIBIDO · –HNL 68,531.56 · Pago a la tarjeta" y "SEGURO DE SALDO DE DEUDA · HNL 112.13 · Seguro".
+
+**Verificación 2 — Ficohsa, 21 sep – 21 oct 2026 · Te pagaron de más**
+- 34 movimientos: 11 en rubro, 17 sin rubro, 6 excluidos. Compras en HNL, recompensa en USD.
+- El estado de cuenta dice: "Acumula Cash Back con tus compras 7% Supermercados / Tiendas por Departamento / Farmacias y Hospitales / Restaurantes y Comida rápida / Débitos automáticos en educación".
+- Rubros sugeridos por el banco: Tiendas por Departamento (7%, 0 movimientos) · Débitos automáticos en educación (7%, 0 movimientos).
+- Tipo de cambio de la recompensa: 1 USD = 26.00 HNL (lo ingresó el usuario).
+- Farmacia (incluye un hospital): HNL 4,579.80 → HNL 320.59 · Restaurantes: HNL 3,843.21 → HNL 269.02.
+- Esperado **USD 22.68** (equivale a HNL 589.61) · Reportado **USD 42.00** · Diferencia **+USD 19.32**.
+- Programa: Cash Back · acumulado USD 42 · disponible USD 256.
+- Explicación de la IA: "El banco te reportó USD 42.00 y lo esperado era USD 22.68, así que te pagaron de más por USD 19.32. La categoría que más pesa es Farmacia."
+
+**Verificación 3 — pendiente de confirmar %:** Ficohsa Signature, 21 sep – 21 oct 2026.
+
+**Créditos:** Gratis 1 · Plan 0 · Comprados 0. **Plan:** USD 4.99/mes, 5 verificaciones. **Paquetes:** 3 verificaciones · 10 verificaciones.
