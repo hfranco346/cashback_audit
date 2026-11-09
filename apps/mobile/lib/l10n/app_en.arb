@@ -549,7 +549,7 @@
   "catalogByAi": "By AI",
   "catalogAddMerchant": "+ Add merchant",
   "catalogMore": "More actions",
-  "catalogRuleTag": "{card} {rate}%",
+  "catalogRuleTag": "{card} {rate}",
   "@catalogRuleTag": {
     "placeholders": {
       "card": {

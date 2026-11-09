@@ -1051,7 +1051,7 @@
   "catalogByAi": "Por IA",
   "catalogAddMerchant": "+ Agregar comercio",
   "catalogMore": "Más acciones",
-  "catalogRuleTag": "{card} {rate}%",
+  "catalogRuleTag": "{card} {rate}",
   "@catalogRuleTag": {
     "placeholders": {
       "card": {

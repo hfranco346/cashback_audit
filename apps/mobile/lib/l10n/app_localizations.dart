@@ -3395,7 +3395,7 @@ abstract class AppLocalizations {
   /// No description provided for @catalogRuleTag.
   ///
   /// In es, this message translates to:
-  /// **'{card} {rate}%'**
+  /// **'{card} {rate}'**
   String catalogRuleTag(String card, String rate);
 }
 

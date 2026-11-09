@@ -4,16 +4,24 @@ import 'package:cashback_audit/core/l10n/strings.dart';
 import 'package:cashback_audit/core/network/dio_factory.dart';
 import 'package:cashback_audit/core/network/session_events.dart';
 import 'package:cashback_audit/core/storage/token_storage.dart';
-import 'package:cashback_audit/core/theme/app_theme.dart';
+import 'package:cashback_audit/core/utils/cached.dart';
+import 'package:cashback_audit/features/cards/data/card_mapper.dart';
+import 'package:cashback_audit/features/cards/domain/card_entities.dart';
+import 'package:cashback_audit/features/cards/domain/card_repository.dart';
+import 'package:cashback_audit/features/cards/presentation/cards_controller.dart';
 import 'package:cashback_audit/features/categories/data/catalog_repositories_impl.dart';
 import 'package:cashback_audit/features/categories/domain/catalog_entities.dart';
 import 'package:cashback_audit/features/categories/presentation/catalog_controller.dart';
+import 'package:cashback_audit/features/categories/presentation/catalog_page.dart';
 import 'package:cashback_audit/features/categories/presentation/widgets/catalog_view.dart';
+import 'package:cashback_audit/features/categories/presentation/widgets/category_form_sheet.dart';
 import 'package:cashback_audit/features/categories/presentation/widgets/merchant_form_sheet.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 
+import '../../core/ui/ui_harness.dart';
 import '../../support/fake_adapter.dart';
 import '../../support/fixtures.dart';
 import 'fake_catalog.dart';
@@ -170,90 +178,151 @@ void main() {
   });
 
   group('widgets', () {
-    Widget wrap(Widget c) => MaterialApp(theme: AppTheme.light, home: c);
+    const cat = Category(id: 'c1', name: 'Super');
+    const cat2 = Category(id: 'c2', name: 'Farmacia');
+    const m = Merchant(
+      id: 'm1',
+      name: 'Walmart',
+      categoryId: 'c1',
+      keywords: ['WAL MART'],
+    );
 
-    testWidgets('CatalogView lists merchants and exposes actions', (
+    CatalogView view({
+      List<Category> categories = const [cat, cat2],
+      bool offline = false,
+      bool loading = false,
+      ValueChanged<Category>? onAddMerchant,
+      ValueChanged<Merchant>? onEditMerchant,
+      ValueChanged<String>? onQuickAdd,
+      VoidCallback? onAddCategory,
+    }) => CatalogView(
+      categories: categories,
+      merchantsOf: (id) => id == 'c1' ? const [m] : const [],
+      ruleTagsOf: (id) => id == 'c1' ? const ['BAC Cash 7%'] : const [],
+      loading: loading,
+      offline: offline,
+      onRefresh: () async {},
+      onAddCategory: onAddCategory ?? () {},
+      onQuickAddCategory: onQuickAdd,
+      onEditCategory: (_) {},
+      onDeleteCategory: (_) {},
+      onAddMerchant: onAddMerchant ?? (_) {},
+      onEditMerchant: onEditMerchant ?? (_) {},
+    );
+
+    testWidgets('populated: tags, aliases and expandable categories', (
       tester,
     ) async {
       Category? added;
       Merchant? edited;
-      const cat = Category(id: 'c1', name: 'Super');
-      const m = Merchant(
-        id: 'm1',
-        name: 'Walmart',
-        categoryId: 'c1',
-        keywords: ['WAL MART'],
-      );
-      await tester.pumpWidget(
-        wrap(
-          CatalogView(
-            categories: const [cat],
-            merchantsOf: (_) => const [m],
-            loading: false,
-            offline: true,
-            onRefresh: () async {},
-            onAddCategory: () {},
-            onEditCategory: (_) {},
-            onDeleteCategory: (_) {},
-            onAddMerchant: (c) => added = c,
-            onEditMerchant: (x) => edited = x,
-            onDeleteMerchant: (_) {},
-          ),
+      await pumpUi(
+        tester,
+        view(
+          offline: true,
+          onAddMerchant: (c) => added = c,
+          onEditMerchant: (x) => edited = x,
         ),
       );
       await tester.pumpAndSettle();
       expect(find.text('Super'), findsOneWidget);
+      expect(find.text('BAC Cash 7%'), findsOneWidget);
       expect(find.text(S.offlineBanner), findsOneWidget);
-      await tester.tap(find.text('Super'));
-      await tester.pumpAndSettle();
+      expect(find.text('1 comercio'), findsOneWidget);
+      // The first category starts open: merchant and bank text visible.
+      expect(find.text('Walmart'), findsOneWidget);
+      expect(find.text('WAL MART'), findsOneWidget);
+      // The one without merchants says the AI classifies it.
+      expect(find.text(S.current.catalogByAi), findsOneWidget);
+      expect(find.byKey(const Key('add-category')), findsOneWidget);
       await tester.tap(find.byKey(const Key('merchant-m1')));
       expect(edited, m);
       await tester.tap(find.byKey(const Key('add-merchant-c1')));
       expect(added, cat);
+      // Collapse and expand the first card.
+      await tester.tap(find.byKey(const Key('category-c1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Walmart'), findsNothing);
+      await tester.tap(find.byKey(const Key('category-c2')));
+      await tester.pumpAndSettle();
+      expect(find.text(S.noMerchants), findsOneWidget);
     });
 
-    testWidgets('CatalogView empty state', (tester) async {
-      await tester.pumpWidget(
-        wrap(
-          CatalogView(
-            categories: const [],
-            merchantsOf: (_) => const [],
-            loading: false,
-            offline: false,
-            onRefresh: () async {},
-            onAddCategory: () {},
-            onEditCategory: (_) {},
-            onDeleteCategory: (_) {},
-            onAddMerchant: (_) {},
-            onEditMerchant: (_) {},
-            onDeleteMerchant: (_) {},
-          ),
+    testWidgets('guided empty state offers one-tap categories', (tester) async {
+      String? quick;
+      var created = 0;
+      await pumpUi(
+        tester,
+        view(
+          categories: const [],
+          onQuickAdd: (n) => quick = n,
+          onAddCategory: () => created++,
         ),
+        size: const Size(390, 1000),
       );
       await tester.pumpAndSettle();
-      expect(find.text(S.catalogEmptyTitle), findsOneWidget);
+      expect(find.byKey(const Key('catalog-guide')), findsOneWidget);
+      expect(find.text(S.current.catalogIntroTitle), findsOneWidget);
+      expect(find.byKey(const Key('add-category')), findsNothing);
+      for (var i = 0; i < 4; i++) {
+        expect(find.byKey(Key('suggest-$i')), findsOneWidget);
+      }
+      await tester.tap(find.byKey(const Key('suggest-0')));
+      expect(quick, 'Supermercados');
+      await tester.tap(find.byKey(const Key('add-category-empty')));
+      expect(created, 1);
     });
+
+    testWidgets('shows a spinner while the first load runs', (tester) async {
+      await pumpUi(tester, view(categories: const [], loading: true));
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byKey(const Key('catalog-guide')), findsNothing);
+    });
+
+    for (final dark in [false, true]) {
+      for (final lang in ['es', 'en']) {
+        testWidgets('smoke (dark=$dark, $lang)', (tester) async {
+          await pumpUi(
+            tester,
+            view(categories: const []),
+            dark: dark,
+            lang: lang,
+            size: const Size(390, 1000),
+          );
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          expect(
+            find.text(lang == 'es' ? 'Supermercados' : 'Supermarkets'),
+            findsOneWidget,
+          );
+          await pumpUi(tester, view(), dark: dark, lang: lang);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          expect(
+            find.text(lang == 'es' ? '+ Nuevo rubro' : '+ New category'),
+            findsOneWidget,
+          );
+        });
+      }
+    }
 
     testWidgets('MerchantFormSheet validates and submits parsed keywords', (
       tester,
     ) async {
       String? submitted;
-      await tester.pumpWidget(
-        wrap(
-          Scaffold(
-            body: MerchantFormSheet(
-              categories: const [
-                Category(id: 'c1', name: 'Super'),
-                Category(id: 'c2', name: 'Gasolina'),
-              ],
-              initialName: 'Walmart',
-              initialKeywords: const ['WAL MART'],
-              onSubmit: (n, k, c) async {
-                submitted = '$n|${k.join(',')}|$c';
-                return null;
-              },
-            ),
-          ),
+      await pumpUi(
+        tester,
+        MerchantFormSheet(
+          categories: const [
+            cat,
+            Category(id: 'c2', name: 'Gasolina'),
+          ],
+          initialName: 'Walmart',
+          initialKeywords: const ['WAL MART'],
+          onSubmit: (n, k, c) async {
+            submitted = '$n|${k.join(',')}|$c';
+            return null;
+          },
         ),
       );
       await tester.tap(find.byKey(const Key('merchant-submit')));
@@ -272,5 +341,196 @@ void main() {
       await tester.pump();
       expect(submitted, 'Walmart|WAL MART,WALMART SUC|c2');
     });
+
+    testWidgets('MerchantFormSheet deletes after confirming', (tester) async {
+      var deleted = 0;
+      await pumpUi(
+        tester,
+        MerchantFormSheet(
+          categories: const [cat],
+          initialName: 'Walmart',
+          initialCategoryId: 'c1',
+          onSubmit: (_, _, _) async => null,
+          onDelete: () async {
+            deleted++;
+            return null;
+          },
+        ),
+      );
+      await tester.tap(find.byKey(const Key('merchant-delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('merchant-delete-cancel')));
+      await tester.pumpAndSettle();
+      expect(deleted, 0);
+      await tester.tap(find.byKey(const Key('merchant-delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('merchant-delete-confirm')));
+      await tester.pumpAndSettle();
+      expect(deleted, 1);
+    });
+
+    testWidgets('MerchantFormSheet without onDelete hides the action', (
+      tester,
+    ) async {
+      await pumpUi(
+        tester,
+        MerchantFormSheet(
+          categories: const [cat],
+          onSubmit: (_, _, _) async => null,
+        ),
+      );
+      expect(find.byKey(const Key('merchant-delete')), findsNothing);
+    });
+
+    testWidgets('CategoryFormSheet validates the name and shows API errors', (
+      tester,
+    ) async {
+      var calls = 0;
+      await pumpUi(
+        tester,
+        CategoryFormSheet(
+          onSubmit: (n, d) async {
+            calls++;
+            return S.errCategoryNameTaken;
+          },
+        ),
+      );
+      await tester.tap(find.byKey(const Key('category-submit')));
+      await tester.pump();
+      expect(calls, 0);
+      expect(find.text(S.fieldRequired), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('category-name')), 'Super');
+      await tester.tap(find.byKey(const Key('category-submit')));
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+      expect(find.text(S.errCategoryNameTaken), findsOneWidget);
+    });
   });
+
+  group('CatalogPage', () {
+    late FakeCategoryRepository cats;
+    late CatalogController controller;
+
+    tearDown(Get.reset);
+
+    Future<void> pumpPage(WidgetTester tester) async {
+      cats = FakeCategoryRepository(const [
+        Category(id: 'c1', name: 'Super'),
+        Category(id: 'c2', name: 'Farmacia'),
+      ]);
+      controller = CatalogController(
+        categories: cats,
+        merchants: FakeMerchantRepository([
+          const Merchant(id: 'm1', name: 'Walmart', categoryId: 'c1'),
+        ]),
+      );
+      await controller.load();
+      final cards = CardsController(_CardsRepo());
+      await cards.load();
+      Get.put(controller);
+      await pumpUi(tester, CatalogPage(cards: cards));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('labels each category with the cards that pay it', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      expect(find.text('Daily 5%'), findsOneWidget);
+    });
+
+    testWidgets('CATEGORY_IN_USE asks where to move before deleting', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      cats.deleteError = const AppException(
+        kind: AppErrorKind.conflict,
+        statusCode: 409,
+        code: 'CATEGORY_IN_USE',
+        details: {'merchants': 1, 'cardRules': 1},
+      );
+      await tester.tap(find.byKey(const Key('category-menu-c1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(S.delete).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('confirm-delete')));
+      await tester.pumpAndSettle();
+      // The reassign dialog explains what is attached and offers targets.
+      expect(find.byKey(const Key('reassign-target')), findsOneWidget);
+      expect(
+        find.textContaining('Este rubro tiene 1 comercio y 1 regla'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const Key('reassign-confirm')));
+      await tester.pumpAndSettle();
+      expect(cats.lastReassign, 'c2');
+      expect(controller.categories.map((c) => c.id), ['c2']);
+    });
+
+    testWidgets('cancelling the reassign dialog keeps the category', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      cats.deleteError = const AppException(
+        kind: AppErrorKind.conflict,
+        statusCode: 409,
+        code: 'CATEGORY_IN_USE',
+        details: {'merchants': 1, 'cardRules': 0},
+      );
+      await tester.tap(find.byKey(const Key('category-menu-c1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(S.delete).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('confirm-delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('reassign-cancel')));
+      await tester.pumpAndSettle();
+      expect(cats.deleted, isEmpty);
+      expect(controller.categories, hasLength(2));
+    });
+
+    testWidgets('quick-adding from the empty state creates the category', (
+      tester,
+    ) async {
+      cats = FakeCategoryRepository(const []);
+      controller = CatalogController(
+        categories: cats,
+        merchants: FakeMerchantRepository(),
+      );
+      await controller.load();
+      Get.put(controller);
+      await pumpUi(
+        tester,
+        CatalogPage(cards: CardsController(_CardsRepo())),
+        size: const Size(390, 1000),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('suggest-1')));
+      await tester.pumpAndSettle();
+      expect(controller.categories.single.name, 'Farmacia');
+      // Now populated: the guide is gone and the header action appears.
+      expect(find.byKey(const Key('catalog-guide')), findsNothing);
+      expect(find.byKey(const Key('add-category')), findsOneWidget);
+    });
+  });
+}
+
+class _CardsRepo implements CardRepository {
+  @override
+  Future<Cached<List<CreditCard>>> getCards() async => Cached([
+    CardMapper.fromJson(
+      cardJson(
+        rules: [
+          {'categoryId': 'c1', 'ratePercent': '5', 'monthlyCap': null},
+        ],
+      ),
+    ),
+  ]);
+  @override
+  Future<CreditCard> createCard(CardDraft draft) => throw UnimplementedError();
+  @override
+  Future<CreditCard> updateCard(String id, CardDraft draft) =>
+      throw UnimplementedError();
+  @override
+  Future<void> deleteCard(String id) => throw UnimplementedError();
 }

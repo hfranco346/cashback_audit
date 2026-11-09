@@ -1987,6 +1987,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String catalogRuleTag(String card, String rate) {
-    return '$card $rate%';
+    return '$card $rate';
   }
 }
