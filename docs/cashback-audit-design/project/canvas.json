@@ -1,0 +1,237 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Bienvenida-en.dc.html": {"h": 884, "w": 6960, "x": 0, "y": 2140, "page": "en", "title": "1–3 · Dynamic onboarding: setup + first free check"},
+    "Home-en.dc.html": {"h": 884, "w": 2580, "x": 0, "y": 3224, "page": "en", "title": "4 · Home"},
+    "Verificar-en.dc.html": {"h": 884, "w": 1704, "x": 0, "y": 4308, "page": "en", "title": "7 · Check statement"},
+    "Confirmar-en.dc.html": {"h": 884, "w": 1704, "x": 0, "y": 5392, "page": "en", "title": "8 · Confirm percentages"},
+    "Resultado-en.dc.html": {"h": 884, "w": 4332, "x": 0, "y": 6476, "page": "en", "title": "9 · Result", "is_interactive": true},
+    "Tarjeta-en.dc.html": {"h": 884, "w": 1704, "x": 0, "y": 7560, "page": "en", "title": "5 · Card form"},
+    "Rubros-en.dc.html": {"h": 884, "w": 1704, "x": 0, "y": 8644, "page": "en", "title": "6 · Categories and merchants"},
+    "Historial-en.dc.html": {"h": 884, "w": 1704, "x": 0, "y": 9728, "page": "en", "title": "10 · History"},
+    "Paywall-en.dc.html": {"h": 884, "w": 1704, "x": 0, "y": 10812, "page": "en", "title": "11 · Paywall"},
+    "Ajustes-en.dc.html": {"h": 884, "w": 2580, "x": 0, "y": 11896, "page": "en", "title": "12–13 · Profile, settings, credit history, language and currencies"},
+    "Reclamo-en.dc.html": {"h": 884, "w": 828, "x": 0, "y": 12980, "page": "en", "title": "Future proposal · Claim to the bank", "is_interactive": true},
+    "Ajustes.dc.html": {
+      "h": 884,
+      "title": "12–13 · Perfil, ajustes, historial de créditos, idioma y monedas",
+      "w": 2580,
+      "x": 0,
+      "y": 11896
+    },
+    "Bienvenida.dc.html": {
+      "h": 884,
+      "title": "1–3 · Onboarding dinámico: registro + primera verificación gratis",
+      "w": 7836,
+      "x": 0,
+      "y": 2140
+    },
+    "Confirmar.dc.html": {
+      "h": 884,
+      "title": "8 · Confirmar porcentajes",
+      "w": 1704,
+      "x": 0,
+      "y": 5392
+    },
+    "Historial.dc.html": {
+      "h": 884,
+      "title": "10 · Historial",
+      "w": 1704,
+      "x": 0,
+      "y": 9728
+    },
+    "Home.dc.html": {
+      "h": 884,
+      "title": "4 · Home",
+      "w": 2580,
+      "x": 0,
+      "y": 3224
+    },
+    "Main.dc.html": {
+      "h": 1900,
+      "title": "Design system",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Paywall.dc.html": {
+      "h": 884,
+      "title": "11 · Paywall",
+      "w": 1704,
+      "x": 0,
+      "y": 10812
+    },
+    "Reclamo.dc.html": {
+      "h": 884,
+      "is_interactive": true,
+      "title": "Propuesta futura · Reclamo al banco",
+      "w": 828,
+      "x": 0,
+      "y": 12980
+    },
+    "Resultado.dc.html": {
+      "h": 884,
+      "is_interactive": true,
+      "title": "9 · Resultado",
+      "w": 4332,
+      "x": 0,
+      "y": 6476
+    },
+    "Rubros.dc.html": {
+      "h": 884,
+      "title": "6 · Rubros y comercios",
+      "w": 1704,
+      "x": 0,
+      "y": 8644
+    },
+    "Tarjeta.dc.html": {
+      "h": 884,
+      "title": "5 · Formulario de tarjeta",
+      "w": 1704,
+      "x": 0,
+      "y": 7560
+    },
+    "Verificar.dc.html": {
+      "h": 884,
+      "title": "7 · Verificar estado de cuenta",
+      "w": 1704,
+      "x": 0,
+      "y": 4308
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-11-09T01:15:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "noteOrder": [
+    "titulo",
+    "nSistema",
+    "nBienv",
+    "nHome",
+    "nVerif",
+    "nConf",
+    "nRes",
+    "nTarj",
+    "nRub",
+    "nHist",
+    "nPay",
+    "nAj",
+    "nRec"
+  ],
+  "notes": {
+    "tituloEn": {"kind": "title1", "maxW": 1800, "text": "Cashback Audit · English version", "x": 0, "y": 1840, "page": "en"},
+    "nEn": {"x": 7040, "y": 2140, "w": 480, "page": "en", "text": "English version of every screen. Shown when the phone language is en-*; any other language falls back to Spanish. Users can override it in Profile › Language & currencies. Text from the bank statement (merchant names, quoted rates) stays as printed, in its original language. Amounts keep ISO codes and the same number format."},
+    "nAj": {
+      "text": "Perfil: saldo de verificaciones desglosado por bolsa (gratis, plan, comprados), suscripción y Apariencia como segmented button Sistema / Claro / Oscuro. Historial de créditos: lista inmutable con signo, bolsa y motivo, para dar transparencia al saldo. Idioma y monedas: Automático (sigue al teléfono) / Español / English; moneda principal para equivalencias y lista de monedas que usa el usuario (con su último tipo de cambio), que se sugieren primero en tarjetas y tipos de cambio.",
+      "w": 460,
+      "x": 2660,
+      "y": 11896
+    },
+    "nBienv": {
+      "text": "Onboarding dinámico: en lugar de 4 páginas informativas, cada paso enseña y registra a la vez. 1) Splash. 2) Demo animada: el total del estado de cuenta se abre en movimientos y termina en un veredicto. 3) Banco → crea la tarjeta. 4) Últimos 4, tipo y moneda de la recompensa. 5) Rubros con % (prellenados con lo común del banco; «no lo sé» = se lee del PDF). 6) Login al final, cuando ya hay algo que guardar. 7) Primer PDF con la verificación gratis y análisis por pasos reales. 8) Revelado del primer veredicto → Home ya configurado. Barra de progreso arriba y «Atrás» en todo momento; todo es editable después. IDIOMA: la app lee el idioma del teléfono al abrir; en-* → inglés, cualquier otro → español (2b muestra la demo con un teléfono en inglés). El selector de idioma está visible desde la demo y luego en Perfil › Idioma y monedas. Todo lo que se registra aquí (tarjeta, rubros, %, primera verificación) aparece en Home.",
+      "w": 480,
+      "x": 7916,
+      "y": 2140
+    },
+    "nConf": {
+      "text": "Cada campo trae su etiqueta de origen (estado de cuenta con la cita / reglas de la tarjeta / falta). El campo vacío se marca en rojo con ícono y el botón dice qué falta en lugar de solo deshabilitarse. Tipo de cambio: la pregunta se redacta como «1 USD = ¿cuántos HNL?» con la moneda fija a cada lado del campo, para no invertirlo. Tasa base y tope tienen una línea de ayuda.",
+      "w": 460,
+      "x": 1784,
+      "y": 5392
+    },
+    "nHist": {
+      "text": "Filtro por tarjeta como chips. Pendientes arriba. Sin conexión: aviso discreto con la fecha de la última sincronización y la acción de verificar deshabilitada con su motivo.",
+      "w": 460,
+      "x": 1784,
+      "y": 9728
+    },
+    "nHome": {
+      "text": "Problemas resueltos: el FAB que tapaba la lista desaparece; «Agregar tarjeta» es la última ficha del carrusel y «Verificar estado» es el botón principal fijo arriba. Las filas de verificación usan dos líneas (tarjeta / periodo completo) y el monto a la derecha, así el periodo ya no se corta. «Pendiente de confirmar %» es una tarjeta destacada sobre las verificaciones. Tres estados: 1) se saltó el onboarding → vacío con los 2 pasos y la opción de volver a la configuración guiada; 2) recién terminado el onboarding → exactamente lo registrado: BAC Cash, sus rubros (Supermercados 7%, Farmacia 7%, resto 0%), la primera verificación y el aviso de compras sin rubro; 3) uso continuo con varias tarjetas.",
+      "w": 460,
+      "x": 2660,
+      "y": 3224
+    },
+    "nPay": {
+      "text": "Dos estados: con la verificación gratis disponible (se puede cerrar y seguir) y sin créditos. Precios como texto de la tienda; solo Apple / Google, sin mencionar otros medios de pago. «Restaurar compras» siempre visible. Mientras RevenueCat no esté configurado, el diseño ya muestra la versión final.",
+      "w": 460,
+      "x": 1784,
+      "y": 10812
+    },
+    "nRec": {
+      "text": "PROPUESTA FUTURA (hoy no existe exportar ni reclamar). Desde el resultado «de menos», la app redactaría el correo al banco con la diferencia y los movimientos afectados, en tono formal o firme, listo para copiar o abrir en la app de correo. El idioma del correo arranca igual que el de la app pero se elige aparte (Español / English), porque el banco puede atender en otro idioma.",
+      "w": 460,
+      "x": 908,
+      "y": 12980
+    },
+    "nRes": {
+      "text": "La pantalla larga se parte en pestañas Resumen / Rubros / Movimientos. Resumen = veredicto + 3 cifras + explicación en viñetas cortas + UN solo bloque de avisos plegable. La tabla de programas pasa a filas clave-valor (no se corta). Filtros como segmented button de 4 opciones con contador, que caben sin deslizar. Comercios: nombre limpio en título y el texto original del banco en pequeño. Hoja de cambio de rubro: un interruptor «Recordar para próximas verificaciones» reemplaza las dos acciones confusas.",
+      "w": 460,
+      "x": 4412,
+      "y": 6476
+    },
+    "nRub": {
+      "text": "Estado vacío que explica para qué sirven los rubros, con los rubros sugeridos en un toque. Con datos: cada rubro muestra en qué tarjetas paga y cuánto, y sus comercios con los alias tal como los imprime el banco. Aclara que registrar comercios es opcional porque la IA clasifica por significado.",
+      "w": 460,
+      "x": 1784,
+      "y": 8644
+    },
+    "nSistema": {
+      "text": "Identidad «banca privada»: papel marfil, verde banca profundo y un filete latón como única ornamentación (en la tarjeta de crédito y el veredicto). Se mantienen Bodoni Moda (solo ≥ 22 px, donde sus trazos finos aguantan) y Manrope con números tabulares: ya van incluidas en la app y la Bodoni da el aire de cheque/billete. Tokens pensados para ColorScheme de Material 3. Verde/rojo/gris siempre con ícono + texto; todos los pares pasan AA en claro y oscuro. Idiomas: español neutro e inglés; todos los textos salen de archivos de traducción (Flutter intl/ARB) y se diseñan dejando ~30% de holgura para el inglés o el español, que suelen ser más largos. Los montos siempre llevan código ISO y no dependen del idioma.",
+      "w": 460,
+      "x": 1520,
+      "y": 0
+    },
+    "nTarj": {
+      "text": "El formulario se divide en Básico (alias, banco, últimos 4, tipo de recompensa, tasa base, reglas) y «Opciones avanzadas» plegadas (red, puntos por unidad, moneda, programa a auditar, moneda de la recompensa). Eliminar pasa a una acción visible dentro del formulario, en lugar de mantener presionado.",
+      "w": 460,
+      "x": 1784,
+      "y": 7560
+    },
+    "nVerif": {
+      "text": "Espera de ~40 s: los pasos se marcan con datos reales a medida que llegan del backend (banco detectado, periodo, n.º de movimientos) en lugar de avanzar solo por tiempo; se puede salir y la app avisa al terminar. Se dice claramente que la verificación solo se consume si la lectura sale bien y que el PDF no se guarda.",
+      "w": 460,
+      "x": 1784,
+      "y": 4308
+    },
+    "titulo": {
+      "kind": "title1",
+      "maxW": 1440,
+      "text": "Cashback Audit · rediseño móvil",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Bienvenida.dc.html",
+    "Home.dc.html",
+    "Verificar.dc.html",
+    "Confirmar.dc.html",
+    "Resultado.dc.html",
+    "Tarjeta.dc.html",
+    "Rubros.dc.html",
+    "Historial.dc.html",
+    "Paywall.dc.html",
+    "Ajustes.dc.html",
+    "Reclamo.dc.html",
+    "Bienvenida-en.dc.html",
+    "Home-en.dc.html",
+    "Verificar-en.dc.html",
+    "Confirmar-en.dc.html",
+    "Resultado-en.dc.html",
+    "Tarjeta-en.dc.html",
+    "Rubros-en.dc.html",
+    "Historial-en.dc.html",
+    "Paywall-en.dc.html",
+    "Ajustes-en.dc.html",
+    "Reclamo-en.dc.html"
+  ],
+  "pages": [{"id": "es", "name": "Español"}, {"id": "en", "name": "English"}],
+  "title": "App Auditor de Cashback"
+}

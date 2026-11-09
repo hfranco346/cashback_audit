@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Formulario de tarjeta</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.lt{--bg:#F6F4EF;--surf:#FFFFFF;--surf2:#EFECE5;--ink:#16201E;--mut:#5C6664;--line:#E2DED5;--pri:#0F3D36;--onpri:#FFFFFF;--pric:#D8E8E3;--onpric:#0F3D36;--brass:#8A6D33;--card:#0F3D36;--oncard:#F3EBDA;--erf:#B42318}
+.dk{--bg:#0C1211;--surf:#141C1B;--surf2:#1B2523;--ink:#EDF0EC;--mut:#A2ACA9;--line:#2A3533;--pri:#8FD3C3;--onpri:#08201B;--pric:#1F3A35;--onpric:#BFE7DD;--brass:#CDAE6E;--card:#183F38;--oncard:#F3EBDA;--erf:#FF907F}
+.ph{position:relative;flex:0 0 auto;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,sans-serif;font-size:15px;border-radius:40px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 18px 40px rgba(0,0,0,.10);display:flex;flex-direction:column}
+.scr{flex:1;overflow-y:auto;padding:4px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.foot{padding:12px 20px 34px;border-top:1px solid var(--line)}
+.serif{font-family:'Bodoni Moda',Georgia,serif}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.mut{color:var(--mut)}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:18px}
+.btn{min-height:52px;border-radius:999px;border:0;background:var(--pri);color:var(--onpri);font:700 15px Manrope,sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 22px;width:100%}
+.cap{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--mut)}
+.ib{width:48px;height:48px;border-radius:24px;border:0;background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:center}
+.f{display:flex;flex-direction:column;gap:6px}
+.f>span{font-size:13px;font-weight:700}
+.in{min-height:52px;border:1px solid var(--line);border-radius:14px;background:var(--surf);padding:0 14px;display:flex;align-items:center;gap:8px;box-sizing:border-box}
+.in input{flex:1;min-width:0;border:0;outline:none;background:transparent;font:600 16px Manrope,sans-serif;color:var(--ink)}
+.help{font-size:12px;color:var(--mut);line-height:1.4}
+.seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg span{min-height:44px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.seg span.on{background:var(--pric);color:var(--onpric)}
+.rule{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.pct{width:70px;min-height:40px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;background:var(--bg);font-size:14px}
+.chip{min-height:36px;border-radius:10px;border:1px solid var(--line);padding:0 12px;font:700 13px Manrope,sans-serif;display:inline-flex;align-items:center;color:var(--ink)}
+.chip.on{background:var(--pric);border-color:var(--pric);color:var(--onpric)}
+.lab{font:700 13px Manrope,sans-serif;color:#5C6664;height:28px;display:flex;align-items:center}
+</style>
+</helmet>
+<div style="width: 1704px; height: 884px; display: flex; gap: 48px; align-items: flex-start">
+<sc-for list="{{cells}}" as="c" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 12px; flex: 0 0 390px">
+<span class="lab">{{c.label}}</span>
+<div class="ph {{c.th}}">
+<div style="display: flex; align-items: center; padding: 48px 8px 0 4px; gap: 4px"><a href="Home.dc.html" class="ib" aria-label="Cerrar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></a><h1 class="serif" style="margin: 0; flex: 1; font-size: 26px; font-weight: 500">Editar tarjeta</h1></div>
+
+<sc-if value="{{c.basic}}" hint-placeholder-val="{{true}}">
+<div class="scr" style="scrollbar-width: none">
+<div style="background: var(--card); color: var(--oncard); border-radius: 16px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: inset 0 0 0 1px rgba(205,174,110,.45)"><span class="serif" style="font-size: 20px">BAC Cash</span><span class="num" style="letter-spacing: .18em; font-size: 14px">•••• 4821</span></div>
+<span class="cap">Básico</span>
+<label class="f"><span>Nombre de la tarjeta</span><span class="in"><input value="BAC Cash" aria-label="Nombre"></span></label>
+<div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 10px">
+<label class="f" style="min-width: 0px"><span>Banco</span><span class="in" style="min-width: 0px"><input value="BAC Credomatic" aria-label="Banco" style="width: 0px; min-width: 0px; flex: 1"></span></label>
+<label class="f" style="min-width: 0px"><span>Últimos 4</span><span class="in" style="min-width: 0px"><input class="num" value="4821" aria-label="Últimos 4 dígitos" style="width: 0px; min-width: 0px; flex: 1"></span></label>
+</div>
+<div class="f"><span>¿Qué te da?</span><div class="seg"><span class="on">Cashback en dinero</span><span style="border-left: 1px solid var(--line)">Puntos o millas</span></div></div>
+<label class="f"><span>Tasa base</span><span class="in"><input class="num" value="0" aria-label="Tasa base"><span class="mut" style="font-weight: 800">%</span></span><span class="help">Lo que gana cualquier compra que no está en un rubro especial.</span></label>
+<div class="f"><span>Rubros con % especial</span>
+<div class="card">
+<div class="rule"><span style="flex: 1; font-weight: 700; font-size: 14px">Supermercados</span><span class="pct num">7 %</span><button class="ib" style="width: 40px; height: 40px" aria-label="Quitar regla"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"></path></svg></button></div>
+<div class="rule"><span style="flex: 1; font-weight: 700; font-size: 14px">Farmacia</span><span class="pct num">7 %</span><button class="ib" style="width: 40px; height: 40px" aria-label="Quitar regla"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"></path></svg></button></div>
+<button style="min-height: 48px; width: 100%; border: 0; background: none; color: var(--pri); font: 700 14px Manrope, sans-serif">+ Agregar rubro</button>
+</div>
+</div>
+<button style="display: flex; justify-content: space-between; align-items: center; min-height: 56px; padding: 0 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surf); color: var(--ink); font: 700 14px Manrope, sans-serif" aria-expanded="false"><span style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px"><span>Opciones avanzadas</span><span class="mut" style="font-size: 12px; font-weight: 500">Red, moneda, programa a auditar…</span></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+</sc-if>
+
+<sc-if value="{{c.adv}}" hint-placeholder-val="{{false}}">
+<div class="scr" style="scrollbar-width: none">
+<button style="display: flex; justify-content: space-between; align-items: center; min-height: 48px; padding: 0 4px; border: 0; background: none; color: var(--ink); font: 800 14px Manrope, sans-serif" aria-expanded="true"><span>Opciones avanzadas</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg></button>
+<div class="f"><span>Red <span class="mut" style="font-weight: 500">(opcional)</span></span><div style="display: flex; gap: 8px; flex-wrap: wrap"><span class="chip on">Visa</span><span class="chip">Mastercard</span><span class="chip">Amex</span><span class="chip">Otra</span></div></div>
+<label class="f"><span>Moneda principal de la tarjeta</span><span class="in"><input value="HNL" aria-label="Moneda principal"></span></label>
+<label class="f"><span>Programa a auditar <span class="mut" style="font-weight: 500">(opcional)</span></span><span class="in"><input value="CASH BAC CREDOMATIC" aria-label="Programa a auditar"></span><span class="help">Si tu estado de cuenta trae varios programas (cash, puntos, millas), elige cuál revisamos.</span></label>
+<div class="f"><span>Moneda en que recibes el cashback</span><div style="display: flex; gap: 8px; flex-wrap: wrap"><span class="chip">Detectar sola</span><span class="chip on">HNL</span><span class="chip">USD</span><span class="chip">EUR</span><span class="chip">MXN</span></div><span class="help">Si es distinta a la de tus compras, te pediremos el tipo de cambio al verificar.</span></div>
+<div style="border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 6px">
+<button style="display: flex; align-items: center; gap: 8px; min-height: 48px; border: 0; background: none; color: var(--erf); font: 700 14px Manrope, sans-serif; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path></svg>Eliminar tarjeta</button>
+<span class="help">Sus verificaciones pasadas se conservan en el historial.</span>
+</div>
+</div>
+</sc-if>
+<div class="foot"><button class="btn">Guardar</button></div>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1704,"height":884}}'>
+class Component extends DCLogic {
+renderVals() {
+const cells = [];
+[['basic', 'Básico'], ['adv', 'Opciones avanzadas abiertas']].forEach(([id, n]) => {
+[['lt', 'Claro'], ['dk', 'Oscuro']].forEach(([th, tn]) => cells.push({ th, label: tn + ' · ' + n, basic: id === 'basic', adv: id === 'adv' }));
+});
+return { cells };
+}
+}
+</script>
+</body>
+</html>

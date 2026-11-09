@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Historial</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.lt{--bg:#F6F4EF;--surf:#FFFFFF;--surf2:#EFECE5;--ink:#16201E;--mut:#5C6664;--line:#E2DED5;--pri:#0F3D36;--onpri:#FFFFFF;--pric:#D8E8E3;--onpric:#0F3D36;--erf:#B42318;--erb:#FBE3DF;--ovf:#4338A8;--ovb:#E6E4F7;--wnf:#7A5300;--wnb:#F8ECCB;--ntf:#545D5B;--ntb:#E9E8E3}
+.dk{--bg:#0C1211;--surf:#141C1B;--surf2:#1B2523;--ink:#EDF0EC;--mut:#A2ACA9;--line:#2A3533;--pri:#8FD3C3;--onpri:#08201B;--pric:#1F3A35;--onpric:#BFE7DD;--erf:#FF907F;--erb:#45150E;--ovf:#B4AEFF;--ovb:#262159;--wnf:#F0C462;--wnb:#3D2C07;--ntf:#A9B2AF;--ntb:#232C2B}
+.ph{position:relative;flex:0 0 auto;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,sans-serif;font-size:15px;border-radius:40px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 18px 40px rgba(0,0,0,.10);display:flex;flex-direction:column}
+.scr{flex:1;overflow-y:auto;padding:4px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.serif{font-family:'Bodoni Moda',Georgia,serif}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.mut{color:var(--mut)}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:18px}
+.cap{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--mut)}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.er{background:var(--erb);color:var(--erf)}.ov{background:var(--ovb);color:var(--ovf)}.wn{background:var(--wnb);color:var(--wnf)}.nt{background:var(--ntb);color:var(--ntf)}
+.chip{min-height:36px;border-radius:10px;border:1px solid var(--line);padding:0 12px;font:700 13px Manrope,sans-serif;display:inline-flex;align-items:center;color:var(--ink);background:none;white-space:nowrap}
+.chip.on{background:var(--pric);border-color:var(--pric);color:var(--onpric)}
+.vr{display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink)}
+.vr:last-child{border-bottom:0}
+.nav{display:flex;justify-content:space-around;background:var(--surf);border-top:1px solid var(--line);padding:10px 4px 28px}
+.nv{display:flex;flex-direction:column;align-items:center;gap:4px;font:600 12px Manrope,sans-serif;color:var(--mut);min-width:72px;text-decoration:none}
+.nv .ic{width:60px;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center}
+.nv.on{color:var(--ink)}.nv.on .ic{background:var(--pric);color:var(--onpric)}
+.lab{font:700 13px Manrope,sans-serif;color:#5C6664;height:28px;display:flex;align-items:center}
+</style>
+</helmet>
+<div style="width: 1704px; height: 884px; display: flex; gap: 48px; align-items: flex-start">
+<sc-for list="{{cells}}" as="c" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 12px; flex: 0 0 390px">
+<span class="lab">{{c.label}}</span>
+<div class="ph {{c.th}}">
+<div style="padding: 56px 20px 8px"><h1 class="serif" style="margin: 0; font-size: 32px; font-weight: 500">Historial</h1></div>
+<div class="scr" style="scrollbar-width: none">
+<sc-if value="{{c.offline}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--ntb); color: var(--ntf); font-size: 12px; font-weight: 700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M3 3l18 18"></path></svg><span style="flex: 1">Sin conexión · mostrando lo guardado el 8 nov, 6:40 p. m. Para verificar necesitas internet.</span></div>
+</sc-if>
+<div style="display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none"><button class="chip on">Todas</button><button class="chip">BAC Cash</button><button class="chip">Ficohsa Signature</button></div>
+<span class="cap">Pendiente</span>
+<a href="Confirmar.dc.html" class="card vr" style="border: 1px solid var(--line)">
+<div style="flex: 1; display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 800; font-size: 14px">Ficohsa Signature</span><span class="mut num" style="font-size: 12px">21 sep – 21 oct 2026</span></div>
+<span class="pill wn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Confirmar %</span>
+</a>
+<span class="cap">Completadas</span>
+<div class="card">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="2">
+<a href="Resultado.dc.html" class="vr">
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 800; font-size: 14px">{{r.card}}</span><span class="mut num" style="font-size: 12px">{{r.period}}</span></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px"><span class="num" style="font-weight: 800; font-size: 14px; color: {{r.color}}">{{r.diff}}</span><span class="pill {{r.cls}}">{{r.tag}}</span></div>
+</a>
+</sc-for>
+</div>
+</div>
+<nav class="nav" aria-label="Navegación principal">
+<a href="Home.dc.html" class="nv"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg></span>Inicio</a>
+<a href="Historial.dc.html" class="nv on"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"></path><path d="M14 3v5h5"></path><path d="m9 14 2 2 4-4"></path></svg></span>Historial</a>
+<a href="Rubros.dc.html" class="nv"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"></path><circle cx="7.5" cy="7.5" r="1.5"></circle></svg></span>Rubros</a>
+<a href="Ajustes.dc.html" class="nv"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></span>Perfil</a>
+</nav>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1704,"height":884}}'>
+class Component extends DCLogic {
+renderVals() {
+const rows = [
+{ card: 'BAC Cash', period: '3 oct – 3 nov 2026', diff: '–HNL 1,526.84', color: 'var(--erf)', cls: 'er', tag: '↓ De menos' },
+{ card: 'Ficohsa Signature', period: '21 sep – 21 oct 2026', diff: '+USD 19.32', color: 'var(--ovf)', cls: 'ov', tag: '↑ De más' }
+];
+const cells = [];
+[['on', 'Con conexión'], ['off', 'Sin conexión']].forEach(([id, n]) => {
+[['lt', 'Claro'], ['dk', 'Oscuro']].forEach(([th, tn]) => cells.push({ th, label: tn + ' · ' + n, offline: id === 'off' }));
+});
+return { cells, rows };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Check statement (English)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.lt{--bg:#F6F4EF;--surf:#FFFFFF;--surf2:#EFECE5;--ink:#16201E;--mut:#5C6664;--line:#E2DED5;--pri:#0F3D36;--onpri:#FFFFFF;--pric:#D8E8E3;--onpric:#0F3D36;--card:#0F3D36;--card2:#3B2F1C;--okf:#17734F;--okb:#DDF0E5;--erf:#B42318;--erb:#FBE3DF}
+.dk{--bg:#0C1211;--surf:#141C1B;--surf2:#1B2523;--ink:#EDF0EC;--mut:#A2ACA9;--line:#2A3533;--pri:#8FD3C3;--onpri:#08201B;--pric:#1F3A35;--onpric:#BFE7DD;--card:#183F38;--card2:#3A2F1E;--okf:#62D2A2;--okb:#0F3427;--erf:#FF907F;--erb:#45150E}
+.ph{position:relative;flex:0 0 auto;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,sans-serif;font-size:15px;border-radius:40px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 18px 40px rgba(0,0,0,.10);display:flex;flex-direction:column}
+.scr{flex:1;overflow-y:auto;scrollbar-width:none;padding:0 20px 20px;display:flex;flex-direction:column;gap:18px}
+.foot{padding:12px 20px 34px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line)}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.mut{color:var(--mut)}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:20px}
+.btn{min-height:52px;border-radius:999px;border:0;background:var(--pri);color:var(--onpri);font:700 15px Manrope,sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 22px;text-decoration:none;box-sizing:border-box}
+.btn.ghost{background:transparent;color:var(--pri);border:1px solid var(--line)}
+.cap{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--mut)}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.ok{background:var(--okb);color:var(--okf)}
+.ib{width:48px;height:48px;border-radius:24px;border:0;background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:center}
+.h1{margin:0;font-family:'Bodoni Moda',Georgia,serif;font-size:32px;font-weight:500;line-height:1.1}
+.opt{display:flex;align-items:center;gap:12px;min-height:68px;padding:0 14px;border:1px solid var(--line);border-radius:16px;background:var(--surf);font:600 15px Manrope,sans-serif;color:var(--ink);text-align:left;width:100%;box-sizing:border-box}
+.opt.on{border:2px solid var(--pri)}
+.radio{width:22px;height:22px;border-radius:11px;border:2px solid var(--line);box-sizing:border-box;flex:0 0 22px}
+.opt.on .radio{border:7px solid var(--pri)}
+.mini{width:52px;height:34px;border-radius:7px;background:var(--card);box-shadow:inset 0 0 0 1px rgba(205,174,110,.5);flex:0 0 52px}
+.track{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.track div{height:6px;border-radius:3px;background:var(--pri)}
+.lab{font:700 13px Manrope,sans-serif;color:#5C6664;height:28px;display:flex;align-items:center}
+.ck{width:24px;height:24px;padding:0;justify-content:center;flex:0 0 24px}
+@keyframes fill{from{width:12%}to{width:58%}}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.fill{animation:fill 8s ease-out both}.pulse{animation:pulse 1.4s ease-in-out infinite}
+.r1{animation:rise .5s .2s both}.r2{animation:rise .5s .8s both}
+</style>
+</helmet>
+<div style="width: 1704px; height: 884px; display: flex; gap: 48px; align-items: flex-start">
+<sc-for list="{{cells}}" as="c" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 12px; flex: 0 0 390px">
+<span class="lab">{{c.label}}</span>
+<div class="ph {{c.th}}">
+<div style="display: flex; align-items: center; padding: 48px 8px 0 4px"><a href="Home-en.dc.html" class="ib" aria-label="Close"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></a></div>
+
+<sc-if value="{{c.pick}}" hint-placeholder-val="{{true}}">
+<div class="scr">
+<h1 class="h1">Check a statement</h1>
+<section style="display: flex; flex-direction: column; gap: 10px">
+<span class="cap">1 · Which card is it for?</span>
+<div role="radiogroup" aria-label="Card" style="display: flex; flex-direction: column; gap: 8px">
+<button role="radio" aria-checked="false" class="opt"><span class="mini"></span><span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 800">BAC Cash •••• 4821</span><span class="mut" style="font-size: 12px; font-weight: 500">Cashback in HNL · 2 rules</span></span><span class="radio"></span></button>
+<button role="radio" aria-checked="true" class="opt on"><span class="mini" style="background: var(--card2)"></span><span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 800">Ficohsa Signature •••• 3618</span><span class="mut" style="font-size: 12px; font-weight: 500">Cashback in USD · 3 rules</span></span><span class="radio"></span></button>
+</div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 10px">
+<span class="cap">2 · The bank's PDF</span>
+<button style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 26px 16px; border: 1.5px dashed var(--line); border-radius: 20px; background: var(--surf); color: var(--ink); font-family: Manrope, sans-serif">
+<span style="width: 52px; height: 52px; border-radius: 16px; background: var(--pric); color: var(--onpric); display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"></path><path d="M14 3v5h5"></path><path d="M12 18v-6M9 15l3-3 3 3"></path></svg></span>
+<span style="font-weight: 800; font-size: 15px">Choose PDF</span>
+<span class="mut" style="font-size: 12px; line-height: 1.4; max-width: 240px; text-align: center">The original you download from online banking. It's read in memory and never stored.</span>
+</button>
+</section>
+<div class="card" style="padding: 14px; display: flex; align-items: center; gap: 12px">
+<span class="pill ok">1 available</span>
+<span class="mut" style="flex: 1; font-size: 12px; line-height: 1.4">A check is only used if the read succeeds. Recalculating is free.</span>
+</div>
+</div>
+<div class="foot"><button class="btn" style="background: var(--surf2); color: var(--mut)" aria-disabled="true">Analyze · choose a PDF</button></div>
+</sc-if>
+
+<sc-if value="{{c.load}}" hint-placeholder-val="{{false}}">
+<div class="scr">
+<h1 class="h1">Reading your statement</h1>
+<div class="card" style="padding: 14px; display: flex; align-items: center; gap: 12px">
+<span style="width: 40px; height: 48px; border-radius: 8px; background: var(--erb); color: var(--erf); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">PDF</span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 800; font-size: 14px">Ficohsa_Signature_oct.pdf</span><span class="mut" style="font-size: 12px">Ficohsa Signature •••• 3618</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700"><span>Analyzing with AI</span><span class="mut num">about 20 s left</span></div>
+<div class="track"><div class="fill" style="width: 58%"></div></div>
+</div>
+<ol class="card" style="margin: 0; padding: 16px; list-style: none; display: flex; flex-direction: column; gap: 16px">
+<li style="display: flex; gap: 12px"><span class="pill ok ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></span><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 800; font-size: 14px">Matches your card</span><span class="mut" style="font-size: 12px">Banco Ficohsa · ending in 3618</span></div></li>
+<li class="r1" style="display: flex; gap: 12px"><span class="pill ok ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></span><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 800; font-size: 14px">34 transactions found</span><span class="mut num" style="font-size: 12px">Sep 21 – Oct 21, 2026 · purchases in HNL</span></div></li>
+<li class="r2" style="display: flex; gap: 12px"><span style="width: 24px; height: 24px; flex: 0 0 24px; border-radius: 12px; border: 2px solid var(--pri); box-sizing: border-box; display: flex; align-items: center; justify-content: center"><span class="pulse" style="width: 8px; height: 8px; border-radius: 4px; background: var(--pri)"></span></span><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 800; font-size: 14px">Reading the rewards program</span><span class="mut" style="font-size: 12px">«Cash Back» · rates mentioned by the bank</span></div></li>
+<li class="mut" style="display: flex; gap: 12px"><span style="width: 24px; height: 24px; flex: 0 0 24px; border-radius: 12px; border: 2px solid var(--line); box-sizing: border-box"></span><span style="font-weight: 600; font-size: 14px">Sort purchases into your categories</span></li>
+</ol>
+<div class="mut" style="display: flex; gap: 10px; font-size: 12px; line-height: 1.45"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 16px"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M10 21h4"></path></svg><span>You can leave: we'll let you know when it's ready to confirm your rates.</span></div>
+</div>
+<div class="foot"><a href="Home-en.dc.html" class="btn ghost">Keep running in the background</a></div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1704,"height":884}}'>
+class Component extends DCLogic {
+renderVals() {
+const cells = [];
+[['pick', 'Choosing a file'], ['load', 'Analyzing (~40 s)']].forEach(([id, n]) => {
+[['lt', 'Light'], ['dk', 'Dark']].forEach(([th, tn]) => cells.push({ th, label: tn + ' · ' + n, pick: id === 'pick', load: id === 'load' }));
+});
+return { cells };
+}
+}
+</script>
+</body>
+</html>

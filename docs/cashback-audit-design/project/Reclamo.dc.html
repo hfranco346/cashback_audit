@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reclamo al banco (propuesta futura)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.lt{--bg:#F6F4EF;--surf:#FFFFFF;--surf2:#EFECE5;--ink:#16201E;--mut:#5C6664;--line:#E2DED5;--pri:#0F3D36;--onpri:#FFFFFF;--pric:#D8E8E3;--onpric:#0F3D36;--brass:#8A6D33;--ovf:#4338A8;--ovb:#E6E4F7}
+.dk{--bg:#0C1211;--surf:#141C1B;--surf2:#1B2523;--ink:#EDF0EC;--mut:#A2ACA9;--line:#2A3533;--pri:#8FD3C3;--onpri:#08201B;--pric:#1F3A35;--onpric:#BFE7DD;--brass:#CDAE6E;--ovf:#B4AEFF;--ovb:#262159}
+.ph{position:relative;flex:0 0 auto;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,sans-serif;font-size:15px;border-radius:40px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 18px 40px rgba(0,0,0,.10);display:flex;flex-direction:column}
+.scr{flex:1;overflow-y:auto;padding:4px 20px 16px;display:flex;flex-direction:column;gap:12px}
+.foot{padding:12px 20px 32px;display:flex;gap:10px;border-top:1px solid var(--line)}
+.serif{font-family:'Bodoni Moda',Georgia,serif}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.mut{color:var(--mut)}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:18px}
+.btn{min-height:52px;border-radius:999px;border:0;background:var(--pri);color:var(--onpri);font:700 15px Manrope,sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 20px}
+.btn.ghost{background:transparent;color:var(--pri);border:1px solid var(--line)}
+.ib{width:48px;height:48px;border-radius:24px;border:0;background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:center}
+.seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.sg{min-height:40px;border:0;background:none;font:700 13px Manrope,sans-serif;color:var(--ink)}
+.sg.on{background:var(--pric);color:var(--onpric)}
+.lab{font:700 13px Manrope,sans-serif;color:#5C6664;height:28px;display:flex;align-items:center}
+</style>
+</helmet>
+<div style="width: 828px; height: 884px; display: flex; gap: 48px; align-items: flex-start">
+<sc-for list="{{cells}}" as="c" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 12px; flex: 0 0 390px">
+<span class="lab">{{c.label}}</span>
+<div class="ph {{c.th}}">
+<div style="display: flex; align-items: center; gap: 4px; padding: 48px 8px 0 4px"><a href="Resultado.dc.html" class="ib" aria-label="Atrás"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg></a><h1 class="serif" style="margin: 0; flex: 1; font-size: 26px; font-weight: 500">Reclamo al banco</h1><span style="font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 999px; background: var(--ovb); color: var(--ovf); margin-right: 12px">FUTURO</span></div>
+<div class="scr" style="scrollbar-width: none">
+<span class="mut num" style="font-size: 13px; font-weight: 600">BAC Cash •••• 4821 · 3 oct – 3 nov 2026 · –HNL 1,526.84</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span class="mut" style="font-size: 12px; font-weight: 700">Idioma del correo</span><div class="seg" role="radiogroup" aria-label="Idioma del correo"><sc-for list="{{c.langs}}" as="l" hint-placeholder-count="2"><button role="radio" class="sg {{l.on}}" onClick="{{l.pick}}">{{l.label}}</button></sc-for></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span class="mut" style="font-size: 12px; font-weight: 700">Tono</span><div class="seg" role="radiogroup" aria-label="Tono"><sc-for list="{{c.tones}}" as="t" hint-placeholder-count="2"><button role="radio" class="sg {{t.on}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></div></div>
+</div>
+<span class="mut" style="font-size: 12px; line-height: 1.4">Por defecto en el idioma de la app; cámbialo si tu banco atiende en otro idioma.</span>
+<div class="card" style="display: flex; flex-direction: column">
+<label style="display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line)"><span class="mut" style="font-size: 13px; width: 48px">Para</span><input type="email" placeholder="correo de servicio al cliente" style="flex: 1; min-width: 0; min-height: 32px; border: 0; outline: none; background: transparent; font: 600 14px Manrope, sans-serif; color: var(--ink)"></label>
+<div style="display: flex; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line)"><span class="mut" style="font-size: 13px; width: 48px; flex: 0 0 48px">Asunto</span><span style="font-size: 14px; font-weight: 700; line-height: 1.4" lang="{{c.lang}}">{{c.subject}}</span></div>
+<div class="num" lang="{{c.lang}}" style="padding: 14px; font-size: 13.5px; line-height: 1.55; white-space: pre-line">{{c.body}}</div>
+</div>
+</div>
+<div class="foot"><button class="btn ghost">Copiar</button><button class="btn" style="flex: 1">Abrir en Correo</button></div>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":828,"height":884}}'>
+class Component extends DCLogic {
+renderVals() {
+const tone = (this.state && this.state.tone) || 'formal';
+const det = '• Supermercados 7%: HNL 20,686.07 en 23 compras → HNL 1,448.02\n• Farmacia 7%: HNL 1,125.97 en 3 compras → HNL 78.82';
+const bodies = {
+formal: 'Estimados señores de BAC Credomatic:\n\nSolicito la revisión del cashback de mi tarjeta terminada en 4821 para el periodo del 3 de octubre al 3 de noviembre de 2026. El programa CASH BAC CREDOMATIC reporta HNL 0.00; según las tasas de mi tarjeta, correspondía:\n\n' + det + '\n\nTotal esperado: HNL 1,526.84.\n\nAgradeceré confirmar la corrección y el número de gestión.\n\nAtentamente,\nAna Martínez',
+firme: 'Estimados señores de BAC Credomatic:\n\nMi estado de cuenta del 3 oct al 3 nov 2026 (tarjeta •••• 4821) no acredita el cashback de mis compras en rubros con 7%:\n\n' + det + '\n\nSolicito la acreditación de HNL 1,526.84 en el próximo corte y un número de gestión para dar seguimiento.\n\nAtentamente,\nAna Martínez'
+};
+const detEn = '• Supermarkets 7%: HNL 20,686.07 in 23 purchases → HNL 1,448.02\n• Pharmacy 7%: HNL 1,125.97 in 3 purchases → HNL 78.82';
+const bodiesEn = {
+formal: 'Dear BAC Credomatic team,\n\nI am requesting a review of the cashback on my card ending in 4821 for the period October 3 – November 3, 2026. The CASH BAC CREDOMATIC program shows HNL 0.00; based on my card rates, I should have received:\n\n' + detEn + '\n\nTotal expected: HNL 1,526.84.\n\nPlease confirm the correction and share a case number.\n\nSincerely,\nAna Martínez',
+firme: 'Dear BAC Credomatic team,\n\nMy statement for Oct 3 – Nov 3, 2026 (card •••• 4821) does not credit the cashback on my purchases in 7% categories:\n\n' + detEn + '\n\nI request that HNL 1,526.84 be credited on the next statement, along with a case number for follow-up.\n\nSincerely,\nAna Martínez'
+};
+const st = this.state || {};
+const mk = (th, label, defLang) => {
+const lang = st.lang || defLang;
+const tones = (lang === 'en' ? [['formal', 'Formal'], ['firme', 'Firm']] : [['formal', 'Formal'], ['firme', 'Firme']]).map(([id, l]) => ({ label: l, on: id === tone ? 'on' : '', pick: () => this.setState({ tone: id }) }));
+const langs = [['es', 'Español'], ['en', 'English']].map(([id, l]) => ({ label: l, on: id === lang ? 'on' : '', pick: () => this.setState({ lang: id }) }));
+return { th, label, lang, tones, langs, subject: lang === 'en' ? 'Uncredited cashback · card •••• 4821 · Oct 3 – Nov 3, 2026' : 'Cashback no acreditado · tarjeta •••• 4821 · 3 oct – 3 nov 2026', body: (lang === 'en' ? bodiesEn : bodies)[tone] };
+};
+const cells = [mk('lt', 'Claro · Correo en español · Propuesta futura', 'es'), mk('dk', 'Oscuro · Correo en inglés · Propuesta futura', 'en')];
+return { cells };
+}
+}
+</script>
+</body>
+</html>

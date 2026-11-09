@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Resultado de la verificación</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.lt{--bg:#F6F4EF;--surf:#FFFFFF;--surf2:#EFECE5;--ink:#16201E;--mut:#5C6664;--line:#E2DED5;--pri:#0F3D36;--onpri:#FFFFFF;--pric:#D8E8E3;--onpric:#0F3D36;--brass:#8A6D33;--okf:#17734F;--okb:#DDF0E5;--erf:#B42318;--erb:#FBE3DF;--ovf:#4338A8;--ovb:#E6E4F7;--wnf:#7A5300;--wnb:#F8ECCB;--ntf:#545D5B;--ntb:#E9E8E3;--scrim:rgba(22,32,30,.45)}
+.dk{--bg:#0C1211;--surf:#141C1B;--surf2:#1B2523;--ink:#EDF0EC;--mut:#A2ACA9;--line:#2A3533;--pri:#8FD3C3;--onpri:#08201B;--pric:#1F3A35;--onpric:#BFE7DD;--brass:#CDAE6E;--okf:#62D2A2;--okb:#0F3427;--erf:#FF907F;--erb:#45150E;--ovf:#B4AEFF;--ovb:#262159;--wnf:#F0C462;--wnb:#3D2C07;--ntf:#A9B2AF;--ntb:#232C2B;--scrim:rgba(0,0,0,.6)}
+.ph{position:relative;flex:0 0 auto;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,sans-serif;font-size:15px;border-radius:40px;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 18px 40px rgba(0,0,0,.10);display:flex;flex-direction:column}
+.scr{flex:1;overflow-y:auto;padding:16px 20px 28px;display:flex;flex-direction:column;gap:14px}
+.serif{font-family:'Bodoni Moda',Georgia,serif}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.mut{color:var(--mut)}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:20px}
+.btn{min-height:52px;border-radius:999px;border:0;background:var(--pri);color:var(--onpri);font:700 15px Manrope,sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 22px;text-decoration:none;box-sizing:border-box}
+.btn.ghost{background:transparent;color:var(--pri);border:1px solid var(--line);min-height:44px;font-size:14px}
+.cap{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--mut)}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.ok{background:var(--okb);color:var(--okf)}.er{background:var(--erb);color:var(--erf)}.ov{background:var(--ovb);color:var(--ovf)}.wn{background:var(--wnb);color:var(--wnf)}.nt{background:var(--ntb);color:var(--ntf)}
+.ib{width:48px;height:48px;border-radius:24px;border:0;background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:center}
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:1px solid var(--line)}
+.tab{min-height:48px;display:flex;align-items:center;justify-content:center;font:700 14px Manrope,sans-serif;color:var(--mut);border:0;background:none;border-bottom:3px solid transparent}
+.tab.on{color:var(--ink);border-bottom-color:var(--pri)}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;font-size:14px;border-bottom:1px solid var(--line)}
+.kv:last-child{border-bottom:0}
+.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.sg{min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:700 12px Manrope,sans-serif;color:var(--ink);background:none;border:0;border-left:1px solid var(--line)}
+.sg:first-child{border-left:0}
+.sg.on{background:var(--pric);color:var(--onpric)}
+.mv{display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);align-items:flex-start}
+.mv:last-child{border-bottom:0}
+.dot{width:28px;height:28px;border-radius:14px;flex:0 0 28px;display:flex;align-items:center;justify-content:center}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surf);border-radius:28px 28px 0 0;padding:10px 20px 34px;display:flex;flex-direction:column;gap:14px;box-shadow:0 -8px 30px rgba(0,0,0,.2)}
+.opt{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 14px;border:1px solid var(--line);border-radius:14px;font:600 14px Manrope,sans-serif;color:var(--ink);background:none;width:100%;box-sizing:border-box;text-align:left}
+.opt.on{border:2px solid var(--pri)}
+.radio{width:20px;height:20px;border-radius:10px;border:2px solid var(--line);box-sizing:border-box;flex:0 0 20px}
+.opt.on .radio{border:6px solid var(--pri)}
+.sw{width:52px;height:32px;border-radius:16px;background:var(--pri);position:relative;flex:0 0 52px}
+.sw::after{content:"";position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:12px;background:var(--onpri)}
+.lab{font:700 13px Manrope,sans-serif;color:#5C6664;height:28px;display:flex;align-items:center}
+@keyframes pop{0%{opacity:0;transform:scale(.9)}100%{opacity:1;transform:none}}
+.pop{animation:pop .6s cubic-bezier(.2,.8,.2,1) both}
+</style>
+</helmet>
+<div style="width: 4332px; height: 884px; display: flex; gap: 48px; align-items: flex-start">
+<sc-for list="{{cells}}" as="c" hint-placeholder-count="10">
+<div style="display: flex; flex-direction: column; gap: 12px; flex: 0 0 390px">
+<span class="lab">{{c.label}}</span>
+<div class="ph {{c.th}}">
+<div style="display: flex; align-items: center; gap: 4px; padding: 48px 4px 0">
+<a href="Home.dc.html" class="ib" aria-label="Atrás"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg></a>
+<div style="flex: 1; display: flex; flex-direction: column"><span style="font-weight: 800; font-size: 15px">{{c.v.card}}</span><span class="mut num" style="font-size: 12px">{{c.v.period}}</span></div>
+<a href="Confirmar.dc.html" class="ib" aria-label="Recalcular con otros porcentajes"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg></a>
+</div>
+<div class="tabs" role="tablist">
+<button role="tab" class="tab {{c.tResumen}}">Resumen</button>
+<button role="tab" class="tab">Rubros</button>
+<button role="tab" class="tab {{c.tMovs}}">Movimientos</button>
+</div>
+
+<sc-if value="{{c.summary}}" hint-placeholder-val="{{true}}">
+<div class="scr" style="scrollbar-width: none">
+<div class="card pop" style="padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<span class="pill {{c.v.cls}}" style="align-self: flex-start; font-size: 13px; padding: 6px 12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{c.v.icon}}"></path></svg>{{c.v.tag}}</span>
+<h1 class="serif" style="margin: 0; font-size: 32px; font-weight: 500; line-height: 1.05">{{c.v.title}}</h1>
+<span class="serif num" style="font-size: 40px; font-weight: 600; line-height: 1; color: {{c.v.color}}">{{c.v.amount}}</span>
+<span class="mut" style="font-size: 13px">{{c.v.amountNote}}</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); padding-top: 12px; gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span class="mut" style="font-size: 12px; font-weight: 600">Esperado</span><span class="num" style="font-weight: 800">{{c.v.expected}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end"><span class="mut" style="font-size: 12px; font-weight: 600">Reportado por el banco</span><span class="num" style="font-weight: 800">{{c.v.reported}}</span></div>
+</div>
+<sc-if value="{{c.v.hasEquiv}}" hint-placeholder-val="{{false}}"><span class="num" style="font-size: 12px; font-weight: 600; background: var(--surf2); border-radius: 10px; padding: 8px 10px">{{c.v.equiv}}</span></sc-if>
+</div>
+<section style="display: flex; flex-direction: column; gap: 8px">
+<span class="cap">En pocas palabras</span>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{c.v.bullets}}" as="b" hint-placeholder-count="3"><li style="display: flex; gap: 10px; font-size: 14px; line-height: 1.45"><span style="width: 6px; height: 6px; border-radius: 3px; background: var(--brass); margin-top: 8px; flex: 0 0 6px"></span><span class="num">{{b}}</span></li></sc-for>
+</ul>
+</section>
+<sc-if value="{{c.v.hasWarn}}" hint-placeholder-val="{{false}}">
+<details style="background: var(--wnb); color: var(--wnf); border-radius: 16px; padding: 12px 14px" open="">
+<summary style="font-weight: 800; font-size: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; list-style: none; min-height: 28px"><span style="display: flex; gap: 8px; align-items: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"></path><path d="M12 10v4M12 17v.5"></path></svg>1 aviso</span><span style="font-size: 12px">Ocultar</span></summary>
+<p style="margin: 8px 0 8px; font-size: 13px; line-height: 1.45; font-weight: 600">{{c.v.warn}}</p>
+<a href="Confirmar.dc.html" style="color: var(--wnf); font-weight: 800; font-size: 13px">{{c.v.warnAction}}</a>
+</details>
+</sc-if>
+<section style="display: flex; flex-direction: column; gap: 8px">
+<span class="cap">Por rubro</span>
+<div class="card">
+<sc-for list="{{c.v.rubros}}" as="r" hint-placeholder-count="2">
+<div class="kv"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 800">{{r.name}} · {{r.pct}}</span><span class="mut num" style="font-size: 12px">{{r.base}}</span></span><span class="num" style="font-weight: 800; color: var(--okf)">{{r.reward}}</span></div>
+</sc-for>
+</div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 8px">
+<span class="cap">Programa de lealtad</span>
+<div class="card">
+<sc-for list="{{c.v.program}}" as="p" hint-placeholder-count="3"><div class="kv"><span class="mut">{{p.k}}</span><span class="num" style="font-weight: 800; text-align: right">{{p.v}}</span></div></sc-for>
+</div>
+</section>
+<a href="Confirmar.dc.html" class="btn ghost">Recalcular con otros % · gratis</a>
+</div>
+</sc-if>
+
+<sc-if value="{{c.movsView}}" hint-placeholder-val="{{false}}">
+<div class="scr" style="gap: 12px; scrollbar-width: none">
+<div class="seg" role="radiogroup" aria-label="Filtrar movimientos">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><button role="radio" class="sg {{f.on}}" onClick="{{f.pick}}"><span>{{f.label}}</span><span class="num" style="font-weight: 600; opacity: .8">{{f.count}}</span></button></sc-for>
+</div>
+<div class="card">
+<sc-for list="{{movs}}" as="m" hint-placeholder-count="4">
+<div class="mv">
+<span class="dot {{m.cls}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.icon}}"></path></svg></span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 800; font-size: 14px">{{m.name}}</span>
+<span class="mut" style="font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{m.raw}}</span>
+<span style="font-size: 12px; font-weight: 700; color: {{m.color}}">{{m.status}}</span>
+<sc-if value="{{m.fixable}}" hint-placeholder-val="{{false}}"><button style="align-self: flex-start; margin-top: 4px; min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: none; font: 700 13px Manrope, sans-serif; color: var(--pri)">Asignar rubro</button></sc-if>
+</div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px" class="num"><span style="font-weight: 800; font-size: 14px; white-space: nowrap">{{m.amount}}</span><span style="font-size: 12px; font-weight: 800; color: {{m.color}}">{{m.reward}}</span></div>
+</div>
+</sc-for>
+</div>
+<span class="mut" style="font-size: 12px; text-align: center">Nombre limpio arriba · texto original del banco debajo</span>
+</div>
+</sc-if>
+
+<sc-if value="{{c.sheet}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; background: var(--scrim)"></div>
+<div class="sheet" role="dialog" aria-label="Cambiar rubro">
+<span style="width: 36px; height: 4px; border-radius: 2px; background: var(--line); align-self: center"></span>
+<div style="display: flex; justify-content: space-between; gap: 12px"><div style="display: flex; flex-direction: column; gap: 2px"><span class="serif" style="font-size: 24px; font-weight: 500">Comidas Especiales Eberso</span><span class="mut" style="font-size: 11px">COMIDAS ESPECIALES EBERSO</span></div><span class="num" style="font-weight: 800">HNL 297.86</span></div>
+<span style="font-weight: 800; font-size: 14px">¿A qué rubro pertenece?</span>
+<div role="radiogroup" style="display: flex; flex-direction: column; gap: 8px">
+<button role="radio" aria-checked="false" class="opt"><span class="radio"></span><span style="flex: 1">Supermercados</span><span class="num mut">7%</span></button>
+<button role="radio" aria-checked="false" class="opt"><span class="radio"></span><span style="flex: 1">Farmacia</span><span class="num mut">7%</span></button>
+<button role="radio" aria-checked="true" class="opt on"><span class="radio"></span><span style="flex: 1">Restaurantes y Comida rápida</span><span class="mut" style="font-size: 12px">sin % en esta tarjeta</span></button>
+<button role="radio" aria-checked="false" class="opt"><span class="radio"></span><span style="flex: 1">Ningún rubro</span><span class="num mut">base 0%</span></button>
+</div>
+<div style="display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; background: var(--surf2)">
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 800; font-size: 14px">Recordar para próximas verificaciones</span><span class="mut" style="font-size: 12px; line-height: 1.4">Apagado: solo cambia en esta verificación.</span></span>
+<span class="sw" role="switch" aria-checked="true" aria-label="Recordar comercio"></span>
+</div>
+<button class="btn">Aplicar y recalcular · gratis</button>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":4332,"height":884}}'>
+class Component extends DCLogic {
+renderVals() {
+const down = 'M12 5v14M6 13l6 6 6-6', up = 'M12 19V5M6 11l6-6 6 6', chk = 'm5 12 5 5 9-10', bang = 'M12 7v6M12 16.5v.5', dash = 'M6 12h12';
+const bacProg = [{ k: 'Programa', v: 'CASH BAC CREDOMATIC' }, { k: 'Ganado en el periodo', v: 'HNL 0.00' }, { k: 'Moneda', v: 'HNL' }];
+const bacRub = [{ name: 'Supermercados', pct: '7%', base: 'HNL 20,686.07 · 23 mov.', reward: 'HNL 1,448.02' }, { name: 'Farmacia', pct: '7%', base: 'HNL 1,125.97 · 3 mov.', reward: 'HNL 78.82' }];
+const V = {
+menos: { card: 'BAC Cash •••• 4821', period: '3 oct – 3 nov 2026 · 52 movimientos', cls: 'er', icon: down, tag: 'De menos', title: 'Te pagaron de menos', amount: '–HNL 1,526.84', color: 'var(--erf)', amountNote: 'Es lo que tu banco no te acreditó.', expected: 'HNL 1,526.84', reported: 'HNL 0.00', hasEquiv: false, bullets: ['Lo esperado era HNL 1,526.84 y el banco reportó HNL 0.00.', 'Supermercados es lo que más pesa: HNL 1,448.02.', 'Farmacia aporta HNL 78.82.'], hasWarn: true, warn: '8 compras en USD no tienen tipo de cambio y quedaron fuera del cálculo.', warnAction: 'Agregar tipo de cambio', rubros: bacRub, program: bacProg },
+mas: { card: 'Ficohsa Signature •••• 3618', period: '21 sep – 21 oct 2026 · 34 movimientos', cls: 'ov', icon: up, tag: 'De más', title: 'Te pagaron de más', amount: '+USD 19.32', color: 'var(--ovf)', amountNote: 'El banco te acreditó más de lo esperado.', expected: 'USD 22.68', reported: 'USD 42.00', hasEquiv: true, equiv: 'Lo esperado equivale a HNL 589.61 · 1 USD = 26.00 HNL', bullets: ['El banco te reportó USD 42.00 y lo esperado era USD 22.68.', 'La categoría que más pesa es Farmacia.', 'Restaurantes y Comida rápida aporta HNL 269.02.'], hasWarn: true, warn: 'El valor reportado podría ser el saldo acumulado del programa y no solo lo ganado en este periodo.', warnAction: 'Revisar el programa auditado', rubros: [{ name: 'Farmacia', pct: '7%', base: 'HNL 4,579.80 · incluye un hospital', reward: 'HNL 320.59' }, { name: 'Restaurantes', pct: '7%', base: 'HNL 3,843.21', reward: 'HNL 269.02' }], program: [{ k: 'Programa', v: 'Cash Back' }, { k: 'Acumulado', v: 'USD 42.00' }, { k: 'Disponible', v: 'USD 256.00' }] },
+bien: { card: 'BAC Cash •••• 4821', period: '3 oct – 3 nov 2026 · ejemplo ilustrativo', cls: 'ok', icon: chk, tag: 'Coincide', title: 'Te pagaron bien', amount: 'HNL 1,520.00', color: 'var(--okf)', amountNote: 'Diferencia de HNL 6.84, dentro de la tolerancia (± HNL 15.27).', expected: 'HNL 1,526.84', reported: 'HNL 1,520.00', hasEquiv: false, bullets: ['Lo que te acreditó el banco coincide con lo esperado.', 'Supermercados es lo que más pesa: HNL 1,448.02.', 'No hay nada que reclamar este mes.'], hasWarn: false, rubros: bacRub, program: [{ k: 'Programa', v: 'CASH BAC CREDOMATIC' }, { k: 'Ganado en el periodo', v: 'HNL 1,520.00' }, { k: 'Moneda', v: 'HNL' }] }
+};
+const flt = (this.state && this.state.f) || 'all';
+const fdefs = [['all', 'Todos', 52], ['in', 'En rubro', 26], ['out', 'Sin rubro', 12], ['ex', 'Excluidos', 14]];
+const filters = fdefs.map(([id, label, count]) => ({ label, count, on: id === flt ? 'on' : '', pick: () => this.setState({ f: id }) }));
+const allMovs = [
+{ k: 'in', name: 'Supermercados Del Corral', raw: 'SUPERMERCADOS DEL CORRAL COMAYAGUA HN', amount: 'HNL 1,140.56', status: 'En rubro · Supermercados 7% · IA', reward: '+HNL 79.84', cls: 'ok', icon: chk, color: 'var(--okf)' },
+{ k: 'out', name: 'Comidas Especiales Eberso', raw: 'COMIDAS ESPECIALES EBERSO', amount: 'HNL 297.86', status: 'Sin rubro · tasa base 0%', reward: 'HNL 0.00', cls: 'er', icon: bang, color: 'var(--erf)', fixable: true },
+{ k: 'ex', name: 'Pago recibido', raw: 'PAGO RECIBIDO', amount: '–HNL 68,531.56', status: 'Excluido · pago a la tarjeta', reward: '—', cls: 'nt', icon: dash, color: 'var(--ntf)' },
+{ k: 'ex', name: 'Seguro de saldo de deuda', raw: 'SEGURO DE SALDO DE DEUDA', amount: 'HNL 112.13', status: 'Excluido · seguro', reward: '—', cls: 'nt', icon: dash, color: 'var(--ntf)' }
+];
+const movs = allMovs.filter((m) => flt === 'all' || m.k === flt);
+const states = [['menos', 'Te pagaron de menos', 'summary'], ['mas', 'Te pagaron de más', 'summary'], ['bien', 'Te pagaron bien', 'summary'], ['menos', 'Movimientos (verde, rojo, gris)', 'movs'], ['menos', 'Hoja: cambiar rubro', 'sheet']];
+const cells = [];
+states.forEach(([vk, n, mode]) => {
+[['lt', 'Claro'], ['dk', 'Oscuro']].forEach(([th, tn]) => cells.push({ th, label: tn + ' · ' + n, v: V[vk], summary: mode === 'summary', movsView: mode !== 'summary', sheet: mode === 'sheet', tResumen: mode === 'summary' ? 'on' : '', tMovs: mode !== 'summary' ? 'on' : '' }));
+});
+return { cells, filters, movs };
+}
+}
+</script>
+</body>
+</html>
