@@ -12,6 +12,7 @@ import '../../features/cards/domain/card_repository.dart';
 import '../../features/cards/presentation/card_form_controller.dart';
 import '../../features/cards/presentation/card_form_page.dart';
 import '../../features/cards/presentation/cards_controller.dart';
+import '../../features/categories/domain/catalog_repositories.dart';
 import '../../features/categories/presentation/catalog_controller.dart';
 import '../../features/categories/presentation/catalog_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
@@ -39,6 +40,8 @@ import '../../features/subscription/presentation/paywall_page.dart';
 import '../../features/subscription/presentation/subscription_controller.dart';
 import '../../features/home/presentation/home_controller.dart';
 import '../../features/home/presentation/home_page.dart';
+import '../../features/onboarding/data/onboarding_sync.dart';
+import '../../features/onboarding/domain/onboarding_draft.dart';
 import '../../features/onboarding/presentation/onboarding_controller.dart';
 import '../../features/onboarding/presentation/onboarding_page.dart';
 import '../../features/splash/presentation/splash_controller.dart';
@@ -69,27 +72,40 @@ abstract final class AppPages {
       name: Routes.onboarding,
       page: () => const OnboardingPage(),
       binding: BindingsBuilder(() {
-        Get.lazyPut(
-          () => OnboardingController(
-            repository: Get.find<OnboardingRepository>(),
-            navigator: Get.find<AppNavigator>(),
+        final login = _buildLoginController();
+        Get.put(login);
+        final session = Get.find<SessionController>();
+        final drafts = Get.find<OnboardingDraftRepository>();
+        final controller = OnboardingController(
+          drafts: drafts,
+          onboarding: Get.find<OnboardingRepository>(),
+          navigator: Get.find<AppNavigator>(),
+          sync: OnboardingSync(
+            cards: Get.find<CardRepository>(),
+            categories: Get.find<CategoryRepository>(),
+            drafts: drafts,
           ),
+          verifications: Get.find<VerificationRepository>(),
+          picker: Get.find<PdfPicker>(),
+          isSignedIn: () => session.user.value != null,
+          userName: () => session.user.value?.firstName,
+          onDataChanged: () async {
+            await Get.find<CardsController>().load();
+            await Get.find<CatalogController>().load();
+            await Get.find<CreditsController>().fetch();
+          },
+          hasFreeCheck: () =>
+              Get.find<CreditsController>().balance.value?.hasCredits ?? true,
         );
+        login.onAuthenticated = controller.afterSignIn;
+        Get.put(controller);
       }),
     ),
     GetPage(
       name: Routes.login,
       page: () => const LoginPage(),
       binding: BindingsBuilder(() {
-        Get.lazyPut(
-          () => LoginController(
-            repository: Get.find<AuthRepository>(),
-            session: Get.find<SessionController>(),
-            navigator: Get.find<AppNavigator>(),
-            showApple: Get.find<AppleIdentityProvider>().isSupported,
-            devSignIn: AppConfig.devLoginEnabled ? _devSignIn : null,
-          ),
-        );
+        Get.lazyPut(_buildLoginController);
       }),
     ),
     GetPage(
@@ -236,6 +252,14 @@ abstract final class AppPages {
     GetPage(name: Routes.settings, page: () => const SettingsPage()),
   ];
 }
+
+LoginController _buildLoginController() => LoginController(
+  repository: Get.find<AuthRepository>(),
+  session: Get.find<SessionController>(),
+  navigator: Get.find<AppNavigator>(),
+  showApple: Get.find<AppleIdentityProvider>().isSupported,
+  devSignIn: AppConfig.devLoginEnabled ? _devSignIn : null,
+);
 
 /// Debug-only: stores the build-time dev token and loads the user it belongs
 /// to from `/me`. Never reachable in release builds (see AppConfig).

@@ -3,6 +3,8 @@ import 'package:cashback_audit/core/routing/app_pages.dart';
 import 'package:cashback_audit/core/routing/app_routes.dart';
 import 'package:cashback_audit/core/storage/token_storage.dart';
 import 'package:cashback_audit/features/onboarding/domain/onboarding_repository.dart';
+import 'package:cashback_audit/core/theme/app_theme.dart';
+import 'package:cashback_audit/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -29,6 +31,9 @@ void main() {
 
     await tester.pumpWidget(
       GetMaterialApp(
+        theme: AppTheme.light,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         initialRoute: Routes.splash,
         getPages: AppPages.pages
             .where((page) => page.name == Routes.splash)

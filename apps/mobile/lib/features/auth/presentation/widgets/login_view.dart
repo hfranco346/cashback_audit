@@ -1,13 +1,13 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/l10n/strings.dart';
-import '../../../../shared/widgets/atoms/app_logo_mark.dart';
-import '../../../../shared/widgets/molecules/inline_message.dart';
-import '../../../../shared/widgets/molecules/social_sign_in_button.dart';
+import '../../../../core/l10n/l10n_context.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/ui.dart';
 import '../login_controller.dart';
 
-/// Pure presentational login screen.
+/// Pure presentational login screen (reached when the guided setup is
+/// skipped or the user already has an account).
 class LoginView extends StatelessWidget {
   const LoginView({
     super.key,
@@ -30,78 +30,142 @@ class LoginView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
+    final colors = context.appColors;
     final busy = loading != null;
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Spacer(flex: 2),
-              const AppLogoMark(size: 64),
+              ZoomIn(
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: colors.creditCard,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFFCDAE6E).withValues(alpha: 0.8),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    'C',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: colors.onCreditCard,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 28),
               FadeInUp(
-                child: Text(S.loginTitle, style: theme.textTheme.displaySmall),
+                from: 14,
+                child: Text(
+                  l10n.loginTitle,
+                  style: theme.textTheme.displaySmall,
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               FadeInUp(
+                from: 14,
                 delay: const Duration(milliseconds: 120),
                 child: Text(
-                  S.loginSubtitle,
+                  l10n.loginSubtitle,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.5,
                   ),
                 ),
               ),
               const Spacer(flex: 3),
               if (errorMessage != null) ...[
-                FadeIn(child: InlineMessage(message: errorMessage!)),
-                const SizedBox(height: 16),
+                FadeIn(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 18,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          errorMessage!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+              if (showApple) ...[
+                FadeInUp(
+                  from: 14,
+                  delay: const Duration(milliseconds: 250),
+                  child: FilledButton.icon(
+                    key: const Key('login-apple'),
+                    onPressed: busy ? null : onApple,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 52),
+                      backgroundColor: theme.colorScheme.onSurface,
+                      foregroundColor: theme.colorScheme.surface,
+                    ),
+                    icon: loading == LoginProvider.apple
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2.4),
+                          )
+                        : const Icon(Icons.apple_rounded, size: 20),
+                    label: Text(l10n.signInApple),
+                  ),
+                ),
+                const SizedBox(height: 10),
               ],
               FadeInUp(
-                delay: const Duration(milliseconds: 250),
-                child: SocialSignInButton(
-                  label: S.signInGoogle,
+                from: 14,
+                delay: const Duration(milliseconds: 350),
+                child: AppButton.ghost(
+                  key: const Key('login-google'),
+                  label: l10n.signInGoogle,
                   icon: Icons.g_mobiledata_rounded,
-                  busy: loading == LoginProvider.google,
+                  loading: loading == LoginProvider.google,
                   onPressed: busy ? null : onGoogle,
                 ),
               ),
-              if (showApple) ...[
-                const SizedBox(height: 12),
-                FadeInUp(
-                  delay: const Duration(milliseconds: 350),
-                  child: SocialSignInButton(
-                    label: S.signInApple,
-                    icon: Icons.apple_rounded,
-                    dark: true,
-                    busy: loading == LoginProvider.apple,
-                    onPressed: busy ? null : onApple,
+              if (onDevSignIn != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Center(
+                  child: TextButton.icon(
+                    key: const Key('dev-sign-in'),
+                    onPressed: busy ? null : onDevSignIn,
+                    icon: const Icon(Icons.developer_mode_rounded),
+                    label: Text(l10n.devSignIn),
                   ),
                 ),
               ],
-              if (onDevSignIn != null) ...[
-                const SizedBox(height: 12),
-                TextButton.icon(
-                  key: const Key('dev-sign-in'),
-                  onPressed: busy ? null : onDevSignIn,
-                  icon: const Icon(Icons.developer_mode_rounded),
-                  label: Text(S.devSignIn),
-                ),
-              ],
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
               Center(
                 child: Text(
-                  S.loginLegal,
+                  l10n.loginLegal,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
             ],
           ),
         ),

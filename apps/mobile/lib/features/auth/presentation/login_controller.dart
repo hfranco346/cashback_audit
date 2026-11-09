@@ -24,6 +24,10 @@ class LoginController extends GetxController {
   final bool showApple;
   final Future<AppUser> Function()? _devSignIn;
 
+  /// Runs after a successful sign-in instead of opening Home (the guided
+  /// setup uses it to push its draft to the backend).
+  Future<void> Function(AppUser user)? onAuthenticated;
+
   /// Debug-only shortcut that signs in with a pre-issued token.
   bool get showDevSignIn => _devSignIn != null;
 
@@ -54,7 +58,12 @@ class LoginController extends GetxController {
     try {
       final user = await action();
       await _session.onSignedIn(user);
-      _navigator.offAll(Routes.home);
+      final afterSignIn = onAuthenticated;
+      if (afterSignIn != null) {
+        await afterSignIn(user);
+      } else {
+        _navigator.offAll(Routes.home);
+      }
     } on SignInCancelled {
       // User dismissed the sheet: nothing to show.
     } catch (e) {

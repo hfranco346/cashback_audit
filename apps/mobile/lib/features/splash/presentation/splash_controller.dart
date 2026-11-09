@@ -5,7 +5,7 @@ import '../../../core/routing/app_routes.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../onboarding/domain/onboarding_repository.dart';
 
-/// Decides the first route: onboarding, login or home.
+/// Decides the first route: home (session), login or the guided setup.
 class SplashController extends GetxController {
   SplashController({
     required this.onboarding,
@@ -20,10 +20,10 @@ class SplashController extends GetxController {
   final Duration minimumDelay;
 
   Future<String> resolveRoute() async {
+    // A stored session always wins: an interrupted setup resumes from Home.
+    if (await tokens.read() != null) return Routes.home;
     final seen = await onboarding.hasSeenOnboarding();
-    if (!seen) return Routes.onboarding;
-    final stored = await tokens.read();
-    return stored == null ? Routes.login : Routes.home;
+    return seen ? Routes.login : Routes.onboarding;
   }
 
   @override

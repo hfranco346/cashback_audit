@@ -27,6 +27,8 @@ import '../../features/subscription/data/subscription_repository_impl.dart';
 import '../../features/subscription/domain/subscription_repository.dart';
 import '../../features/subscription/presentation/subscription_controller.dart';
 import '../../features/onboarding/data/onboarding_repository_impl.dart';
+import '../../features/onboarding/data/onboarding_draft_repository_impl.dart';
+import '../../features/onboarding/domain/onboarding_draft.dart';
 import '../../features/onboarding/domain/onboarding_repository.dart';
 import '../config/app_config.dart';
 import '../db/app_database.dart';
@@ -54,6 +56,10 @@ class InitialBinding extends Bindings {
     final prefs = SharedPreferencesAsync();
     Get.put<OnboardingRepository>(
       OnboardingRepositoryImpl(prefs),
+      permanent: true,
+    );
+    Get.put<OnboardingDraftRepository>(
+      OnboardingDraftRepositoryImpl(prefs),
       permanent: true,
     );
     Get.put<AppleIdentityProvider>(

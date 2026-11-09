@@ -59,6 +59,8 @@ void main() {
     );
   }
 
+  _onAuthenticatedTests();
+
   test('successful sign-in sets the session user and runs hooks', () async {
     final (login, session, _) = build(_Repo(googleResult: user));
     AppUser? hooked;
@@ -162,5 +164,29 @@ void main() {
     expect(repo.signOuts, 1);
     expect(cleared, 1);
     expect(hookRan, isTrue);
+  });
+}
+
+void _onAuthenticatedTests() {
+  const user = AppUser(id: 'u1', name: 'Ana');
+  test('onAuthenticated replaces the Home navigation', () async {
+    final nav = FakeNavigator();
+    final repo = _Repo(googleResult: user);
+    final session = SessionController(
+      repository: repo,
+      events: SessionEvents(),
+      clearLocalData: () async {},
+      navigator: nav,
+    );
+    AppUser? got;
+    final login = LoginController(
+      repository: repo,
+      session: session,
+      navigator: nav,
+      showApple: false,
+    )..onAuthenticated = (u) async => got = u;
+    await login.signInWithGoogle();
+    expect(got, user);
+    expect(nav.routes, isEmpty);
   });
 }
