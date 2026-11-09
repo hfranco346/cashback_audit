@@ -10,7 +10,7 @@
       "cwd": "apps/mobile",
       "program": "lib/main.dart",
       "flutterMode": "debug",
-      "deviceId": "iPhone 17",
+      "deviceId": "67685591-E5C5-4374-874F-E283402B1BDE",
       "toolArgs": [
         "--dart-define=API_BASE_URL=http://localhost:3200/api/v1",
         "--dart-define-from-file=.env.dev.json"
@@ -40,6 +40,18 @@
       "toolArgs": [
         "--dart-define=API_BASE_URL=http://MacBook-Pro-de-Henderson.local:3200/api/v1",
         "--dart-define-from-file=.env.dev.json"
+      ]
+    },
+    {
+      "name": "iPhone wireless (profile, production API)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "apps/mobile",
+      "program": "lib/main.dart",
+      "flutterMode": "profile",
+      "deviceId": "00008110-000E39DE0A09801E",
+      "toolArgs": [
+        "--dart-define=API_BASE_URL=https://cashback-api.neargps.net/api/v1"
       ]
     },
     {

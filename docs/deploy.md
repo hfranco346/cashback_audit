@@ -8,7 +8,8 @@ The NestJS API runs on the shared production VM (GCP, `34.173.253.46`, user `hfr
 | Process | PM2 app `cashback-api`, `node --env-file=.env dist/main.js`, port `4300` |
 | Database | Docker container `cashback-audit-postgres` (postgres:16-alpine), `127.0.0.1:15432`, volume `cashback-audit-pgdata`, password in `~/cashback-audit/.db-password` |
 | Proxy | nginx site `/etc/nginx/sites-available/cashback-api`, host `cashback-api.neargps.net` → `127.0.0.1:4300` |
-| TLS | Let's Encrypt via certbot (needs the DNS record below) |
+| TLS | Let's Encrypt via `certbot --nginx` (HTTP → HTTPS redirect, auto-renewed by `certbot.timer`) |
+| Public URL | `https://cashback-api.neargps.net/api/v1` (mobile `API_BASE_URL`) |
 | DNS | Cloudflare: `A cashback-api → 34.173.253.46` (DNS only, like `app`) |
 
 ## Deploy
