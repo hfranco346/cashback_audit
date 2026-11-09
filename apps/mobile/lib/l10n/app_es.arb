@@ -720,5 +720,314 @@
         "type": "int"
       }
     }
-  }
+  },
+  "splashTagline": "Lo que tu banco te debe",
+  "languageAutomatic": "Automático",
+  "languageSpanish": "Español",
+  "languageEnglish": "English",
+  "onbLangAria": "Idioma: {language}. Cambiar",
+  "@onbLangAria": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "onbHaveAccount": "Ya tengo cuenta",
+  "onbDemoTitle": "¿Tu banco te pagó todo tu cashback?",
+  "onbDemoStatementSays": "Tu estado de cuenta dice",
+  "onbDemoPharmacy": "Farmacia Kielsa · 7%",
+  "onbDemoPayment": "Pago recibido · no cuenta",
+  "onbDemoOwed": "Te debían",
+  "onbDemoSub": "Subes el PDF, la IA lee cada compra y te decimos si te pagaron bien, de menos o de más. Vamos a configurar tu tarjeta mientras lo pruebas.",
+  "onbDemoCta": "Hacer mi verificación gratis",
+  "onbDemoFoot": "Unos 3 minutos · no pedimos datos de pago",
+  "onbSkipSetup": "Omitir configuración",
+  "onbStepBank": "Tu banco",
+  "onbStepCard": "Tu tarjeta",
+  "onbStepCategories": "Tus rubros",
+  "onbStepAccount": "Tu cuenta",
+  "onbStepFreeCheck": "Verificación gratis",
+  "onbStepLabel": "Paso {step} de {total} · {name}",
+  "@onbStepLabel": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "onbBankTitle": "¿De qué banco es tu tarjeta?",
+  "onbBankSub": "Funciona con cualquier banco y país. Lo usamos para reconocer tu estado de cuenta.",
+  "onbBankSearch": "Buscar tu banco",
+  "onbBankTested": "Probado",
+  "onbBankOther": "Otro banco",
+  "onbBankOtherName": "Nombre de tu banco",
+  "onbCardTitle": "Tu tarjeta {bank}",
+  "@onbCardTitle": {
+    "placeholders": {
+      "bank": {
+        "type": "String"
+      }
+    }
+  },
+  "onbCardName": "Nombre",
+  "onbCardLast4": "Últimos 4",
+  "onbCardLast4Note": "Solo guardamos estos 4 dígitos.",
+  "onbRewardKind": "¿Qué te da la tarjeta?",
+  "onbRewardCashback": "Cashback",
+  "onbRewardPoints": "Puntos o millas",
+  "onbRewardCurrency": "¿En qué moneda te lo pagan?",
+  "onbCurrencyDetect": "No sé, que lo detecte",
+  "onbRewardLabelCashback": "CASHBACK",
+  "onbRewardLabelPoints": "PUNTOS",
+  "onbCatsTitle": "¿En qué compras te da más?",
+  "onbCatsSub": "Marca los rubros de tu tarjeta y su porcentaje. Si no lo sabes, déjalo vacío: lo buscamos en tu estado de cuenta.",
+  "onbCatSupermarkets": "Supermercados",
+  "onbCatPharmacy": "Farmacia",
+  "onbCatRestaurants": "Restaurantes y comida rápida",
+  "onbCatGas": "Gasolineras",
+  "onbCatDepartment": "Tiendas por departamento",
+  "onbCatOther": "Otro rubro",
+  "onbCatOtherName": "Nombre del rubro",
+  "onbCatAdd": "Agregar",
+  "onbBaseTitle": "Todo lo demás",
+  "onbBaseSub": "Lo que gana una compra fuera de estos rubros (tasa base)",
+  "onbRateHint": "%",
+  "onbAccountTitle": "Guarda lo que configuraste",
+  "onbAccountSub": "Crea tu cuenta para no perder tu tarjeta y usar tu verificación gratis.",
+  "onbAccountCardSub": "{bank} · {unit} en {currency}",
+  "@onbAccountCardSub": {
+    "placeholders": {
+      "bank": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      },
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "onbAccountCurrencyDetected": "moneda por detectar",
+  "onbAccountPrivacy": "Tu PDF se lee en memoria y nunca se guarda. De tu tarjeta solo guardamos los últimos 4 dígitos.",
+  "onbSyncFailed": "Creaste tu cuenta, pero no pudimos guardar tu configuración. Revisa tu conexión y reintenta.",
+  "onbSyncing": "Guardando tu configuración…",
+  "onbFreeCheckPill": "1 verificación gratis",
+  "onbHello": "Hola, {name}",
+  "@onbHello": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "onbPdfTitle": "Sube tu primer estado de cuenta",
+  "onbPdfSub": "Elige el PDF que te dio tu banco. Lo leemos en memoria y no lo guardamos.",
+  "onbPdfPick": "Elegir PDF",
+  "onbPdfChange": "Cambiar PDF",
+  "onbPdfForCard": "Para {card}",
+  "@onbPdfForCard": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "onbPdfStart": "Analizar con mi verificación gratis",
+  "onbPdfLater": "Ahora no, ir a mi inicio",
+  "onbPdfReadingTitle": "Leyendo tu estado de cuenta",
+  "onbFirstVerification": "Tu primera verificación",
+  "onbSavedSummary": "Quedó guardado: tu tarjeta {card}, {count, plural, =0{sin rubros} =1{1 rubro} other{{count} rubros}} y esta verificación.",
+  "@onbSavedSummary": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "onbSeeDetail": "Ver el detalle",
+  "onbGoHome": "Ir a mi inicio",
+  "onbContributes": "{name} aporta {amount} ({count, plural, =1{1 compra} other{{count} compras}}).",
+  "@onbContributes": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "onbVerdictStatusUnder": "De menos",
+  "onbVerdictStatusOver": "De más",
+  "onbVerdictStatusMatch": "Bien",
+  "processingTitle": "Leyendo tu estado de cuenta",
+  "processingAnalyzing": "Analizando con IA",
+  "processingEta": "unos 40 s",
+  "processingStepCard": "Es tu tarjeta",
+  "processingStepPeriod": "Encontrando el periodo y los movimientos",
+  "processingStepClassify": "Clasificando compras en tus rubros",
+  "processingStepRates": "Revisar tus % y calcular",
+  "processingCardLine": "Verificando que sea la tarjeta elegida",
+  "processingCanLeave": "Puedes cerrar la app: seguiremos analizando y lo verás en Inicio. La verificación solo se usa si la lectura sale bien.",
+  "processingLeave": "Ir a mi inicio",
+  "processingDismiss": "Entendido",
+  "pendingFailedTitle": "No se pudo analizar",
+  "failureNotAStatement": "El archivo no parece un estado de cuenta. Tu verificación fue devuelta: elige otro PDF.",
+  "failureExtraction": "No pudimos leer tu estado de cuenta. Tu verificación fue devuelta: inténtalo de nuevo.",
+  "failureInterrupted": "El análisis se interrumpió. Tu verificación fue devuelta: inténtalo de nuevo.",
+  "pendingProcessingTitle": "Analizando…",
+  "pendingProcessingBody": "{card} · puedes cerrar la app",
+  "@pendingProcessingBody": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "pendingAwaitingTitle": "Lista para confirmar",
+  "pendingAwaitingBody": "Falta confirmar tus %",
+  "pendingCompletedTitle": "Resultado nuevo",
+  "pendingCompletedBody": "{card} · toca para verlo",
+  "@pendingCompletedBody": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "pendingFailedBody": "{card} · {reason}",
+  "@pendingFailedBody": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "pendingFollow": "Seguir",
+  "pendingSectionTitle": "Pendientes",
+  "homeGreetingMorning": "{name, select, none{Buenos días} other{Buenos días, {name}}}",
+  "@homeGreetingMorning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeGreetingAfternoon": "{name, select, none{Buenas tardes} other{Buenas tardes, {name}}}",
+  "@homeGreetingAfternoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeGreetingEvening": "{name, select, none{Buenas noches} other{Buenas noches, {name}}}",
+  "@homeGreetingEvening": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeTitle": "Tu cashback",
+  "homeProfileAria": "Perfil y ajustes",
+  "homeFreeChecks": "{n, plural, =1{1 verificación gratis disponible} other{{n} verificaciones gratis disponibles}}",
+  "@homeFreeChecks": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "homeEmptyTitle": "Empecemos por tu tarjeta",
+  "homeEmptyCardPlaceholder": "Tu tarjeta",
+  "homeStep1Bold": "Agrega tu tarjeta",
+  "homeStep1Rest": " con sus rubros y porcentajes.",
+  "homeStep2Bold": "Sube tu PDF",
+  "homeStep2Rest": " y en menos de un minuto sabrás si te pagaron bien.",
+  "homeAddMyCard": "Agregar mi tarjeta",
+  "homeNoChecksTitle": "Aún no tienes verificaciones",
+  "homeNoChecksBody": "Aquí verás cada veredicto de tu banco.",
+  "homeGuidedSetup": "Prefiero la configuración guiada",
+  "homeFreshBanner": "{name, select, none{Listo. Aquí está todo lo que configuraste: tu tarjeta, sus rubros y tu primera verificación.} other{Listo, {name}. Aquí está todo lo que configuraste: tu tarjeta, sus rubros y tu primera verificación.}}",
+  "@homeFreshBanner": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeVerifyStatement": "Verificar estado de cuenta",
+  "homeUsedFree": "Usaste tu verificación gratis",
+  "homeGetMore": "Obtener más",
+  "homeChecksAvailable": "{n, plural, =1{1 verificación disponible} other{{n} verificaciones disponibles}}",
+  "@homeChecksAvailable": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "homeMyCard": "Mi tarjeta",
+  "homeMyCards": "Mis tarjetas",
+  "homeTapToEdit": "Toca para editar",
+  "homeAddAnotherCard": "Agregar otra tarjeta",
+  "homeAddCardTile": "Agregar tarjeta",
+  "homeCardMeta": "{bank} · base {rate} · {rules}",
+  "@homeCardMeta": {
+    "placeholders": {
+      "bank": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      },
+      "rules": {
+        "type": "String"
+      }
+    }
+  },
+  "homeEverythingElse": "Todo lo demás {rate}",
+  "@homeEverythingElse": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "homeFirstVerification": "Tu primera verificación",
+  "homeUncategorized": "{n, plural, =1{1 compra quedó sin rubro} other{{n} compras quedaron sin rubro}} · revísalas gratis",
+  "@homeUncategorized": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "homeLatestChecks": "Últimas verificaciones",
+  "homeSeeAll": "Ver todas",
+  "homeOffline": "Sin conexión. Mostrando datos guardados.",
+  "navHome": "Inicio",
+  "navHistory": "Historial",
+  "navCategories": "Rubros",
+  "navProfile": "Perfil",
+  "navAria": "Navegación principal",
+  "loginDividerOr": "o"
 }

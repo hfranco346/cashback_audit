@@ -18,7 +18,10 @@ import '../../features/settings/presentation/settings_page.dart';
 import '../../features/verifications/domain/pdf_picker.dart';
 import '../../features/verifications/domain/verification_entities.dart';
 import '../../features/verifications/domain/verification_repository.dart';
+import '../../features/verifications/presentation/attention_controller.dart';
 import '../../features/verifications/presentation/confirm_rates_controller.dart';
+import '../../features/verifications/presentation/verification_progress_controller.dart';
+import '../../features/verifications/presentation/verification_progress_page.dart';
 import '../../features/verifications/presentation/confirm_rates_page.dart';
 import '../../features/verifications/presentation/history_controller.dart';
 import '../../features/verifications/presentation/history_page.dart';
@@ -134,6 +137,20 @@ abstract final class AppPages {
             initialCardId: Get.arguments is String
                 ? Get.arguments as String
                 : null,
+          ),
+        );
+      }),
+    ),
+    GetPage(
+      name: Routes.verificationProgress,
+      page: () => const VerificationProgressPage(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(
+          () => VerificationProgressController(
+            verificationId: Get.arguments as String,
+            repository: Get.find<VerificationRepository>(),
+            navigator: Get.find<AppNavigator>(),
+            attention: Get.find<AttentionController>(),
           ),
         );
       }),

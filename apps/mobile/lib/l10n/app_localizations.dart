@@ -2371,6 +2371,840 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Ocultar detalle'**
   String get hideDetails;
+
+  /// No description provided for @splashTagline.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo que tu banco te debe'**
+  String get splashTagline;
+
+  /// No description provided for @languageAutomatic.
+  ///
+  /// In es, this message translates to:
+  /// **'Automático'**
+  String get languageAutomatic;
+
+  /// No description provided for @languageSpanish.
+  ///
+  /// In es, this message translates to:
+  /// **'Español'**
+  String get languageSpanish;
+
+  /// No description provided for @languageEnglish.
+  ///
+  /// In es, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
+  /// No description provided for @onbLangAria.
+  ///
+  /// In es, this message translates to:
+  /// **'Idioma: {language}. Cambiar'**
+  String onbLangAria(String language);
+
+  /// No description provided for @onbHaveAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Ya tengo cuenta'**
+  String get onbHaveAccount;
+
+  /// No description provided for @onbDemoTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Tu banco te pagó todo tu cashback?'**
+  String get onbDemoTitle;
+
+  /// No description provided for @onbDemoStatementSays.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu estado de cuenta dice'**
+  String get onbDemoStatementSays;
+
+  /// No description provided for @onbDemoPharmacy.
+  ///
+  /// In es, this message translates to:
+  /// **'Farmacia Kielsa · 7%'**
+  String get onbDemoPharmacy;
+
+  /// No description provided for @onbDemoPayment.
+  ///
+  /// In es, this message translates to:
+  /// **'Pago recibido · no cuenta'**
+  String get onbDemoPayment;
+
+  /// No description provided for @onbDemoOwed.
+  ///
+  /// In es, this message translates to:
+  /// **'Te debían'**
+  String get onbDemoOwed;
+
+  /// No description provided for @onbDemoSub.
+  ///
+  /// In es, this message translates to:
+  /// **'Subes el PDF, la IA lee cada compra y te decimos si te pagaron bien, de menos o de más. Vamos a configurar tu tarjeta mientras lo pruebas.'**
+  String get onbDemoSub;
+
+  /// No description provided for @onbDemoCta.
+  ///
+  /// In es, this message translates to:
+  /// **'Hacer mi verificación gratis'**
+  String get onbDemoCta;
+
+  /// No description provided for @onbDemoFoot.
+  ///
+  /// In es, this message translates to:
+  /// **'Unos 3 minutos · no pedimos datos de pago'**
+  String get onbDemoFoot;
+
+  /// No description provided for @onbSkipSetup.
+  ///
+  /// In es, this message translates to:
+  /// **'Omitir configuración'**
+  String get onbSkipSetup;
+
+  /// No description provided for @onbStepBank.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu banco'**
+  String get onbStepBank;
+
+  /// No description provided for @onbStepCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu tarjeta'**
+  String get onbStepCard;
+
+  /// No description provided for @onbStepCategories.
+  ///
+  /// In es, this message translates to:
+  /// **'Tus rubros'**
+  String get onbStepCategories;
+
+  /// No description provided for @onbStepAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu cuenta'**
+  String get onbStepAccount;
+
+  /// No description provided for @onbStepFreeCheck.
+  ///
+  /// In es, this message translates to:
+  /// **'Verificación gratis'**
+  String get onbStepFreeCheck;
+
+  /// No description provided for @onbStepLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Paso {step} de {total} · {name}'**
+  String onbStepLabel(int step, int total, String name);
+
+  /// No description provided for @onbBankTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿De qué banco es tu tarjeta?'**
+  String get onbBankTitle;
+
+  /// No description provided for @onbBankSub.
+  ///
+  /// In es, this message translates to:
+  /// **'Funciona con cualquier banco y país. Lo usamos para reconocer tu estado de cuenta.'**
+  String get onbBankSub;
+
+  /// No description provided for @onbBankSearch.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar tu banco'**
+  String get onbBankSearch;
+
+  /// No description provided for @onbBankTested.
+  ///
+  /// In es, this message translates to:
+  /// **'Probado'**
+  String get onbBankTested;
+
+  /// No description provided for @onbBankOther.
+  ///
+  /// In es, this message translates to:
+  /// **'Otro banco'**
+  String get onbBankOther;
+
+  /// No description provided for @onbBankOtherName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre de tu banco'**
+  String get onbBankOtherName;
+
+  /// No description provided for @onbCardTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu tarjeta {bank}'**
+  String onbCardTitle(String bank);
+
+  /// No description provided for @onbCardName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre'**
+  String get onbCardName;
+
+  /// No description provided for @onbCardLast4.
+  ///
+  /// In es, this message translates to:
+  /// **'Últimos 4'**
+  String get onbCardLast4;
+
+  /// No description provided for @onbCardLast4Note.
+  ///
+  /// In es, this message translates to:
+  /// **'Solo guardamos estos 4 dígitos.'**
+  String get onbCardLast4Note;
+
+  /// No description provided for @onbRewardKind.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Qué te da la tarjeta?'**
+  String get onbRewardKind;
+
+  /// No description provided for @onbRewardCashback.
+  ///
+  /// In es, this message translates to:
+  /// **'Cashback'**
+  String get onbRewardCashback;
+
+  /// No description provided for @onbRewardPoints.
+  ///
+  /// In es, this message translates to:
+  /// **'Puntos o millas'**
+  String get onbRewardPoints;
+
+  /// No description provided for @onbRewardCurrency.
+  ///
+  /// In es, this message translates to:
+  /// **'¿En qué moneda te lo pagan?'**
+  String get onbRewardCurrency;
+
+  /// No description provided for @onbCurrencyDetect.
+  ///
+  /// In es, this message translates to:
+  /// **'No sé, que lo detecte'**
+  String get onbCurrencyDetect;
+
+  /// No description provided for @onbRewardLabelCashback.
+  ///
+  /// In es, this message translates to:
+  /// **'CASHBACK'**
+  String get onbRewardLabelCashback;
+
+  /// No description provided for @onbRewardLabelPoints.
+  ///
+  /// In es, this message translates to:
+  /// **'PUNTOS'**
+  String get onbRewardLabelPoints;
+
+  /// No description provided for @onbCatsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿En qué compras te da más?'**
+  String get onbCatsTitle;
+
+  /// No description provided for @onbCatsSub.
+  ///
+  /// In es, this message translates to:
+  /// **'Marca los rubros de tu tarjeta y su porcentaje. Si no lo sabes, déjalo vacío: lo buscamos en tu estado de cuenta.'**
+  String get onbCatsSub;
+
+  /// No description provided for @onbCatSupermarkets.
+  ///
+  /// In es, this message translates to:
+  /// **'Supermercados'**
+  String get onbCatSupermarkets;
+
+  /// No description provided for @onbCatPharmacy.
+  ///
+  /// In es, this message translates to:
+  /// **'Farmacia'**
+  String get onbCatPharmacy;
+
+  /// No description provided for @onbCatRestaurants.
+  ///
+  /// In es, this message translates to:
+  /// **'Restaurantes y comida rápida'**
+  String get onbCatRestaurants;
+
+  /// No description provided for @onbCatGas.
+  ///
+  /// In es, this message translates to:
+  /// **'Gasolineras'**
+  String get onbCatGas;
+
+  /// No description provided for @onbCatDepartment.
+  ///
+  /// In es, this message translates to:
+  /// **'Tiendas por departamento'**
+  String get onbCatDepartment;
+
+  /// No description provided for @onbCatOther.
+  ///
+  /// In es, this message translates to:
+  /// **'Otro rubro'**
+  String get onbCatOther;
+
+  /// No description provided for @onbCatOtherName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre del rubro'**
+  String get onbCatOtherName;
+
+  /// No description provided for @onbCatAdd.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar'**
+  String get onbCatAdd;
+
+  /// No description provided for @onbBaseTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Todo lo demás'**
+  String get onbBaseTitle;
+
+  /// No description provided for @onbBaseSub.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo que gana una compra fuera de estos rubros (tasa base)'**
+  String get onbBaseSub;
+
+  /// No description provided for @onbRateHint.
+  ///
+  /// In es, this message translates to:
+  /// **'%'**
+  String get onbRateHint;
+
+  /// No description provided for @onbAccountTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Guarda lo que configuraste'**
+  String get onbAccountTitle;
+
+  /// No description provided for @onbAccountSub.
+  ///
+  /// In es, this message translates to:
+  /// **'Crea tu cuenta para no perder tu tarjeta y usar tu verificación gratis.'**
+  String get onbAccountSub;
+
+  /// No description provided for @onbAccountCardSub.
+  ///
+  /// In es, this message translates to:
+  /// **'{bank} · {unit} en {currency}'**
+  String onbAccountCardSub(String bank, String unit, String currency);
+
+  /// No description provided for @onbAccountCurrencyDetected.
+  ///
+  /// In es, this message translates to:
+  /// **'moneda por detectar'**
+  String get onbAccountCurrencyDetected;
+
+  /// No description provided for @onbAccountPrivacy.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu PDF se lee en memoria y nunca se guarda. De tu tarjeta solo guardamos los últimos 4 dígitos.'**
+  String get onbAccountPrivacy;
+
+  /// No description provided for @onbSyncFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'Creaste tu cuenta, pero no pudimos guardar tu configuración. Revisa tu conexión y reintenta.'**
+  String get onbSyncFailed;
+
+  /// No description provided for @onbSyncing.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardando tu configuración…'**
+  String get onbSyncing;
+
+  /// No description provided for @onbFreeCheckPill.
+  ///
+  /// In es, this message translates to:
+  /// **'1 verificación gratis'**
+  String get onbFreeCheckPill;
+
+  /// No description provided for @onbHello.
+  ///
+  /// In es, this message translates to:
+  /// **'Hola, {name}'**
+  String onbHello(String name);
+
+  /// No description provided for @onbPdfTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Sube tu primer estado de cuenta'**
+  String get onbPdfTitle;
+
+  /// No description provided for @onbPdfSub.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige el PDF que te dio tu banco. Lo leemos en memoria y no lo guardamos.'**
+  String get onbPdfSub;
+
+  /// No description provided for @onbPdfPick.
+  ///
+  /// In es, this message translates to:
+  /// **'Elegir PDF'**
+  String get onbPdfPick;
+
+  /// No description provided for @onbPdfChange.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar PDF'**
+  String get onbPdfChange;
+
+  /// No description provided for @onbPdfForCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Para {card}'**
+  String onbPdfForCard(String card);
+
+  /// No description provided for @onbPdfStart.
+  ///
+  /// In es, this message translates to:
+  /// **'Analizar con mi verificación gratis'**
+  String get onbPdfStart;
+
+  /// No description provided for @onbPdfLater.
+  ///
+  /// In es, this message translates to:
+  /// **'Ahora no, ir a mi inicio'**
+  String get onbPdfLater;
+
+  /// No description provided for @onbPdfReadingTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Leyendo tu estado de cuenta'**
+  String get onbPdfReadingTitle;
+
+  /// No description provided for @onbFirstVerification.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu primera verificación'**
+  String get onbFirstVerification;
+
+  /// No description provided for @onbSavedSummary.
+  ///
+  /// In es, this message translates to:
+  /// **'Quedó guardado: tu tarjeta {card}, {count, plural, =0{sin rubros} =1{1 rubro} other{{count} rubros}} y esta verificación.'**
+  String onbSavedSummary(String card, int count);
+
+  /// No description provided for @onbSeeDetail.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver el detalle'**
+  String get onbSeeDetail;
+
+  /// No description provided for @onbGoHome.
+  ///
+  /// In es, this message translates to:
+  /// **'Ir a mi inicio'**
+  String get onbGoHome;
+
+  /// No description provided for @onbContributes.
+  ///
+  /// In es, this message translates to:
+  /// **'{name} aporta {amount} ({count, plural, =1{1 compra} other{{count} compras}}).'**
+  String onbContributes(String name, String amount, int count);
+
+  /// No description provided for @onbVerdictStatusUnder.
+  ///
+  /// In es, this message translates to:
+  /// **'De menos'**
+  String get onbVerdictStatusUnder;
+
+  /// No description provided for @onbVerdictStatusOver.
+  ///
+  /// In es, this message translates to:
+  /// **'De más'**
+  String get onbVerdictStatusOver;
+
+  /// No description provided for @onbVerdictStatusMatch.
+  ///
+  /// In es, this message translates to:
+  /// **'Bien'**
+  String get onbVerdictStatusMatch;
+
+  /// No description provided for @processingTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Leyendo tu estado de cuenta'**
+  String get processingTitle;
+
+  /// No description provided for @processingAnalyzing.
+  ///
+  /// In es, this message translates to:
+  /// **'Analizando con IA'**
+  String get processingAnalyzing;
+
+  /// No description provided for @processingEta.
+  ///
+  /// In es, this message translates to:
+  /// **'unos 40 s'**
+  String get processingEta;
+
+  /// No description provided for @processingStepCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Es tu tarjeta'**
+  String get processingStepCard;
+
+  /// No description provided for @processingStepPeriod.
+  ///
+  /// In es, this message translates to:
+  /// **'Encontrando el periodo y los movimientos'**
+  String get processingStepPeriod;
+
+  /// No description provided for @processingStepClassify.
+  ///
+  /// In es, this message translates to:
+  /// **'Clasificando compras en tus rubros'**
+  String get processingStepClassify;
+
+  /// No description provided for @processingStepRates.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar tus % y calcular'**
+  String get processingStepRates;
+
+  /// No description provided for @processingCardLine.
+  ///
+  /// In es, this message translates to:
+  /// **'Verificando que sea la tarjeta elegida'**
+  String get processingCardLine;
+
+  /// No description provided for @processingCanLeave.
+  ///
+  /// In es, this message translates to:
+  /// **'Puedes cerrar la app: seguiremos analizando y lo verás en Inicio. La verificación solo se usa si la lectura sale bien.'**
+  String get processingCanLeave;
+
+  /// No description provided for @processingLeave.
+  ///
+  /// In es, this message translates to:
+  /// **'Ir a mi inicio'**
+  String get processingLeave;
+
+  /// No description provided for @processingDismiss.
+  ///
+  /// In es, this message translates to:
+  /// **'Entendido'**
+  String get processingDismiss;
+
+  /// No description provided for @pendingFailedTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo analizar'**
+  String get pendingFailedTitle;
+
+  /// No description provided for @failureNotAStatement.
+  ///
+  /// In es, this message translates to:
+  /// **'El archivo no parece un estado de cuenta. Tu verificación fue devuelta: elige otro PDF.'**
+  String get failureNotAStatement;
+
+  /// No description provided for @failureExtraction.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos leer tu estado de cuenta. Tu verificación fue devuelta: inténtalo de nuevo.'**
+  String get failureExtraction;
+
+  /// No description provided for @failureInterrupted.
+  ///
+  /// In es, this message translates to:
+  /// **'El análisis se interrumpió. Tu verificación fue devuelta: inténtalo de nuevo.'**
+  String get failureInterrupted;
+
+  /// No description provided for @pendingProcessingTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Analizando…'**
+  String get pendingProcessingTitle;
+
+  /// No description provided for @pendingProcessingBody.
+  ///
+  /// In es, this message translates to:
+  /// **'{card} · puedes cerrar la app'**
+  String pendingProcessingBody(String card);
+
+  /// No description provided for @pendingAwaitingTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Lista para confirmar'**
+  String get pendingAwaitingTitle;
+
+  /// No description provided for @pendingAwaitingBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Falta confirmar tus %'**
+  String get pendingAwaitingBody;
+
+  /// No description provided for @pendingCompletedTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Resultado nuevo'**
+  String get pendingCompletedTitle;
+
+  /// No description provided for @pendingCompletedBody.
+  ///
+  /// In es, this message translates to:
+  /// **'{card} · toca para verlo'**
+  String pendingCompletedBody(String card);
+
+  /// No description provided for @pendingFailedBody.
+  ///
+  /// In es, this message translates to:
+  /// **'{card} · {reason}'**
+  String pendingFailedBody(String card, String reason);
+
+  /// No description provided for @pendingFollow.
+  ///
+  /// In es, this message translates to:
+  /// **'Seguir'**
+  String get pendingFollow;
+
+  /// No description provided for @pendingSectionTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Pendientes'**
+  String get pendingSectionTitle;
+
+  /// No description provided for @homeGreetingMorning.
+  ///
+  /// In es, this message translates to:
+  /// **'{name, select, none{Buenos días} other{Buenos días, {name}}}'**
+  String homeGreetingMorning(String name);
+
+  /// No description provided for @homeGreetingAfternoon.
+  ///
+  /// In es, this message translates to:
+  /// **'{name, select, none{Buenas tardes} other{Buenas tardes, {name}}}'**
+  String homeGreetingAfternoon(String name);
+
+  /// No description provided for @homeGreetingEvening.
+  ///
+  /// In es, this message translates to:
+  /// **'{name, select, none{Buenas noches} other{Buenas noches, {name}}}'**
+  String homeGreetingEvening(String name);
+
+  /// No description provided for @homeTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu cashback'**
+  String get homeTitle;
+
+  /// No description provided for @homeProfileAria.
+  ///
+  /// In es, this message translates to:
+  /// **'Perfil y ajustes'**
+  String get homeProfileAria;
+
+  /// No description provided for @homeFreeChecks.
+  ///
+  /// In es, this message translates to:
+  /// **'{n, plural, =1{1 verificación gratis disponible} other{{n} verificaciones gratis disponibles}}'**
+  String homeFreeChecks(int n);
+
+  /// No description provided for @homeEmptyTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Empecemos por tu tarjeta'**
+  String get homeEmptyTitle;
+
+  /// No description provided for @homeEmptyCardPlaceholder.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu tarjeta'**
+  String get homeEmptyCardPlaceholder;
+
+  /// No description provided for @homeStep1Bold.
+  ///
+  /// In es, this message translates to:
+  /// **'Agrega tu tarjeta'**
+  String get homeStep1Bold;
+
+  /// No description provided for @homeStep1Rest.
+  ///
+  /// In es, this message translates to:
+  /// **' con sus rubros y porcentajes.'**
+  String get homeStep1Rest;
+
+  /// No description provided for @homeStep2Bold.
+  ///
+  /// In es, this message translates to:
+  /// **'Sube tu PDF'**
+  String get homeStep2Bold;
+
+  /// No description provided for @homeStep2Rest.
+  ///
+  /// In es, this message translates to:
+  /// **' y en menos de un minuto sabrás si te pagaron bien.'**
+  String get homeStep2Rest;
+
+  /// No description provided for @homeAddMyCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar mi tarjeta'**
+  String get homeAddMyCard;
+
+  /// No description provided for @homeNoChecksTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no tienes verificaciones'**
+  String get homeNoChecksTitle;
+
+  /// No description provided for @homeNoChecksBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Aquí verás cada veredicto de tu banco.'**
+  String get homeNoChecksBody;
+
+  /// No description provided for @homeGuidedSetup.
+  ///
+  /// In es, this message translates to:
+  /// **'Prefiero la configuración guiada'**
+  String get homeGuidedSetup;
+
+  /// No description provided for @homeFreshBanner.
+  ///
+  /// In es, this message translates to:
+  /// **'{name, select, none{Listo. Aquí está todo lo que configuraste: tu tarjeta, sus rubros y tu primera verificación.} other{Listo, {name}. Aquí está todo lo que configuraste: tu tarjeta, sus rubros y tu primera verificación.}}'**
+  String homeFreshBanner(String name);
+
+  /// No description provided for @homeVerifyStatement.
+  ///
+  /// In es, this message translates to:
+  /// **'Verificar estado de cuenta'**
+  String get homeVerifyStatement;
+
+  /// No description provided for @homeUsedFree.
+  ///
+  /// In es, this message translates to:
+  /// **'Usaste tu verificación gratis'**
+  String get homeUsedFree;
+
+  /// No description provided for @homeGetMore.
+  ///
+  /// In es, this message translates to:
+  /// **'Obtener más'**
+  String get homeGetMore;
+
+  /// No description provided for @homeChecksAvailable.
+  ///
+  /// In es, this message translates to:
+  /// **'{n, plural, =1{1 verificación disponible} other{{n} verificaciones disponibles}}'**
+  String homeChecksAvailable(int n);
+
+  /// No description provided for @homeMyCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Mi tarjeta'**
+  String get homeMyCard;
+
+  /// No description provided for @homeMyCards.
+  ///
+  /// In es, this message translates to:
+  /// **'Mis tarjetas'**
+  String get homeMyCards;
+
+  /// No description provided for @homeTapToEdit.
+  ///
+  /// In es, this message translates to:
+  /// **'Toca para editar'**
+  String get homeTapToEdit;
+
+  /// No description provided for @homeAddAnotherCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar otra tarjeta'**
+  String get homeAddAnotherCard;
+
+  /// No description provided for @homeAddCardTile.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar tarjeta'**
+  String get homeAddCardTile;
+
+  /// No description provided for @homeCardMeta.
+  ///
+  /// In es, this message translates to:
+  /// **'{bank} · base {rate} · {rules}'**
+  String homeCardMeta(String bank, String rate, String rules);
+
+  /// No description provided for @homeEverythingElse.
+  ///
+  /// In es, this message translates to:
+  /// **'Todo lo demás {rate}'**
+  String homeEverythingElse(String rate);
+
+  /// No description provided for @homeFirstVerification.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu primera verificación'**
+  String get homeFirstVerification;
+
+  /// No description provided for @homeUncategorized.
+  ///
+  /// In es, this message translates to:
+  /// **'{n, plural, =1{1 compra quedó sin rubro} other{{n} compras quedaron sin rubro}} · revísalas gratis'**
+  String homeUncategorized(int n);
+
+  /// No description provided for @homeLatestChecks.
+  ///
+  /// In es, this message translates to:
+  /// **'Últimas verificaciones'**
+  String get homeLatestChecks;
+
+  /// No description provided for @homeSeeAll.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver todas'**
+  String get homeSeeAll;
+
+  /// No description provided for @homeOffline.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin conexión. Mostrando datos guardados.'**
+  String get homeOffline;
+
+  /// No description provided for @navHome.
+  ///
+  /// In es, this message translates to:
+  /// **'Inicio'**
+  String get navHome;
+
+  /// No description provided for @navHistory.
+  ///
+  /// In es, this message translates to:
+  /// **'Historial'**
+  String get navHistory;
+
+  /// No description provided for @navCategories.
+  ///
+  /// In es, this message translates to:
+  /// **'Rubros'**
+  String get navCategories;
+
+  /// No description provided for @navProfile.
+  ///
+  /// In es, this message translates to:
+  /// **'Perfil'**
+  String get navProfile;
+
+  /// No description provided for @navAria.
+  ///
+  /// In es, this message translates to:
+  /// **'Navegación principal'**
+  String get navAria;
+
+  /// No description provided for @loginDividerOr.
+  ///
+  /// In es, this message translates to:
+  /// **'o'**
+  String get loginDividerOr;
 }
 
 class _AppLocalizationsDelegate

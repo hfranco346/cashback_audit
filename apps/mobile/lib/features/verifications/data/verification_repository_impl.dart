@@ -15,7 +15,7 @@ class VerificationRepositoryImpl implements VerificationRepository {
   final AppDatabase _db;
 
   @override
-  Future<Verification> verify({
+  Future<Verification> upload({
     required String cardId,
     required String filePath,
     String? exchangeRate,
@@ -38,15 +38,37 @@ class VerificationRepositoryImpl implements VerificationRepository {
       '/verifications',
       data: form,
       onSendProgress: onProgress,
-      // Analysis can take minutes; the request is not idempotent so there is
-      // no automatic retry.
+      // The backend accepts the file and answers 202 immediately; the
+      // request is not idempotent so there is no automatic retry.
       options: Options(
-        receiveTimeout: const Duration(minutes: 3),
+        receiveTimeout: const Duration(minutes: 1),
         sendTimeout: const Duration(minutes: 2),
       ),
     );
     return _store(res.data!);
   });
+
+  @override
+  Future<Verification> get(String id) => guardApi(() async {
+    final res = await _dio.get<JsonMap>('/verifications/$id');
+    return _store(res.data!);
+  });
+
+  @override
+  Future<List<VerificationSummary>> attention() => guardApi(() async {
+    final res = await _dio.get<JsonMap>('/verifications/attention');
+    final items = res.data?['items'];
+    return [
+      if (items is List)
+        for (final e in items)
+          if (e is Map)
+            VerificationMapper.summary(Map<String, dynamic>.from(e)),
+    ];
+  });
+
+  @override
+  Future<void> markSeen(String id) =>
+      guardApi(() => _dio.post<void>('/verifications/$id/seen'));
 
   @override
   Future<Verification> confirm(String id, ConfirmRequest request) =>
@@ -83,11 +105,13 @@ class VerificationRepositoryImpl implements VerificationRepository {
     return _store(res.data!);
   });
 
-  /// Writes a fresh verification through to the offline cache.
+  /// Writes a fresh verification through to the offline cache. The `202`
+  /// upload answer is a summary (no `breakdown`): it only feeds the history.
   Future<Verification> _store(JsonMap json) async {
-    await _db.saveVerificationDetail(json);
+    final isSummary = !json.containsKey('breakdown');
+    if (!isSummary) await _db.saveVerificationDetail(json);
     await _db.saveVerificationSummaries([
-      VerificationMapper.summaryJsonFromDetail(json),
+      isSummary ? json : VerificationMapper.summaryJsonFromDetail(json),
     ]);
     return VerificationMapper.detail(json);
   }

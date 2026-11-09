@@ -3,16 +3,38 @@ import 'package:equatable/equatable.dart';
 
 import '../../cards/domain/card_entities.dart';
 
-/// `AWAITING_RATES` after the upload (nothing computed yet); `COMPLETED`
-/// after the user confirmed the rates.
+/// Lifecycle of a verification (see the async contract in
+/// `docs/api-contract.md`): `PROCESSING` (analysis running in the backend) →
+/// `AWAITING_RATES` (nothing computed yet) → `COMPLETED` (rates confirmed),
+/// or `FAILED` (see [FailureCode]; the credit is refunded).
 enum VerificationStatus {
+  processing,
   awaitingRates,
-  completed;
+  completed,
+  failed;
 
-  /// Rows cached before the two-step flow have no status: they are results.
-  static VerificationStatus fromApi(String? v) => v == 'AWAITING_RATES'
-      ? VerificationStatus.awaitingRates
-      : VerificationStatus.completed;
+  /// Rows cached before the async flow have no status: they are results.
+  static VerificationStatus fromApi(String? v) => switch (v) {
+    'PROCESSING' => VerificationStatus.processing,
+    'AWAITING_RATES' => VerificationStatus.awaitingRates,
+    'FAILED' => VerificationStatus.failed,
+    _ => VerificationStatus.completed,
+  };
+}
+
+/// Why a verification ended `FAILED`.
+enum FailureCode {
+  notAStatement,
+  extractionFailed,
+  interrupted;
+
+  /// Unknown codes degrade to [extractionFailed] (generic message).
+  static FailureCode? tryFromApi(String? v) => switch (v) {
+    null => null,
+    'NOT_A_STATEMENT' => FailureCode.notAStatement,
+    'INTERRUPTED' => FailureCode.interrupted,
+    _ => FailureCode.extractionFailed,
+  };
 }
 
 enum Verdict {
@@ -757,11 +779,19 @@ class Verification extends Equatable {
     this.currencies = const [],
     this.loyalty = LoyaltyInfo.empty,
     this.models = const {},
+    this.failureCode,
+    this.seenAt,
   });
 
   final String id;
   final String cardId;
   final VerificationStatus status;
+
+  /// Set when [status] is `FAILED`.
+  final FailureCode? failureCode;
+
+  /// When the user opened a finished (completed / failed) result; null = new.
+  final DateTime? seenAt;
   final StatementInfo statement;
 
   /// Card currency: every reward figure is expressed in it.
@@ -807,6 +837,8 @@ class Verification extends Equatable {
 
   bool get isCompleted => status == VerificationStatus.completed;
   bool get isAwaitingRates => status == VerificationStatus.awaitingRates;
+  bool get isProcessing => status == VerificationStatus.processing;
+  bool get isFailed => status == VerificationStatus.failed;
 
   /// Card currency: spend, breakdown, caps and per-line rewards use it.
   String get currency => primaryCurrency ?? statement.currency ?? 'MXN';
@@ -861,6 +893,8 @@ class Verification extends Equatable {
     warnings,
     models,
     createdAt,
+    failureCode,
+    seenAt,
   ];
 }
 
@@ -878,11 +912,15 @@ class VerificationSummary extends Equatable {
     this.expectedAmount,
     this.difference,
     this.verdict,
+    this.failureCode,
+    this.seenAt,
   });
 
   final String id;
   final String cardId;
   final VerificationStatus status;
+  final FailureCode? failureCode;
+  final DateTime? seenAt;
   final StatementInfo statement;
   final String? primaryCurrency;
 
@@ -898,6 +936,12 @@ class VerificationSummary extends Equatable {
   final DateTime createdAt;
 
   bool get isAwaitingRates => status == VerificationStatus.awaitingRates;
+  bool get isProcessing => status == VerificationStatus.processing;
+  bool get isFailed => status == VerificationStatus.failed;
+  bool get isCompleted => status == VerificationStatus.completed;
+
+  /// A finished (completed / failed) result the user has not opened yet.
+  bool get isUnseenResult => (isCompleted || isFailed) && seenAt == null;
   String get currency => primaryCurrency ?? statement.currency ?? 'MXN';
   String get resolvedRewardCurrency => rewardCurrency ?? currency;
 
@@ -915,6 +959,8 @@ class VerificationSummary extends Equatable {
     difference,
     verdict,
     createdAt,
+    failureCode,
+    seenAt,
   ];
 }
 

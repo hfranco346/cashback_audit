@@ -17,6 +17,7 @@ import '../../features/verifications/data/file_picker_pdf_picker.dart';
 import '../../features/verifications/data/verification_repository_impl.dart';
 import '../../features/verifications/domain/pdf_picker.dart';
 import '../../features/verifications/domain/verification_repository.dart';
+import '../../features/verifications/presentation/attention_controller.dart';
 import '../../features/verifications/presentation/history_controller.dart';
 import '../../features/credits/data/credits_repository_impl.dart';
 import '../../features/credits/domain/credits_repository.dart';
@@ -93,6 +94,13 @@ class InitialBinding extends Bindings {
       VerificationRepositoryImpl(dio, db),
       permanent: true,
     );
+    Get.lazyPut<AttentionController>(
+      () => AttentionController(
+        repository: Get.find<VerificationRepository>(),
+        navigator: Get.find<AppNavigator>(),
+      ),
+      fenix: true,
+    );
     Get.put<PdfPicker>(FilePickerPdfPicker(), permanent: true);
     Get.lazyPut<LatestVerificationsController>(
       () => LatestVerificationsController(Get.find<VerificationRepository>()),
@@ -146,5 +154,6 @@ class InitialBinding extends Bindings {
     Get.delete<CardsController>(force: true);
     Get.delete<CatalogController>(force: true);
     Get.delete<LatestVerificationsController>(force: true);
+    Get.delete<AttentionController>(force: true);
   }
 }

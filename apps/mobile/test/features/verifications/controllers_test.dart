@@ -100,10 +100,9 @@ void main() {
       await c.pickFile();
       expect(c.canSubmit, isTrue);
       await c.submit();
-      // Step 1 only produced the rate proposal: the user confirms it next.
-      expect(nav.replaced, ['/confirm-rates']);
-      final args = nav.replacedArgs.single as ConfirmRatesArgs;
-      expect(args.verification?.isAwaitingRates, isTrue);
+      // The upload only starts the analysis: the progress page watches it.
+      expect(nav.replaced, ['/verification-progress']);
+      expect(nav.replacedArgs.single, 'v1');
       expect(verified, 1);
       expect(c.phase.value, UploadPhase.idle);
     });
@@ -132,7 +131,7 @@ void main() {
       await c.pickFile();
       await c.submit();
       expect(nav.pushed, isEmpty);
-      expect(nav.replaced, ['/confirm-rates']);
+      expect(nav.replaced, ['/verification-progress']);
     });
 
     test(

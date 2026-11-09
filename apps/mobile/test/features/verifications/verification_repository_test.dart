@@ -219,15 +219,15 @@ void main() {
   });
 
   test(
-    'verify uploads multipart with cardId, pdf and optional rate/program',
+    'upload sends multipart with cardId, pdf and optional rate/program',
     () async {
       final file = File('${tmp.path}/s.pdf')
         ..writeAsBytesSync([37, 80, 68, 70]);
       adapter = FakeAdapter(
-        (o) => FakeResponse(201, awaitingVerificationJson()),
+        (o) => FakeResponse(202, processingVerificationJson()),
       );
       final progress = <int>[];
-      final v = await repo().verify(
+      final v = await repo().upload(
         cardId: 'c1',
         filePath: file.path,
         exchangeRate: '26,35',
@@ -235,7 +235,7 @@ void main() {
         onProgress: (s, t) => progress.add(s),
       );
       expect(v.id, 'v1');
-      expect(v.isAwaitingRates, isTrue);
+      expect(v.isProcessing, isTrue);
       final req = adapter.requests.single;
       expect(req.path, '/verifications');
       final form = req.data as FormData;
@@ -246,14 +246,14 @@ void main() {
       expect(fields.containsKey('reportedRewardOverride'), isFalse);
       expect(form.files.single.key, 'file');
       expect(form.files.single.value.contentType.toString(), 'application/pdf');
-      expect(req.receiveTimeout, const Duration(minutes: 3));
-      // The fresh result is cached for offline history/detail.
+      expect(req.receiveTimeout, const Duration(minutes: 1));
+      // The 202 summary feeds the offline history (no detail yet).
       expect(await db.readVerificationSummaries(), hasLength(1));
-      expect(await db.readVerificationDetail('v1'), isNotNull);
+      expect(await db.readVerificationDetail('v1'), isNull);
     },
   );
 
-  test('verify maps 402 NO_CREDITS', () async {
+  test('upload maps 402 NO_CREDITS', () async {
     final file = File('${tmp.path}/s.pdf')..writeAsBytesSync([37]);
     adapter = FakeAdapter(
       (o) => const FakeResponse(402, {
@@ -264,11 +264,83 @@ void main() {
       }),
     );
     await expectLater(
-      repo().verify(cardId: 'c1', filePath: file.path),
+      repo().upload(cardId: 'c1', filePath: file.path),
       throwsA(
         isA<AppException>().having((e) => e.isNoCredits, 'noCredits', true),
       ),
     );
+  });
+
+  group('async lifecycle', () {
+    test('status and failure code are parsed, unknown status = completed', () {
+      expect(
+        VerificationStatus.fromApi('PROCESSING'),
+        VerificationStatus.processing,
+      );
+      expect(VerificationStatus.fromApi('FAILED'), VerificationStatus.failed);
+      expect(VerificationStatus.fromApi(null), VerificationStatus.completed);
+      expect(
+        FailureCode.tryFromApi('NOT_A_STATEMENT'),
+        FailureCode.notAStatement,
+      );
+      expect(FailureCode.tryFromApi('INTERRUPTED'), FailureCode.interrupted);
+      expect(FailureCode.tryFromApi('WHATEVER'), FailureCode.extractionFailed);
+      expect(FailureCode.tryFromApi(null), isNull);
+    });
+
+    test('a processing summary maps without lines and keeps seenAt', () {
+      final v = VerificationMapper.detail(
+        processingVerificationJson(seenAt: '2026-02-01T10:00:00.000Z'),
+      );
+      expect(v.isProcessing, isTrue);
+      expect(v.transactions, isEmpty);
+      expect(v.seenAt, DateTime.utc(2026, 2, 1, 10));
+      final failed = VerificationMapper.summary(
+        failedSummaryJson('v9', 'EXTRACTION_FAILED'),
+      );
+      expect(failed.isFailed, isTrue);
+      expect(failed.failureCode, FailureCode.extractionFailed);
+      expect(failed.isUnseenResult, isTrue);
+    });
+
+    test('get always hits the network and refreshes the cache', () async {
+      adapter = FakeAdapter((o) {
+        expect(o.path, '/verifications/v1');
+        return FakeResponse(200, {
+          ...verificationJson(),
+          'status': 'PROCESSING',
+        });
+      });
+      final v = await repo().get('v1');
+      expect(v.isProcessing, isTrue);
+      expect(await db.readVerificationDetail('v1'), isNotNull);
+    });
+
+    test('attention maps the items and tolerates a missing list', () async {
+      adapter = FakeAdapter(
+        (o) => FakeResponse(200, {
+          'items': [
+            failedSummaryJson('a', 'NOT_A_STATEMENT'),
+            summaryJson('b'),
+          ],
+        }),
+      );
+      final items = await repo().attention();
+      expect(items.map((e) => e.id), ['a', 'b']);
+      expect(items.first.failureCode, FailureCode.notAStatement);
+      adapter = FakeAdapter(
+        (o) => const FakeResponse(200, <String, dynamic>{}),
+      );
+      expect(await repo().attention(), isEmpty);
+    });
+
+    test('markSeen posts to /seen', () async {
+      adapter = FakeAdapter((o) => const FakeResponse(204, null));
+      await repo().markSeen('v1');
+      final req = adapter.requests.single;
+      expect(req.method, 'POST');
+      expect(req.path, '/verifications/v1/seen');
+    });
   });
 
   test('history paginates, caches page one and falls back offline', () async {

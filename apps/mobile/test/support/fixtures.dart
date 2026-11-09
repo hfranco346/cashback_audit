@@ -593,3 +593,40 @@ Map<String, dynamic> ficohsaCompletedJson({String id = 'fico'}) =>
         ],
       },
     });
+
+/// `202` answer of the upload: the analysis is still running.
+Map<String, dynamic> processingVerificationJson({
+  String id = 'v1',
+  String? seenAt,
+}) => {
+  'id': id,
+  'cardId': 'c1',
+  'status': 'PROCESSING',
+  'failureCode': null,
+  'seenAt': seenAt,
+  'statement': {
+    'bank': 'BAC',
+    'cardLast4': '4321',
+    'periodStart': null,
+    'periodEnd': null,
+    'currency': 'HNL',
+  },
+  'primaryCurrency': 'HNL',
+  'rewardUnit': 'CASHBACK_CURRENCY',
+  'rewardCurrency': null,
+  'reportedAmount': null,
+  'expectedAmount': null,
+  'difference': null,
+  'verdict': null,
+  'createdAt': '2026-02-01T09:00:00.000Z',
+};
+
+/// A `FAILED` row as `GET /verifications/attention` returns it.
+Map<String, dynamic> failedSummaryJson(String id, String code) => {
+  ...summaryJson(id),
+  'status': 'FAILED',
+  'failureCode': code,
+  'seenAt': null,
+  'verdict': null,
+  'difference': null,
+};

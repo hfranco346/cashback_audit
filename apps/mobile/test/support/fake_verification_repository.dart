@@ -7,8 +7,16 @@ import 'fixtures.dart';
 
 /// In-memory [VerificationRepository] recording calls and scripted failures.
 class FakeVerificationRepository implements VerificationRepository {
-  /// What `verify` returns (step 1 result by default).
-  Map<String, dynamic> verifyJson = awaitingVerificationJson();
+  /// What `upload` returns (the `202` PROCESSING summary by default).
+  Map<String, dynamic> verifyJson = processingVerificationJson();
+
+  /// Scripted `get` answers (consumed in order; the last one repeats).
+  final getResults = <Object>[];
+  int getCalls = 0;
+  List<VerificationSummary> attentionItems = [];
+  Object? attentionError;
+  int attentionCalls = 0;
+  final seen = <String>[];
 
   /// What `detail`/`confirm`/`correctTransaction` return unless scripted.
   Map<String, dynamic> detailJson = verificationJson();
@@ -33,7 +41,7 @@ class FakeVerificationRepository implements VerificationRepository {
   int pageSizeSeen = 0;
 
   @override
-  Future<Verification> verify({
+  Future<Verification> upload({
     required String cardId,
     required String filePath,
     String? exchangeRate,
@@ -47,6 +55,25 @@ class FakeVerificationRepository implements VerificationRepository {
     if (verifyError != null) throw verifyError!;
     return VerificationMapper.detail(verifyJson);
   }
+
+  @override
+  Future<Verification> get(String id) async {
+    getCalls++;
+    if (getResults.isEmpty) return VerificationMapper.detail(detailJson);
+    final next = getResults.length > 1 ? getResults.removeAt(0) : getResults[0];
+    if (next is Map<String, dynamic>) return VerificationMapper.detail(next);
+    throw next;
+  }
+
+  @override
+  Future<List<VerificationSummary>> attention() async {
+    attentionCalls++;
+    if (attentionError != null) throw attentionError!;
+    return attentionItems;
+  }
+
+  @override
+  Future<void> markSeen(String id) async => seen.add(id);
 
   @override
   Future<Verification> confirm(String id, ConfirmRequest request) async {

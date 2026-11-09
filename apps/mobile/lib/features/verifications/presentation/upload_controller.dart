@@ -9,7 +9,6 @@ import '../../../core/routing/app_routes.dart';
 import '../../cards/presentation/cards_controller.dart';
 import '../../credits/presentation/credits_controller.dart';
 import '../domain/pdf_picker.dart';
-import 'confirm_rates_controller.dart';
 import '../domain/verification_repository.dart';
 
 enum UploadPhase { idle, uploading, analyzing }
@@ -97,7 +96,7 @@ class UploadController extends GetxController {
     phase.value = UploadPhase.uploading;
     progress.value = 0;
     try {
-      final verification = await _repository.verify(
+      final verification = await _repository.upload(
         cardId: cardId.value!,
         filePath: file.value!.path,
         onProgress: (sent, total) {
@@ -108,9 +107,10 @@ class UploadController extends GetxController {
       );
       onVerified?.call();
       _credits.fetch(); // the analysis just spent one
+      // The analysis runs in the backend: the progress page polls it.
       _navigator.replace(
-        Routes.confirmRates,
-        arguments: ConfirmRatesArgs.verification(verification),
+        Routes.verificationProgress,
+        arguments: verification.id,
       );
     } on AppException catch (e) {
       _handleError(e);

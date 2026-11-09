@@ -25,9 +25,10 @@ class ConfirmRatesArgs {
   }) : verificationId = null;
 
   /// Resume from history: the detail is fetched.
-  const ConfirmRatesArgs.byId(String this.verificationId)
-    : verification = null,
-      returnToResult = false;
+  const ConfirmRatesArgs.byId(
+    String this.verificationId, {
+    this.returnToResult = false,
+  }) : verification = null;
 
   final Verification? verification;
   final String? verificationId;

@@ -1366,4 +1366,523 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hideDetails => 'Hide details';
+
+  @override
+  String get splashTagline => 'What your bank owes you';
+
+  @override
+  String get languageAutomatic => 'Automatic';
+
+  @override
+  String get languageSpanish => 'Español';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String onbLangAria(String language) {
+    return 'Language: $language. Change';
+  }
+
+  @override
+  String get onbHaveAccount => 'I have an account';
+
+  @override
+  String get onbDemoTitle => 'Did your bank pay all your cashback?';
+
+  @override
+  String get onbDemoStatementSays => 'Your statement says';
+
+  @override
+  String get onbDemoPharmacy => 'Kielsa Pharmacy · 7%';
+
+  @override
+  String get onbDemoPayment => 'Payment received · not counted';
+
+  @override
+  String get onbDemoOwed => 'You were owed';
+
+  @override
+  String get onbDemoSub =>
+      'Upload the PDF, AI reads every purchase and we tell you if you were paid right, short or over. We will set up your card while you try it.';
+
+  @override
+  String get onbDemoCta => 'Run my free check';
+
+  @override
+  String get onbDemoFoot => 'About 3 minutes · no payment details needed';
+
+  @override
+  String get onbSkipSetup => 'Skip setup';
+
+  @override
+  String get onbStepBank => 'Your bank';
+
+  @override
+  String get onbStepCard => 'Your card';
+
+  @override
+  String get onbStepCategories => 'Your categories';
+
+  @override
+  String get onbStepAccount => 'Your account';
+
+  @override
+  String get onbStepFreeCheck => 'Free check';
+
+  @override
+  String onbStepLabel(int step, int total, String name) {
+    return 'Step $step of $total · $name';
+  }
+
+  @override
+  String get onbBankTitle => 'Which bank is your card from?';
+
+  @override
+  String get onbBankSub =>
+      'Works with any bank in any country. We use it to recognize your statement.';
+
+  @override
+  String get onbBankSearch => 'Search your bank';
+
+  @override
+  String get onbBankTested => 'Tested';
+
+  @override
+  String get onbBankOther => 'Other bank';
+
+  @override
+  String get onbBankOtherName => 'Your bank name';
+
+  @override
+  String onbCardTitle(String bank) {
+    return 'Your $bank card';
+  }
+
+  @override
+  String get onbCardName => 'Name';
+
+  @override
+  String get onbCardLast4 => 'Last 4';
+
+  @override
+  String get onbCardLast4Note => 'We only store these 4 digits.';
+
+  @override
+  String get onbRewardKind => 'What does the card give you?';
+
+  @override
+  String get onbRewardCashback => 'Cashback';
+
+  @override
+  String get onbRewardPoints => 'Points or miles';
+
+  @override
+  String get onbRewardCurrency => 'Which currency is it paid in?';
+
+  @override
+  String get onbCurrencyDetect => 'I don\'t know, detect it';
+
+  @override
+  String get onbRewardLabelCashback => 'CASHBACK';
+
+  @override
+  String get onbRewardLabelPoints => 'POINTS';
+
+  @override
+  String get onbCatsTitle => 'Where does your card give you more?';
+
+  @override
+  String get onbCatsSub =>
+      'Check the categories of your card and their percentage. If you do not know it, leave it empty: we look for it in your statement.';
+
+  @override
+  String get onbCatSupermarkets => 'Supermarkets';
+
+  @override
+  String get onbCatPharmacy => 'Pharmacy';
+
+  @override
+  String get onbCatRestaurants => 'Restaurants and fast food';
+
+  @override
+  String get onbCatGas => 'Gas stations';
+
+  @override
+  String get onbCatDepartment => 'Department stores';
+
+  @override
+  String get onbCatOther => 'Another category';
+
+  @override
+  String get onbCatOtherName => 'Category name';
+
+  @override
+  String get onbCatAdd => 'Add';
+
+  @override
+  String get onbBaseTitle => 'Everything else';
+
+  @override
+  String get onbBaseSub =>
+      'What a purchase earns outside these categories (base rate)';
+
+  @override
+  String get onbRateHint => '%';
+
+  @override
+  String get onbAccountTitle => 'Save what you set up';
+
+  @override
+  String get onbAccountSub =>
+      'Create your account so you do not lose your card and can use your free check.';
+
+  @override
+  String onbAccountCardSub(String bank, String unit, String currency) {
+    return '$bank · $unit in $currency';
+  }
+
+  @override
+  String get onbAccountCurrencyDetected => 'currency to detect';
+
+  @override
+  String get onbAccountPrivacy =>
+      'Your PDF is read in memory and never stored. We only keep the last 4 digits of your card.';
+
+  @override
+  String get onbSyncFailed =>
+      'Your account is ready, but we could not save your setup. Check your connection and retry.';
+
+  @override
+  String get onbSyncing => 'Saving your setup…';
+
+  @override
+  String get onbFreeCheckPill => '1 free check';
+
+  @override
+  String onbHello(String name) {
+    return 'Hi, $name';
+  }
+
+  @override
+  String get onbPdfTitle => 'Upload your first statement';
+
+  @override
+  String get onbPdfSub =>
+      'Pick the PDF your bank gave you. We read it in memory and never store it.';
+
+  @override
+  String get onbPdfPick => 'Choose PDF';
+
+  @override
+  String get onbPdfChange => 'Change PDF';
+
+  @override
+  String onbPdfForCard(String card) {
+    return 'For $card';
+  }
+
+  @override
+  String get onbPdfStart => 'Analyze with my free check';
+
+  @override
+  String get onbPdfLater => 'Not now, go to my home';
+
+  @override
+  String get onbPdfReadingTitle => 'Reading your statement';
+
+  @override
+  String get onbFirstVerification => 'Your first check';
+
+  @override
+  String onbSavedSummary(String card, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count categories',
+      one: '1 category',
+      zero: 'no categories',
+    );
+    return 'Saved: your $card card, $_temp0 and this check.';
+  }
+
+  @override
+  String get onbSeeDetail => 'See the details';
+
+  @override
+  String get onbGoHome => 'Go to my home';
+
+  @override
+  String onbContributes(String name, String amount, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count purchases',
+      one: '1 purchase',
+    );
+    return '$name adds $amount ($_temp0).';
+  }
+
+  @override
+  String get onbVerdictStatusUnder => 'Underpaid';
+
+  @override
+  String get onbVerdictStatusOver => 'Overpaid';
+
+  @override
+  String get onbVerdictStatusMatch => 'Correct';
+
+  @override
+  String get processingTitle => 'Reading your statement';
+
+  @override
+  String get processingAnalyzing => 'Analyzing with AI';
+
+  @override
+  String get processingEta => 'about 40 s';
+
+  @override
+  String get processingStepCard => 'This is your card';
+
+  @override
+  String get processingStepPeriod => 'Finding the period and the movements';
+
+  @override
+  String get processingStepClassify => 'Sorting purchases into your categories';
+
+  @override
+  String get processingStepRates => 'Review your % and calculate';
+
+  @override
+  String get processingCardLine => 'Checking it matches the chosen card';
+
+  @override
+  String get processingCanLeave =>
+      'You can close the app: we will keep analyzing and you will see it on Home. The check is only used if the reading succeeds.';
+
+  @override
+  String get processingLeave => 'Go to my home';
+
+  @override
+  String get processingDismiss => 'Got it';
+
+  @override
+  String get pendingFailedTitle => 'Could not analyze';
+
+  @override
+  String get failureNotAStatement =>
+      'The file does not look like a statement. Your check was refunded: choose another PDF.';
+
+  @override
+  String get failureExtraction =>
+      'We could not read your statement. Your check was refunded: try again.';
+
+  @override
+  String get failureInterrupted =>
+      'The analysis was interrupted. Your check was refunded: try again.';
+
+  @override
+  String get pendingProcessingTitle => 'Analyzing…';
+
+  @override
+  String pendingProcessingBody(String card) {
+    return '$card · you can close the app';
+  }
+
+  @override
+  String get pendingAwaitingTitle => 'Ready to confirm';
+
+  @override
+  String get pendingAwaitingBody => 'Your % still need confirming';
+
+  @override
+  String get pendingCompletedTitle => 'New result';
+
+  @override
+  String pendingCompletedBody(String card) {
+    return '$card · tap to see it';
+  }
+
+  @override
+  String pendingFailedBody(String card, String reason) {
+    return '$card · $reason';
+  }
+
+  @override
+  String get pendingFollow => 'Continue';
+
+  @override
+  String get pendingSectionTitle => 'Pending';
+
+  @override
+  String homeGreetingMorning(String name) {
+    String _temp0 = intl.Intl.selectLogic(name, {
+      'none': 'Good morning',
+      'other': 'Good morning, $name',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String homeGreetingAfternoon(String name) {
+    String _temp0 = intl.Intl.selectLogic(name, {
+      'none': 'Good afternoon',
+      'other': 'Good afternoon, $name',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String homeGreetingEvening(String name) {
+    String _temp0 = intl.Intl.selectLogic(name, {
+      'none': 'Good evening',
+      'other': 'Good evening, $name',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get homeTitle => 'Your cashback';
+
+  @override
+  String get homeProfileAria => 'Profile and settings';
+
+  @override
+  String homeFreeChecks(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n free checks available',
+      one: '1 free check available',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeEmptyTitle => 'Let us start with your card';
+
+  @override
+  String get homeEmptyCardPlaceholder => 'Your card';
+
+  @override
+  String get homeStep1Bold => 'Add your card';
+
+  @override
+  String get homeStep1Rest => ' with its categories and percentages.';
+
+  @override
+  String get homeStep2Bold => 'Upload your PDF';
+
+  @override
+  String get homeStep2Rest =>
+      ' and in under a minute you will know if you were paid right.';
+
+  @override
+  String get homeAddMyCard => 'Add my card';
+
+  @override
+  String get homeNoChecksTitle => 'You have no checks yet';
+
+  @override
+  String get homeNoChecksBody =>
+      'Every verdict from your bank will show up here.';
+
+  @override
+  String get homeGuidedSetup => 'I prefer the guided setup';
+
+  @override
+  String homeFreshBanner(String name) {
+    String _temp0 = intl.Intl.selectLogic(name, {
+      'none': 'All set. Here is everything you set up: your card, its categories and your first check.',
+      'other':
+          'All set, $name. Here is everything you set up: your card, its categories and your first check.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get homeVerifyStatement => 'Check a statement';
+
+  @override
+  String get homeUsedFree => 'You used your free check';
+
+  @override
+  String get homeGetMore => 'Get more';
+
+  @override
+  String homeChecksAvailable(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n checks available',
+      one: '1 check available',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeMyCard => 'My card';
+
+  @override
+  String get homeMyCards => 'My cards';
+
+  @override
+  String get homeTapToEdit => 'Tap to edit';
+
+  @override
+  String get homeAddAnotherCard => 'Add another card';
+
+  @override
+  String get homeAddCardTile => 'Add card';
+
+  @override
+  String homeCardMeta(String bank, String rate, String rules) {
+    return '$bank · base $rate · $rules';
+  }
+
+  @override
+  String homeEverythingElse(String rate) {
+    return 'Everything else $rate';
+  }
+
+  @override
+  String get homeFirstVerification => 'Your first check';
+
+  @override
+  String homeUncategorized(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n purchases have no category',
+      one: '1 purchase has no category',
+    );
+    return '$_temp0 · review them for free';
+  }
+
+  @override
+  String get homeLatestChecks => 'Latest checks';
+
+  @override
+  String get homeSeeAll => 'See all';
+
+  @override
+  String get homeOffline => 'Offline. Showing saved data.';
+
+  @override
+  String get navHome => 'Home';
+
+  @override
+  String get navHistory => 'History';
+
+  @override
+  String get navCategories => 'Categories';
+
+  @override
+  String get navProfile => 'Profile';
+
+  @override
+  String get navAria => 'Main navigation';
+
+  @override
+  String get loginDividerOr => 'or';
 }

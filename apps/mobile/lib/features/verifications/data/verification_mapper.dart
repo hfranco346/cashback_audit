@@ -57,6 +57,8 @@ abstract final class VerificationMapper {
       id: j['id'] as String,
       cardId: j['cardId'] as String,
       status: VerificationStatus.fromApi(j['status'] as String?),
+      failureCode: FailureCode.tryFromApi(j['failureCode'] as String?),
+      seenAt: _date(j['seenAt']),
       statement: statement(statementJson),
       primaryCurrency: primary,
       rewardCurrency: _currencyCode(j['rewardCurrency']),
@@ -338,6 +340,8 @@ abstract final class VerificationMapper {
       id: j['id'] as String,
       cardId: j['cardId'] as String,
       status: VerificationStatus.fromApi(j['status'] as String?),
+      failureCode: FailureCode.tryFromApi(j['failureCode'] as String?),
+      seenAt: _date(j['seenAt']),
       statement: statement(statementJson),
       primaryCurrency:
           j['primaryCurrency'] as String? ??
@@ -363,6 +367,8 @@ abstract final class VerificationMapper {
       'id': d['id'],
       'cardId': d['cardId'],
       'status': d['status'] ?? 'COMPLETED',
+      'failureCode': d['failureCode'],
+      'seenAt': d['seenAt'],
       'statement': d['statement'],
       'primaryCurrency': d['primaryCurrency'],
       'rewardCurrency': d['rewardCurrency'],
