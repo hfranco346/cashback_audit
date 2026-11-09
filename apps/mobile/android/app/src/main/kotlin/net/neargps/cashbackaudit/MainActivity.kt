@@ -1,4 +1,4 @@
-package com.cashbackaudit.cashback_audit
+package net.neargps.cashbackaudit
 
 import io.flutter.embedding.android.FlutterActivity
 
