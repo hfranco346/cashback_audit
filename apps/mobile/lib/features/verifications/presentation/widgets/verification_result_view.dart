@@ -1,219 +1,231 @@
-import 'package:animate_do/animate_do.dart';
-import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/l10n/strings.dart';
-import '../../../../shared/widgets/molecules/inline_message.dart';
-import '../../../../shared/widgets/atoms/staggered_entrance.dart';
-import '../../../../core/utils/decimal_utils.dart';
-import '../../../cards/domain/card_entities.dart';
+import '../../../../core/l10n/l10n_context.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/ui.dart';
 import '../../domain/verification_entities.dart';
-import '../excluded_reason_text.dart';
-import '../format_reward.dart';
-import '../result_controller.dart' show TransactionFilter;
-import 'applied_rates_card.dart';
-import 'breakdown_section.dart';
-import 'currency_subtotals.dart';
-import 'explanation_card.dart';
-import 'loyalty_table.dart';
-import 'transactions_section.dart';
-import 'verdict_card.dart';
+import '../period_label.dart';
+import '../result_controller.dart'
+    show ResultNotice, ResultTab, TransactionFilter;
+import 'result_categories_tab.dart';
+import 'result_movements_tab.dart';
+import 'result_summary_tab.dart';
 
-/// Pure presentational verification result.
+/// Pure presentational verification result: header, three tabs and the
+/// recalculation overlay.
 class VerificationResultView extends StatelessWidget {
   const VerificationResultView({
     super.key,
     required this.verification,
+    required this.cardLabel,
+    required this.tab,
+    required this.onTab,
     required this.filter,
     required this.onFilterChanged,
-    required this.assigned,
-    required this.onAssign,
-    this.onCorrect,
+    required this.onBack,
+    this.onChangeCategory,
     this.onRecalculate,
     this.stale = false,
     this.recalculating = false,
     this.onRetryRecalculation,
+    this.notice,
+    this.onDismissNotice,
   });
 
   final Verification verification;
+
+  /// `BAC Cash •••• 4821`.
+  final String cardLabel;
+  final ResultTab tab;
+  final ValueChanged<ResultTab> onTab;
   final TransactionFilter filter;
   final ValueChanged<TransactionFilter> onFilterChanged;
-  final Map<int, String> assigned;
-  final ValueChanged<VerificationTransaction> onAssign;
+  final VoidCallback onBack;
 
-  /// Tap on a line to change its category.
-  final ValueChanged<VerificationTransaction>? onCorrect;
+  /// Opens the "Change category" sheet for a statement line.
+  final ValueChanged<VerificationTransaction>? onChangeCategory;
 
-  /// Reopens the rate confirmation ("Recalcular con otros %").
+  /// Reopens the rate confirmation ("Recalculate with other %").
   final VoidCallback? onRecalculate;
 
   /// A correction was saved but the recalculation failed.
   final bool stale;
   final bool recalculating;
   final VoidCallback? onRetryRecalculation;
+  final ResultNotice? notice;
+  final VoidCallback? onDismissNotice;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
     final v = verification;
-    final currency = v.currency;
-    final verdict = v.verdict;
-    final reported = v.reported;
-    if (!v.isCompleted || verdict == null || reported == null) {
-      return Center(child: Text(S.resultNotConfirmed));
-    }
-    // Reported / expected / difference are in the reward currency, which can
-    // differ from the card currency; breakdown and lines stay in the card's.
-    final rewardCurrency = v.resolvedRewardCurrency;
-    String reward(Decimal d) =>
-        formatReward(d, v.unit, currency: rewardCurrency);
-    final inPrimary = v.expectedInPrimaryCurrency;
-    final equivalent =
-        v.rewardCurrencyDiffers &&
-            inPrimary != null &&
-            v.unit != RewardUnit.points
-        ? S.equivalentTo(formatMoney(inPrimary, currency: currency))
-        : null;
-    final diff = v.difference ?? Decimal.zero;
-    final hint = switch (verdict) {
-      Verdict.match => S.verdictMatchHint,
-      Verdict.underpaid => S.verdictUnderpaidHint(reward(-diff)),
-      Verdict.overpaid => S.verdictOverpaidHint(reward(diff)),
+    final period = statementPeriodLabel(v.statement, v.createdAt);
+    final body = switch (tab) {
+      ResultTab.summary => ResultSummaryTab(
+        verification: v,
+        onRecalculate: onRecalculate,
+        onReviewProgram: () => onTab(ResultTab.categories),
+      ),
+      ResultTab.categories => ResultCategoriesTab(
+        verification: v,
+        onRecalculate: onRecalculate,
+      ),
+      ResultTab.movements => ResultMovementsTab(
+        verification: v,
+        filter: filter,
+        onFilterChanged: onFilterChanged,
+        onChangeCategory: onChangeCategory,
+      ),
     };
-    final signed = reward(diff);
-    final warnings = [
-      for (final w in v.warnings)
-        if (warningText(w) != null) (w, warningText(w)!),
-    ];
-    // Sections slide in one after the other under the verdict reveal.
-    var section = 2;
-    Widget enter(Widget child) =>
-        StaggeredEntrance(index: section++, child: child);
-    final showCurrencies =
-        v.currencies.length > 1 || v.currencies.any((c) => c.excludedCount > 0);
     return Stack(
       children: [
-        ListView(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
+        Column(
           children: [
-            VerdictCard(
-              verdict: verdict,
-              hint: hint,
-              expected: reward(v.expectedAmount ?? Decimal.zero),
-              reported: reward(reported.amount),
-              reportedLabel: reported.label,
-              expectedNote: equivalent,
-              difference: diff > Decimal.zero ? '+$signed' : signed,
-              reportedNote: reported.fromOverride
-                  ? S.reportedOverrideNote
-                  : null,
-              heroTag: 'verdict-${v.id}',
-            ),
-            if (stale) ...[
-              const SizedBox(height: 16),
-              InlineMessage(
-                key: const Key('stale-banner'),
-                message: S.recalcFailedAfterChange,
-                tone: InlineMessageTone.warning,
-                actionLabel: S.recalcAction,
-                onAction: onRetryRecalculation,
-              ),
-            ],
-            if (v.explanation != null) ...[
-              const SizedBox(height: 16),
-              FadeInUp(
-                from: 12,
-                delay: const Duration(milliseconds: 600),
-                child: ExplanationCard(text: v.explanation!),
-              ),
-            ],
-            if (warnings.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              for (final (w, text) in warnings)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: InlineMessage(
-                    key: Key('warning-${w.code}'),
-                    message: text,
-                    tone: InlineMessageTone.warning,
-                    actionLabel: w.code == 'NO_EXCHANGE_RATE'
-                        ? S.recalcAction
-                        : null,
-                    onAction: w.code == 'NO_EXCHANGE_RATE'
-                        ? onRecalculate
-                        : null,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+              child: Row(
+                children: [
+                  IconButton(
+                    key: const Key('result-back'),
+                    tooltip: l10n.back,
+                    onPressed: onBack,
+                    icon: const Icon(Icons.arrow_back_rounded),
                   ),
-                ),
-            ],
-            if (v.appliedRates != null) ...[
-              const SizedBox(height: 24),
-              enter(
-                AppliedRatesCard(
-                  applied: v.appliedRates!,
-                  onRecalculate: onRecalculate,
-                ),
-              ),
-            ] else if (onRecalculate != null) ...[
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                key: const Key('recalculate-button'),
-                onPressed: onRecalculate,
-                icon: const Icon(Icons.percent_rounded),
-                label: Text(S.recalcWithOtherRates),
-              ),
-            ],
-            if (v.loyalty.programs.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              enter(
-                LoyaltyTable(
-                  loyalty: v.loyalty,
-                  currency: rewardCurrency,
-                  cumulativeWarning: v.hasWarning(
-                    'REPORTED_VALUE_MAY_BE_CUMULATIVE',
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          cardLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                        Text(
+                          l10n.resultPeriodLine(period, v.transactions.length),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontFeatures: appFigures,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-            ],
-            if (showCurrencies) ...[
-              const SizedBox(height: 24),
-              enter(
-                CurrencySubtotals(
-                  subtotals: v.currencies,
-                  primaryCurrency: currency,
-                  unit: v.unit,
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-            enter(
-              BreakdownSection(
-                lines: v.breakdown,
-                currency: currency,
-                unit: v.unit,
+                  if (onRecalculate != null)
+                    IconButton(
+                      key: const Key('result-recalculate'),
+                      tooltip: l10n.recalcWithOtherRates,
+                      onPressed: onRecalculate,
+                      icon: const Icon(Icons.percent_rounded),
+                    ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            TransactionsSection(
-              transactions: v.transactions,
-              filter: filter,
-              onFilterChanged: onFilterChanged,
-              currency: currency,
-              unit: v.unit,
-              assigned: assigned,
-              onAssign: onAssign,
-              onCorrect: onCorrect,
-            ),
+            _Tabs(tab: tab, onTab: onTab),
+            if (stale || notice != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screen,
+                  AppSpacing.md,
+                  AppSpacing.screen,
+                  0,
+                ),
+                child: stale
+                    ? InlineNotice(
+                        key: const Key('stale-banner'),
+                        message: l10n.recalcFailedAfterChange,
+                        kind: StatusKind.warning,
+                        actionLabel: l10n.recalcAction,
+                        onAction: onRetryRecalculation,
+                      )
+                    : InlineNotice(
+                        key: const Key('result-notice'),
+                        message: notice!.message,
+                        kind: notice!.isError
+                            ? StatusKind.error
+                            : StatusKind.ok,
+                        actionLabel: l10n.dismiss,
+                        onAction: onDismissNotice,
+                      ),
+              ),
+            Expanded(child: body),
           ],
         ),
         if (recalculating)
           Positioned.fill(
             child: ColoredBox(
               key: const Key('recalculating-overlay'),
-              color: Theme.of(context).colorScheme.surface
-                  .withValues(alpha: 0.6),
+              color: theme.colorScheme.surface.withValues(alpha: 0.6),
               child: const Center(child: CircularProgressIndicator()),
             ),
           ),
       ],
+    );
+  }
+}
+
+class _Tabs extends StatelessWidget {
+  const _Tabs({required this.tab, required this.onTab});
+
+  final ResultTab tab;
+  final ValueChanged<ResultTab> onTab;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final labels = {
+      ResultTab.summary: l10n.resultTabSummary,
+      ResultTab.categories: l10n.resultTabCategories,
+      ResultTab.movements: l10n.resultTabMovements,
+    };
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
+      ),
+      child: Row(
+        children: [
+          for (final t in ResultTab.values)
+            Expanded(
+              child: Semantics(
+                button: true,
+                selected: t == tab,
+                child: InkWell(
+                  key: Key('result-tab-${t.name}'),
+                  onTap: () => onTab(t),
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: t == tab ? scheme.primary : Colors.transparent,
+                          width: 3,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      labels[t]!,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: t == tab
+                            ? scheme.onSurface
+                            : scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

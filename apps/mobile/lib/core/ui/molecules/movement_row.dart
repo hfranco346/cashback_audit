@@ -18,6 +18,9 @@ class MovementRow extends StatelessWidget {
     this.reward,
     this.onAssignCategory,
     this.assignLabel,
+    this.assignKey,
+    this.extra = const [],
+    this.onTap,
     this.showDivider = true,
   });
 
@@ -41,6 +44,13 @@ class MovementRow extends StatelessWidget {
   /// Shows the "Assign category" button when set (meant for red rows).
   final VoidCallback? onAssignCategory;
   final String? assignLabel;
+  final Key? assignKey;
+
+  /// Muted lines under the status (converted amount, bank hint...).
+  final List<String> extra;
+
+  /// Tap on the whole row (e.g. change its category).
+  final VoidCallback? onTap;
   final bool showDivider;
 
   @override
@@ -56,87 +66,111 @@ class MovementRow extends StatelessWidget {
               )
             : null,
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                StatusDot(kind: kind, semanticLabel: statusText),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (bankText != null)
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  StatusDot(kind: kind, semanticLabel: statusText),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          bankText!,
+                          name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: muted,
-                            fontSize: 11,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
+                        if (bankText != null)
+                          Text(
+                            bankText!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: muted,
+                              fontSize: 11,
+                            ),
+                          ),
+                        Text(
+                          statusText,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: tone.fg,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                        for (final line in extra)
+                          Text(
+                            line,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: muted,
+                              fontSize: 11,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
                       Text(
-                        statusText,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: tone.fg,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
+                        amount,
+                        textAlign: TextAlign.end,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontFeatures: appFigures,
+                          color: kind == StatusKind.neutral ? muted : null,
                         ),
                       ),
+                      if (reward != null)
+                        Text(
+                          reward!,
+                          textAlign: TextAlign.end,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: tone.fg,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: appFigures,
+                          ),
+                        ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      amount,
-                      textAlign: TextAlign.end,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontFeatures: appFigures,
-                        color: kind == StatusKind.neutral ? muted : null,
+                ],
+              ),
+              if (onAssignCategory != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 40),
+                  child: OutlinedButton(
+                    key: assignKey,
+                    onPressed: onAssignCategory,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.primary,
+                      minimumSize: const Size(48, 36),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      side: BorderSide(color: theme.colorScheme.outlineVariant),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      textStyle: theme.textTheme.labelLarge?.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    if (reward != null)
-                      Text(
-                        reward!,
-                        textAlign: TextAlign.end,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: tone.fg,
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: appFigures,
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-            if (onAssignCategory != null)
-              Padding(
-                padding: const EdgeInsets.only(left: 40),
-                child: TextButton(
-                  onPressed: onAssignCategory,
-                  style: TextButton.styleFrom(
-                    foregroundColor: tone.fg,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(assignLabel ?? context.l10n.assignCategory),
                   ),
-                  child: Text(assignLabel ?? context.l10n.assignCategory),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

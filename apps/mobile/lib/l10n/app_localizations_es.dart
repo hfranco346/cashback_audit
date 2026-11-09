@@ -1105,7 +1105,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String deleteCardBody(String alias) {
-    return '¿Eliminar \"$alias\"? También se borrará su historial de verificaciones.';
+    return '¿Eliminar \"$alias\"? Su historial de verificaciones se conserva.';
   }
 
   @override
@@ -1948,8 +1948,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cardDeleteAction => 'Eliminar tarjeta';
 
   @override
-  String get cardDeleteNote =>
-      'También se elimina su historial de verificaciones.';
+  String get cardDeleteNote => 'Su historial de verificaciones se conserva.';
 
   @override
   String get cardClose => 'Cerrar';
@@ -2152,4 +2151,174 @@ class AppLocalizationsEs extends AppLocalizations {
   String confirmMissingMany(int n) {
     return '$n campos por completar o revisar';
   }
+
+  @override
+  String get resultTabSummary => 'Resumen';
+
+  @override
+  String get resultTabCategories => 'Rubros';
+
+  @override
+  String get resultTabMovements => 'Movimientos';
+
+  @override
+  String resultPeriodLine(String period, int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n movimientos',
+      one: '1 movimiento',
+    );
+    return '$period · $_temp0';
+  }
+
+  @override
+  String get verdictPillUnderpaid => 'Pagaron de menos';
+
+  @override
+  String get verdictPillOverpaid => 'Pagaron de más';
+
+  @override
+  String get verdictPillMatch => 'Coincide';
+
+  @override
+  String get resultTitleUnderpaid => 'Te pagaron de menos';
+
+  @override
+  String get resultTitleOverpaid => 'Te pagaron de más';
+
+  @override
+  String get resultTitleMatch => 'Te pagaron bien';
+
+  @override
+  String get resultNoteUnderpaid => 'Esto es lo que tu banco no acreditó.';
+
+  @override
+  String get resultNoteOverpaid => 'El banco acreditó más de lo esperado.';
+
+  @override
+  String resultNoteMatch(String diff, String tolerance) {
+    return 'Diferencia de $diff, dentro de la tolerancia (± $tolerance).';
+  }
+
+  @override
+  String get reportedByBank => 'Reportado por el banco';
+
+  @override
+  String resultEquivalent(String money, String from, String rate, String to) {
+    return 'Lo esperado equivale a $money · 1 $from = $rate $to';
+  }
+
+  @override
+  String get resultByCategory => 'Por rubro';
+
+  @override
+  String get resultProgram => 'Programa de recompensas';
+
+  @override
+  String get recalcFree => 'Recalcular con otros % · gratis';
+
+  @override
+  String noticeCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n avisos',
+      one: '1 aviso',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get warnActionAddRate => 'Agregar tipo de cambio';
+
+  @override
+  String get warnActionReviewProgram => 'Revisar el programa auditado';
+
+  @override
+  String get resultRatesUsed => 'Porcentajes usados';
+
+  @override
+  String get resultCurrencies => 'Por moneda';
+
+  @override
+  String get movementsNote =>
+      'Nombre limpio arriba · texto original del banco abajo';
+
+  @override
+  String movInCategory(String category, String rate) {
+    return 'En rubro · $category $rate';
+  }
+
+  @override
+  String movUncounted(String rate) {
+    return 'Sin rubro · tasa base $rate';
+  }
+
+  @override
+  String movExcluded(String reason) {
+    return 'Excluido · $reason';
+  }
+
+  @override
+  String get movReasonPayment => 'pago a la tarjeta';
+
+  @override
+  String get movReasonFee => 'comisión o cargo';
+
+  @override
+  String get movReasonInterest => 'intereses';
+
+  @override
+  String get movReasonInsurance => 'seguro';
+
+  @override
+  String get movReasonOther => 'no genera recompensa';
+
+  @override
+  String movReasonNoRate(String currency) {
+    return 'compra en $currency sin tipo de cambio';
+  }
+
+  @override
+  String get changeSheetQuestion => '¿A qué rubro pertenece?';
+
+  @override
+  String get changeSheetNoRate => 'sin % en esta tarjeta';
+
+  @override
+  String changeSheetBase(String rate) {
+    return 'base $rate';
+  }
+
+  @override
+  String get rememberTitle => 'Recordar para próximas verificaciones';
+
+  @override
+  String get rememberOff => 'Apagado: solo cambia esta verificación.';
+
+  @override
+  String get rememberOn =>
+      'Encendido: este comercio quedará en el rubro elegido en tus próximas verificaciones.';
+
+  @override
+  String get rememberNeedsCategory => 'Elige un rubro para poder recordarlo.';
+
+  @override
+  String get applyRecalcFree => 'Aplicar y recalcular · gratis';
+
+  @override
+  String get categoryChangedRemembered =>
+      'Rubro actualizado y resultado recalculado. Lo recordaremos en tus próximas verificaciones.';
+
+  @override
+  String rememberFailed(String error) {
+    return 'Actualizamos este resultado, pero no pudimos recordar el comercio: $error';
+  }
+
+  @override
+  String get resultNotConfirmedAction => 'Confirmar porcentajes';
+
+  @override
+  String get dismiss => 'Descartar';
 }

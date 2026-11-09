@@ -18,6 +18,7 @@ class VerdictCard extends StatelessWidget {
     required this.reported,
     this.statusIcon,
     this.equivalence,
+    this.amountNote,
   });
 
   final StatusKind kind;
@@ -38,6 +39,10 @@ class VerdictCard extends StatelessWidget {
 
   /// Optional line such as `Equivalent to USD 58.70`.
   final String? equivalence;
+
+  /// One line under the big amount, e.g. "This is what your bank did not
+  /// credit.".
+  final String? amountNote;
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +87,16 @@ class VerdictCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
+            if (amountNote != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                amountNote!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: muted,
+                  fontSize: 13,
+                ),
+              ),
+            ],
             const SizedBox(height: 14),
             Divider(color: theme.colorScheme.outlineVariant),
             const SizedBox(height: 10),

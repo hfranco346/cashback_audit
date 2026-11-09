@@ -239,7 +239,7 @@ void main() {
           c.verification.value!.transactions[i];
 
       test('PATCHes the line then re-confirms with the same rates', () async {
-        final message = await c.correctCategory(line(1), 'cat1');
+        final message = await c.changeCategory(line(1), 'cat1');
         expect(repo.corrections.single.id, 'v1');
         expect(repo.corrections.single.index, 1);
         expect(repo.corrections.single.categoryId, 'cat1');
@@ -251,19 +251,19 @@ void main() {
         expect(req.saveToCard, isFalse);
         expect(req.exchangeRate, isNull);
         expect(req.rewardProgramName, isNull);
-        expect(message, S.categoryChanged);
+        expect(message?.message, S.categoryChanged);
         expect(c.stale.value, isFalse);
         expect(c.recalculating.value, isFalse);
       });
 
       test('clearing a category sends null', () async {
-        await c.correctCategory(line(0), null);
+        await c.changeCategory(line(0), null);
         expect(repo.corrections.single.categoryId, isNull);
         expect(repo.confirmRequests, hasLength(1));
       });
 
       test('same category is a no-op', () async {
-        await c.correctCategory(line(0), 'cat1');
+        await c.changeCategory(line(0), 'cat1');
         expect(repo.corrections, isEmpty);
       });
 
@@ -275,8 +275,9 @@ void main() {
             statusCode: 422,
             code: 'TRANSACTION_NOT_CLASSIFIABLE',
           );
-          final message = await c.correctCategory(line(1), 'cat1');
-          expect(message, S.errTransactionNotClassifiable);
+          final message = await c.changeCategory(line(1), 'cat1');
+          expect(message?.message, S.errTransactionNotClassifiable);
+          expect(message?.isError, isTrue);
           expect(repo.confirmRequests, isEmpty);
         },
       );
@@ -287,10 +288,10 @@ void main() {
           repo.confirmErrors.add(
             const AppException(kind: AppErrorKind.network),
           );
-          final message = await c.correctCategory(line(1), 'cat1');
-          expect(message, S.recalcFailedAfterChange);
+          final message = await c.changeCategory(line(1), 'cat1');
+          expect(message?.message, S.recalcFailedAfterChange);
           expect(c.stale.value, isTrue);
-          expect(await c.retryRecalculation(), S.categoryChanged);
+          expect((await c.retryRecalculation())?.message, S.categoryChanged);
           expect(c.stale.value, isFalse);
           expect(repo.confirmRequests, hasLength(2));
         },
@@ -304,8 +305,8 @@ void main() {
             code: 'RATES_REQUIRED',
           ),
         );
-        final message = await c.correctCategory(line(1), 'cat1');
-        expect(message, S.recalcNeedsRate);
+        final message = await c.changeCategory(line(1), 'cat1');
+        expect(message?.message, S.recalcNeedsRate);
         expect(nav.pushedForResult, ['/confirm-rates']);
         final args = nav.pushedForResultArgs.single as ConfirmRatesArgs;
         expect(args.returnToResult, isTrue);
@@ -335,21 +336,82 @@ void main() {
       expect(c.verification.value?.verdict, Verdict.underpaid);
     });
 
-    test(
-      'assigning creates a merchant with the descriptor as keyword',
-      () async {
-        final tx = c.verification.value!.transactions.last;
-        final err = await c.assignMerchant(
-          tx,
-          name: 'Oxxo',
-          keywords: ['OXXO REFORMA'],
-          categoryId: 'cat1',
+    group('remember for future verifications', () {
+      VerificationTransaction oxxo() => c.verification.value!.transactions.last;
+
+      test(
+        'creates the merchant and still patches this verification',
+        () async {
+          final notice = await c.changeCategory(oxxo(), 'cat1', remember: true);
+          expect(repo.corrections.single.categoryId, 'cat1');
+          expect(repo.confirmRequests, hasLength(1));
+          expect(
+            merchants.calls.single,
+            'create:Oxxo Reforma:cat1:OXXO REFORMA',
+          );
+          expect(notice?.message, S.current.categoryChangedRemembered);
+          expect(notice?.isError, isFalse);
+        },
+      );
+
+      test('without remember no merchant is touched', () async {
+        await c.changeCategory(oxxo(), 'cat1');
+        expect(repo.corrections, hasLength(1));
+        expect(merchants.calls, isEmpty);
+      });
+
+      test('moves an existing merchant and adds the new keyword', () async {
+        merchants.items = [
+          const Merchant(
+            id: 'm1',
+            name: 'Oxxo Reforma',
+            categoryId: 'other',
+            keywords: ['OXXO'],
+          ),
+        ];
+        await catalog.load();
+        await c.changeCategory(oxxo(), 'cat1', remember: true);
+        expect(merchants.calls.single, 'update:m1:cat1');
+        expect(catalog.merchants.single.keywords, ['OXXO', 'OXXO REFORMA']);
+      });
+
+      test('a merchant failure keeps the updated result and says so', () async {
+        merchants.createError = const AppException(
+          kind: AppErrorKind.conflict,
+          statusCode: 409,
+          code: 'MERCHANT_NAME_TAKEN',
         );
-        expect(err, isNull);
-        expect(merchants.calls.single, 'create:Oxxo:cat1:OXXO REFORMA');
-        expect(c.assigned[1], 'Super');
-      },
-    );
+        final notice = await c.changeCategory(oxxo(), 'cat1', remember: true);
+        expect(repo.corrections, hasLength(1));
+        expect(repo.confirmRequests, hasLength(1));
+        expect(notice?.isError, isTrue);
+        expect(
+          notice?.message,
+          S.current.rememberFailed(S.errMerchantNameTaken),
+        );
+      });
+
+      test('"no category" cannot be remembered', () async {
+        await c.changeCategory(
+          c.verification.value!.transactions.first,
+          null,
+          remember: true,
+        );
+        expect(merchants.calls, isEmpty);
+      });
+    });
+
+    test('opening a finished result marks it as seen', () {
+      expect(repo.seen, ['v1']);
+    });
+
+    test('the display name title-cases an all-caps descriptor', () {
+      expect(
+        displayMerchantName('COMIDAS ESPECIALES EBERSO'),
+        'Comidas Especiales Eberso',
+      );
+      expect(displayMerchantName('Walmart SUC 12'), 'Walmart');
+    });
 
     test('loads by id when opened from history', () async {
       final byId = ResultController(

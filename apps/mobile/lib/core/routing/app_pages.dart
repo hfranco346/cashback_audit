@@ -241,6 +241,8 @@ abstract final class AppPages {
             repository: Get.find<VerificationRepository>(),
             catalog: Get.find<CatalogController>(),
             navigator: Get.find<AppNavigator>(),
+            cards: Get.find<CardsController>(),
+            attention: Get.find<AttentionController>(),
             initial: args is Verification ? args : null,
             verificationId: args is String ? args : null,
           ),

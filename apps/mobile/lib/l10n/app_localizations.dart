@@ -2117,7 +2117,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteCardBody.
   ///
   /// In es, this message translates to:
-  /// **'¿Eliminar \"{alias}\"? También se borrará su historial de verificaciones.'**
+  /// **'¿Eliminar \"{alias}\"? Su historial de verificaciones se conserva.'**
   String deleteCardBody(String alias);
 
   /// No description provided for @ruleCount.
@@ -3329,7 +3329,7 @@ abstract class AppLocalizations {
   /// No description provided for @cardDeleteNote.
   ///
   /// In es, this message translates to:
-  /// **'También se elimina su historial de verificaciones.'**
+  /// **'Su historial de verificaciones se conserva.'**
   String get cardDeleteNote;
 
   /// No description provided for @cardClose.
@@ -3625,6 +3625,276 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'{n} campos por completar o revisar'**
   String confirmMissingMany(int n);
+
+  /// No description provided for @resultTabSummary.
+  ///
+  /// In es, this message translates to:
+  /// **'Resumen'**
+  String get resultTabSummary;
+
+  /// No description provided for @resultTabCategories.
+  ///
+  /// In es, this message translates to:
+  /// **'Rubros'**
+  String get resultTabCategories;
+
+  /// No description provided for @resultTabMovements.
+  ///
+  /// In es, this message translates to:
+  /// **'Movimientos'**
+  String get resultTabMovements;
+
+  /// No description provided for @resultPeriodLine.
+  ///
+  /// In es, this message translates to:
+  /// **'{period} · {n, plural, =1{1 movimiento} other{{n} movimientos}}'**
+  String resultPeriodLine(String period, int n);
+
+  /// No description provided for @verdictPillUnderpaid.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagaron de menos'**
+  String get verdictPillUnderpaid;
+
+  /// No description provided for @verdictPillOverpaid.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagaron de más'**
+  String get verdictPillOverpaid;
+
+  /// No description provided for @verdictPillMatch.
+  ///
+  /// In es, this message translates to:
+  /// **'Coincide'**
+  String get verdictPillMatch;
+
+  /// No description provided for @resultTitleUnderpaid.
+  ///
+  /// In es, this message translates to:
+  /// **'Te pagaron de menos'**
+  String get resultTitleUnderpaid;
+
+  /// No description provided for @resultTitleOverpaid.
+  ///
+  /// In es, this message translates to:
+  /// **'Te pagaron de más'**
+  String get resultTitleOverpaid;
+
+  /// No description provided for @resultTitleMatch.
+  ///
+  /// In es, this message translates to:
+  /// **'Te pagaron bien'**
+  String get resultTitleMatch;
+
+  /// No description provided for @resultNoteUnderpaid.
+  ///
+  /// In es, this message translates to:
+  /// **'Esto es lo que tu banco no acreditó.'**
+  String get resultNoteUnderpaid;
+
+  /// No description provided for @resultNoteOverpaid.
+  ///
+  /// In es, this message translates to:
+  /// **'El banco acreditó más de lo esperado.'**
+  String get resultNoteOverpaid;
+
+  /// No description provided for @resultNoteMatch.
+  ///
+  /// In es, this message translates to:
+  /// **'Diferencia de {diff}, dentro de la tolerancia (± {tolerance}).'**
+  String resultNoteMatch(String diff, String tolerance);
+
+  /// No description provided for @reportedByBank.
+  ///
+  /// In es, this message translates to:
+  /// **'Reportado por el banco'**
+  String get reportedByBank;
+
+  /// No description provided for @resultEquivalent.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo esperado equivale a {money} · 1 {from} = {rate} {to}'**
+  String resultEquivalent(String money, String from, String rate, String to);
+
+  /// No description provided for @resultByCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Por rubro'**
+  String get resultByCategory;
+
+  /// No description provided for @resultProgram.
+  ///
+  /// In es, this message translates to:
+  /// **'Programa de recompensas'**
+  String get resultProgram;
+
+  /// No description provided for @recalcFree.
+  ///
+  /// In es, this message translates to:
+  /// **'Recalcular con otros % · gratis'**
+  String get recalcFree;
+
+  /// No description provided for @noticeCount.
+  ///
+  /// In es, this message translates to:
+  /// **'{n, plural, =1{1 aviso} other{{n} avisos}}'**
+  String noticeCount(int n);
+
+  /// No description provided for @warnActionAddRate.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar tipo de cambio'**
+  String get warnActionAddRate;
+
+  /// No description provided for @warnActionReviewProgram.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar el programa auditado'**
+  String get warnActionReviewProgram;
+
+  /// No description provided for @resultRatesUsed.
+  ///
+  /// In es, this message translates to:
+  /// **'Porcentajes usados'**
+  String get resultRatesUsed;
+
+  /// No description provided for @resultCurrencies.
+  ///
+  /// In es, this message translates to:
+  /// **'Por moneda'**
+  String get resultCurrencies;
+
+  /// No description provided for @movementsNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre limpio arriba · texto original del banco abajo'**
+  String get movementsNote;
+
+  /// No description provided for @movInCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'En rubro · {category} {rate}'**
+  String movInCategory(String category, String rate);
+
+  /// No description provided for @movUncounted.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin rubro · tasa base {rate}'**
+  String movUncounted(String rate);
+
+  /// No description provided for @movExcluded.
+  ///
+  /// In es, this message translates to:
+  /// **'Excluido · {reason}'**
+  String movExcluded(String reason);
+
+  /// No description provided for @movReasonPayment.
+  ///
+  /// In es, this message translates to:
+  /// **'pago a la tarjeta'**
+  String get movReasonPayment;
+
+  /// No description provided for @movReasonFee.
+  ///
+  /// In es, this message translates to:
+  /// **'comisión o cargo'**
+  String get movReasonFee;
+
+  /// No description provided for @movReasonInterest.
+  ///
+  /// In es, this message translates to:
+  /// **'intereses'**
+  String get movReasonInterest;
+
+  /// No description provided for @movReasonInsurance.
+  ///
+  /// In es, this message translates to:
+  /// **'seguro'**
+  String get movReasonInsurance;
+
+  /// No description provided for @movReasonOther.
+  ///
+  /// In es, this message translates to:
+  /// **'no genera recompensa'**
+  String get movReasonOther;
+
+  /// No description provided for @movReasonNoRate.
+  ///
+  /// In es, this message translates to:
+  /// **'compra en {currency} sin tipo de cambio'**
+  String movReasonNoRate(String currency);
+
+  /// No description provided for @changeSheetQuestion.
+  ///
+  /// In es, this message translates to:
+  /// **'¿A qué rubro pertenece?'**
+  String get changeSheetQuestion;
+
+  /// No description provided for @changeSheetNoRate.
+  ///
+  /// In es, this message translates to:
+  /// **'sin % en esta tarjeta'**
+  String get changeSheetNoRate;
+
+  /// No description provided for @changeSheetBase.
+  ///
+  /// In es, this message translates to:
+  /// **'base {rate}'**
+  String changeSheetBase(String rate);
+
+  /// No description provided for @rememberTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Recordar para próximas verificaciones'**
+  String get rememberTitle;
+
+  /// No description provided for @rememberOff.
+  ///
+  /// In es, this message translates to:
+  /// **'Apagado: solo cambia esta verificación.'**
+  String get rememberOff;
+
+  /// No description provided for @rememberOn.
+  ///
+  /// In es, this message translates to:
+  /// **'Encendido: este comercio quedará en el rubro elegido en tus próximas verificaciones.'**
+  String get rememberOn;
+
+  /// No description provided for @rememberNeedsCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige un rubro para poder recordarlo.'**
+  String get rememberNeedsCategory;
+
+  /// No description provided for @applyRecalcFree.
+  ///
+  /// In es, this message translates to:
+  /// **'Aplicar y recalcular · gratis'**
+  String get applyRecalcFree;
+
+  /// No description provided for @categoryChangedRemembered.
+  ///
+  /// In es, this message translates to:
+  /// **'Rubro actualizado y resultado recalculado. Lo recordaremos en tus próximas verificaciones.'**
+  String get categoryChangedRemembered;
+
+  /// No description provided for @rememberFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'Actualizamos este resultado, pero no pudimos recordar el comercio: {error}'**
+  String rememberFailed(String error);
+
+  /// No description provided for @resultNotConfirmedAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar porcentajes'**
+  String get resultNotConfirmedAction;
+
+  /// No description provided for @dismiss.
+  ///
+  /// In es, this message translates to:
+  /// **'Descartar'**
+  String get dismiss;
 }
 
 class _AppLocalizationsDelegate

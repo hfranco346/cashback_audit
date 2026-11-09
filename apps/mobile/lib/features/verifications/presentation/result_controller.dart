@@ -5,12 +5,36 @@ import '../../../core/errors/error_messages.dart';
 import '../../../core/l10n/strings.dart';
 import '../../../core/routing/app_navigator.dart';
 import '../../../core/routing/app_routes.dart';
+import '../../cards/presentation/cards_controller.dart';
 import '../../categories/presentation/catalog_controller.dart';
+import 'attention_controller.dart';
 import 'confirm_rates_controller.dart';
 import '../domain/verification_entities.dart';
 import '../domain/verification_repository.dart';
 
 enum TransactionFilter { all, counted, uncounted, excluded }
+
+/// Title-cases an all-caps descriptor for display ("COMIDAS ESPECIALES
+/// EBERSO" -> "Comidas Especiales Eberso"); mixed-case text is kept.
+String displayMerchantName(String raw) {
+  final clean = cleanDescriptor(raw);
+  if (clean != clean.toUpperCase()) return clean;
+  return clean
+      .toLowerCase()
+      .split(' ')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
+}
+
+/// Message shown under the result tabs after an action.
+class ResultNotice {
+  const ResultNotice(this.message, {this.isError = false});
+
+  final String message;
+  final bool isError;
+}
+
+enum ResultTab { summary, categories, movements }
 
 /// Turns a raw statement descriptor into a friendlier merchant name/keyword
 /// by dropping trailing branch numbers and `#` references.
@@ -32,6 +56,8 @@ class ResultController extends GetxController {
     required this._navigator,
     this.initial,
     this.verificationId,
+    this.cards,
+    this.attention,
   });
 
   final VerificationRepository _repository;
@@ -39,6 +65,8 @@ class ResultController extends GetxController {
   final AppNavigator _navigator;
   final Verification? initial;
   final String? verificationId;
+  final CardsController? cards;
+  final AttentionController? attention;
 
   final verification = Rxn<Verification>();
   final loading = false.obs;
@@ -50,9 +78,11 @@ class ResultController extends GetxController {
   final stale = false.obs;
   final recalculating = false.obs;
 
-  /// Transaction index -> category name assigned from this screen. The
-  /// assignment affects future verifications, not this stored result.
-  final assigned = <int, String>{}.obs;
+  final tab = ResultTab.summary.obs;
+
+  /// Outcome of the last action (category change, recalculation).
+  final notice = Rxn<ResultNotice>();
+  bool _seenMarked = false;
 
   CatalogController get catalog => _catalog;
 
@@ -60,8 +90,34 @@ class ResultController extends GetxController {
   void onInit() {
     super.onInit();
     verification.value = initial;
-    if (initial == null && verificationId != null) load();
+    if (initial == null && verificationId != null) {
+      load();
+    } else {
+      _markSeen();
+    }
   }
+
+  /// A finished result that was opened is "seen": it leaves Home's pending
+  /// list. Failures are ignored (the next refresh brings it back).
+  void _markSeen() {
+    final v = verification.value;
+    if (_seenMarked || v == null || !v.isCompleted) return;
+    _seenMarked = true;
+    final done = attention?.markSeen(v.id) ?? _repository.markSeen(v.id);
+    done.catchError((Object _) {});
+  }
+
+  /// `BAC Cash •••• 4821`, falling back to the bank name from the statement.
+  String get cardLabel {
+    final v = verification.value;
+    final card = v == null ? null : cards?.byId(v.cardId);
+    if (card != null) return '${card.alias} •••• ${card.last4}';
+    final last4 = v?.statement.cardLast4;
+    final bank = v?.statement.bank;
+    return [?bank, if (last4 != null) '•••• $last4'].join(' ');
+  }
+
+  void setTab(ResultTab t) => tab.value = t;
 
   @override
   void onReady() {
@@ -74,6 +130,7 @@ class ResultController extends GetxController {
     errorMessage.value = null;
     try {
       verification.value = (await _repository.detail(verificationId!)).data;
+      _markSeen();
     } catch (e) {
       errorMessage.value = userMessageFor(e);
     } finally {
@@ -109,43 +166,116 @@ class ResultController extends GetxController {
   }
 
   /// Changes the category of one line (`null` clears it) and recalculates
-  /// with the SAME applied rates. Returns a message to show, or `null`.
-  Future<String?> correctCategory(
+  /// with the SAME applied rates. With [remember] the merchant is also
+  /// created or updated so future verifications match it. Returns the
+  /// message to show, or `null` when nothing changed.
+  Future<ResultNotice?> changeCategory(
     VerificationTransaction tx,
-    String? categoryId,
-  ) async {
+    String? categoryId, {
+    bool remember = false,
+  }) async {
     final v = verification.value;
     if (v == null || recalculating.value) return null;
-    if (categoryId == tx.categoryId) return null;
+    if (categoryId == tx.categoryId && !remember) return null;
     recalculating.value = true;
+    notice.value = null;
     try {
-      final patched = await _repository.correctTransaction(
-        v.id,
-        tx.index,
-        categoryId,
-      );
-      verification.value = patched;
-      return await _recalculateApplied(patched);
+      if (categoryId != tx.categoryId) {
+        final patched = await _repository.correctTransaction(
+          v.id,
+          tx.index,
+          categoryId,
+        );
+        verification.value = patched;
+      }
+      final rememberError = remember && categoryId != null
+          ? await _rememberMerchant(tx, categoryId)
+          : null;
+      final problem = await _recalculateApplied(verification.value!);
+      final result =
+          problem ??
+          (rememberError != null
+              ? ResultNotice(
+                  S.current.rememberFailed(rememberError),
+                  isError: true,
+                )
+              : ResultNotice(
+                  remember && categoryId != null
+                      ? S.current.categoryChangedRemembered
+                      : S.current.categoryChanged,
+                ));
+      notice.value = result;
+      return result;
     } on AppException catch (e) {
-      return userMessageFor(e);
+      final result = ResultNotice(userMessageFor(e), isError: true);
+      notice.value = result;
+      return result;
     } finally {
       recalculating.value = false;
     }
+  }
+
+  /// Creates the merchant for an unmatched line or moves the one it already
+  /// matched (or shares its name) to [categoryId], adding the statement
+  /// keyword so the next statements match it. Returns an error or `null`.
+  Future<String?> _rememberMerchant(
+    VerificationTransaction tx,
+    String categoryId,
+  ) async {
+    final keyword = cleanDescriptor(tx.merchant);
+    if (!_catalog.loaded.value) await _catalog.load();
+    final name = tx.matchedMerchantName ?? displayMerchantName(tx.merchant);
+    final byId = _catalog.merchants.firstWhereOrNull(
+      (m) => m.id == tx.matchedMerchantId,
+    );
+    if (byId == null && tx.matchedMerchantId != null) {
+      // Matched a merchant the catalog no longer lists: just move it.
+      return _catalog.updateMerchant(
+        tx.matchedMerchantId!,
+        categoryId: categoryId,
+      );
+    }
+    final existing =
+        byId ??
+        _catalog.merchants.firstWhereOrNull(
+          (m) => m.name.toLowerCase() == name.toLowerCase(),
+        );
+    if (existing == null) {
+      return _catalog.createMerchant(
+        name: name,
+        categoryId: categoryId,
+        keywords: [keyword],
+      );
+    }
+    final hasKeyword = existing.keywords.any(
+      (k) => k.toLowerCase() == keyword.toLowerCase(),
+    );
+    return _catalog.updateMerchant(
+      existing.id,
+      categoryId: categoryId,
+      keywords: hasKeyword ? null : [...existing.keywords, keyword],
+    );
   }
 
   /// Retries the free recalculation after a failed one.
-  Future<String?> retryRecalculation() async {
+  Future<ResultNotice?> retryRecalculation() async {
     final v = verification.value;
     if (v == null || recalculating.value) return null;
     recalculating.value = true;
     try {
-      return await _recalculateApplied(v);
+      final result =
+          await _recalculateApplied(v) ??
+          ResultNotice(S.current.categoryChanged);
+      notice.value = result;
+      return result;
     } finally {
       recalculating.value = false;
     }
   }
 
-  Future<String?> _recalculateApplied(Verification v) async {
+  /// Recalculates with the applied rates. `null` means it worked; otherwise
+  /// the notice explains what is pending.
+  Future<ResultNotice?> _recalculateApplied(Verification v) async {
     final applied = v.appliedRates;
     if (applied == null) {
       // Verified before rates were confirmed: ask for them.
@@ -159,34 +289,15 @@ class ResultController extends GetxController {
         ConfirmRequest.fromApplied(applied),
       );
       stale.value = false;
-      return S.categoryChanged;
+      return null;
     } on AppException catch (e) {
       stale.value = true;
       if (e.code == 'RATES_REQUIRED') {
         // The new category needs its own rate: let the user set it.
         await recalculateWithOtherRates();
-        return S.recalcNeedsRate;
+        return ResultNotice(S.current.recalcNeedsRate);
       }
-      return S.recalcFailedAfterChange;
+      return ResultNotice(S.current.recalcFailedAfterChange, isError: true);
     }
-  }
-
-  /// Creates a merchant for an unmatched line so future statements match.
-  /// Returns an error message or `null`.
-  Future<String?> assignMerchant(
-    VerificationTransaction tx, {
-    required String name,
-    required List<String> keywords,
-    required String categoryId,
-  }) async {
-    final error = await _catalog.createMerchant(
-      name: name,
-      categoryId: categoryId,
-      keywords: keywords,
-    );
-    if (error == null) {
-      assigned[tx.index] = _catalog.categoryById(categoryId)?.name ?? '';
-    }
-    return error;
   }
 }

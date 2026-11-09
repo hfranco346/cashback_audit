@@ -350,7 +350,7 @@
       }
     }
   },
-  "deleteCardBody": "¿Eliminar \"{alias}\"? También se borrará su historial de verificaciones.",
+  "deleteCardBody": "¿Eliminar \"{alias}\"? Su historial de verificaciones se conserva.",
   "@deleteCardBody": {
     "placeholders": {
       "alias": {
@@ -1040,7 +1040,7 @@
   "cardRewardCurrencyNote": "Si es distinta a la de tus compras, te pediremos el tipo de cambio al verificar.",
   "cardCurrencyOtherHint": "Otro código (3 letras)",
   "cardDeleteAction": "Eliminar tarjeta",
-  "cardDeleteNote": "También se elimina su historial de verificaciones.",
+  "cardDeleteNote": "Su historial de verificaciones se conserva.",
   "cardClose": "Cerrar",
   "catalogNewCategory": "+ Nuevo rubro",
   "catalogIntroTitle": "Los rubros son los tipos de compra que tu banco premia más",
@@ -1212,5 +1212,138 @@
         "type": "int"
       }
     }
-  }
+  },
+  "resultTabSummary": "Resumen",
+  "resultTabCategories": "Rubros",
+  "resultTabMovements": "Movimientos",
+  "resultPeriodLine": "{period} · {n, plural, =1{1 movimiento} other{{n} movimientos}}",
+  "@resultPeriodLine": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "verdictPillUnderpaid": "Pagaron de menos",
+  "verdictPillOverpaid": "Pagaron de más",
+  "verdictPillMatch": "Coincide",
+  "resultTitleUnderpaid": "Te pagaron de menos",
+  "resultTitleOverpaid": "Te pagaron de más",
+  "resultTitleMatch": "Te pagaron bien",
+  "resultNoteUnderpaid": "Esto es lo que tu banco no acreditó.",
+  "resultNoteOverpaid": "El banco acreditó más de lo esperado.",
+  "resultNoteMatch": "Diferencia de {diff}, dentro de la tolerancia (± {tolerance}).",
+  "@resultNoteMatch": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "tolerance": {
+        "type": "String"
+      }
+    }
+  },
+  "reportedByBank": "Reportado por el banco",
+  "resultEquivalent": "Lo esperado equivale a {money} · 1 {from} = {rate} {to}",
+  "@resultEquivalent": {
+    "placeholders": {
+      "money": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "resultByCategory": "Por rubro",
+  "resultProgram": "Programa de recompensas",
+  "recalcFree": "Recalcular con otros % · gratis",
+  "noticeCount": "{n, plural, =1{1 aviso} other{{n} avisos}}",
+  "@noticeCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "warnActionAddRate": "Agregar tipo de cambio",
+  "warnActionReviewProgram": "Revisar el programa auditado",
+  "resultRatesUsed": "Porcentajes usados",
+  "resultCurrencies": "Por moneda",
+  "movementsNote": "Nombre limpio arriba · texto original del banco abajo",
+  "movInCategory": "En rubro · {category} {rate}",
+  "@movInCategory": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "movUncounted": "Sin rubro · tasa base {rate}",
+  "@movUncounted": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "movExcluded": "Excluido · {reason}",
+  "@movExcluded": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "movReasonPayment": "pago a la tarjeta",
+  "movReasonFee": "comisión o cargo",
+  "movReasonInterest": "intereses",
+  "movReasonInsurance": "seguro",
+  "movReasonOther": "no genera recompensa",
+  "movReasonNoRate": "compra en {currency} sin tipo de cambio",
+  "@movReasonNoRate": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "changeSheetQuestion": "¿A qué rubro pertenece?",
+  "changeSheetNoRate": "sin % en esta tarjeta",
+  "changeSheetBase": "base {rate}",
+  "@changeSheetBase": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "rememberTitle": "Recordar para próximas verificaciones",
+  "rememberOff": "Apagado: solo cambia esta verificación.",
+  "rememberOn": "Encendido: este comercio quedará en el rubro elegido en tus próximas verificaciones.",
+  "rememberNeedsCategory": "Elige un rubro para poder recordarlo.",
+  "applyRecalcFree": "Aplicar y recalcular · gratis",
+  "categoryChangedRemembered": "Rubro actualizado y resultado recalculado. Lo recordaremos en tus próximas verificaciones.",
+  "rememberFailed": "Actualizamos este resultado, pero no pudimos recordar el comercio: {error}",
+  "@rememberFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "resultNotConfirmedAction": "Confirmar porcentajes",
+  "dismiss": "Descartar"
 }

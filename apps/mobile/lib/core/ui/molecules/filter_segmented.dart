@@ -7,7 +7,11 @@ class FilterOption<T> {
     required this.value,
     required this.label,
     required this.count,
+    this.key,
   });
+
+  /// Key of the tappable segment (tests, analytics).
+  final Key? key;
 
   final T value;
   final String label;
@@ -81,6 +85,7 @@ class _Segment<T> extends StatelessWidget {
       button: true,
       selected: selected,
       child: InkWell(
+        key: option.key,
         onTap: onTap,
         child: Ink(
           decoration: BoxDecoration(

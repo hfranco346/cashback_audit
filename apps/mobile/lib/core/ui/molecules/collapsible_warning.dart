@@ -11,11 +11,17 @@ class CollapsibleWarning extends StatefulWidget {
     required this.title,
     required this.messages,
     this.initiallyExpanded = false,
+    this.actionLabel,
+    this.onAction,
   });
 
   final String title;
   final List<String> messages;
   final bool initiallyExpanded;
+
+  /// Optional action shown under the messages when expanded.
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   State<CollapsibleWarning> createState() => _CollapsibleWarningState();
@@ -93,6 +99,22 @@ class _CollapsibleWarningState extends State<CollapsibleWarning> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: Text(m, style: style),
+                          ),
+                        if (widget.actionLabel != null &&
+                            widget.onAction != null)
+                          TextButton(
+                            onPressed: widget.onAction,
+                            style: TextButton.styleFrom(
+                              foregroundColor: tone.fg,
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(48, 40),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              textStyle: style?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
+                            child: Text(widget.actionLabel!),
                           ),
                       ],
                     ),

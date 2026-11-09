@@ -5,12 +5,8 @@ import 'package:cashback_audit/core/utils/cached.dart';
 import 'package:cashback_audit/features/cards/domain/card_entities.dart';
 import 'package:cashback_audit/features/cards/domain/card_repository.dart';
 import 'package:cashback_audit/features/cards/presentation/cards_controller.dart';
-import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
 import 'package:cashback_audit/features/verifications/presentation/confirm_rates_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/confirm_rates_page.dart';
-import 'package:cashback_audit/features/verifications/presentation/result_controller.dart';
-import 'package:cashback_audit/features/verifications/presentation/widgets/transactions_section.dart';
-import 'package:cashback_audit/features/verifications/presentation/widgets/verification_result_view.dart';
 import 'package:cashback_audit/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -69,46 +65,5 @@ void main() {
     await tester.tap(find.text(S.retry));
     await tester.pump(const Duration(seconds: 2));
     expect(find.byKey(const Key('rate-field-base')), findsOneWidget);
-  });
-
-  testWidgets('result view asks to confirm when the audit is not computed', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: Scaffold(
-          body: VerificationResultView(
-            verification: VerificationMapper.detail(awaitingVerificationJson()),
-            filter: TransactionFilter.all,
-            onFilterChanged: (_) {},
-            assigned: const {},
-            onAssign: (_) {},
-          ),
-        ),
-      ),
-    );
-    expect(find.text(S.resultNotConfirmed), findsOneWidget);
-  });
-
-  testWidgets('an empty filter says there is nothing to show', (tester) async {
-    final v = VerificationMapper.detail(verificationJson());
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: TransactionsSection(
-              transactions: v.transactions,
-              filter: TransactionFilter.excluded,
-              onFilterChanged: (_) {},
-              currency: 'MXN',
-              unit: RewardUnit.cashbackCurrency,
-            ),
-          ),
-        ),
-      ),
-    );
-    expect(find.text(S.noTransactionsMatch), findsOneWidget);
   });
 }
