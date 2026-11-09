@@ -38,7 +38,7 @@ The current UI is the MVP look; the designer delivered a complete system (tokens
 - [x] M3 Card form (basic/advanced) + Categories and merchants (guided empty / populated). Route: delegated.
 - [x] M4 Verify (pick file, async processing, can leave) + Confirm percentages + Result (under/over/match, movements filter, change-category sheet with "remember"). Route: delegated.
 - [x] M5 History (online/offline) + Paywall (free check / no credits) + Profile/Settings (profile, credit history, language and currencies) + M3 navigation bar (Inicio · Historial · Rubros · Perfil). Route: delegated.
-- [ ] M6 Final pass: analyze, tests, run on device/simulator screenshots light/dark ES/EN.
+- [x] M6 Final pass: analyze, tests, run on device/simulator screenshots light/dark ES/EN.
 
 ## Acceptance criteria
 - Screens match `project/*.dc.html` (layout, tokens, copy) in light and dark, ES and EN.
@@ -54,3 +54,4 @@ The current UI is the MVP look; the designer delivered a complete system (tokens
 
 ## Next step
 M6 final pass (analyze, tests, device/simulator screenshots light/dark ES/EN).
+- M6 done. Visual QA on iPhone 17 simulator (390 pt) against local API with seeded users (main, empty, no-credit) in light/dark and ES/EN; harness lived in a throwaway git worktree (nothing committed). Contact sheets in scratchpad `sheets-v2/` (1_onboarding .. 8_english). Fixes: `fix(mobile): Categories tab crashed (Get.find inferred a nullable type)` and `fix(mobile): editing a card crashed (controller onInit ran during first build)`. Checks in apps/mobile: `dart format --set-exit-if-changed lib test` 0 changed, `flutter analyze` no issues, `flutter test` 488 passed. Known differences: design HTML could not be rendered (needs the canvas runtime), so comparison was against the design source/tokens; onboarding first-PDF and verdict steps and the offline history banner were not captured (need real sign-in/upload/offline); explanation text in results is server-generated Spanish and includes the raw verdict enum; paywall shows the dev-only "purchases not configured" notice; processing state captured by faking the API status in the harness.

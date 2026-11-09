@@ -152,8 +152,10 @@ abstract final class AppPages {
       name: Routes.cardForm,
       page: () => const CardFormPage(),
       binding: BindingsBuilder(() {
-        Get.lazyPut(
-          () => CardFormController(
+        // Eager: onInit fills the form from the edited card and must not run
+        // inside the page's first build.
+        Get.put(
+          CardFormController(
             repository: Get.find<CardRepository>(),
             cards: Get.find<CardsController>(),
             catalog: Get.find<CatalogController>(),
