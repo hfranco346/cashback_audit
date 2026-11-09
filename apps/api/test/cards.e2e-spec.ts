@@ -235,6 +235,13 @@ describe('Cards (e2e)', () => {
     ).body;
     await http().delete(`/api/v1/cards/${card.id}`).set(alice.auth).expect(204);
     await http().get(`/api/v1/cards/${card.id}`).set(alice.auth).expect(404);
+    expect((await http().get('/api/v1/cards').set(alice.auth)).body).toEqual([]);
+    await http()
+      .patch(`/api/v1/cards/${card.id}`)
+      .set(alice.auth)
+      .send({ alias: 'x' })
+      .expect(404);
+    await http().delete(`/api/v1/cards/${card.id}`).set(alice.auth).expect(404);
   });
 
   it('rejects malformed ids with 400', async () => {

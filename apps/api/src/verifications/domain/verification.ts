@@ -160,10 +160,19 @@ export interface VerificationModels {
   explanation: string | null;
 }
 
+/** Card identity kept readable even after the card is deleted. */
+export interface VerificationCardRef {
+  alias: string;
+  bank: string;
+  last4: string;
+  deleted: boolean;
+}
+
 export interface Verification {
   id: string;
   userId: string;
   cardId: string;
+  card?: VerificationCardRef;
   statementBank: string | null;
   statementLast4: string | null;
   periodStart: string | null;

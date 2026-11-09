@@ -1583,16 +1583,77 @@ describe('Verifications (e2e)', () => {
         .expect(404);
     });
 
-    it('removes history when its card is deleted', async () => {
-      const created = (await start(alice)).body;
-      await http()
-        .delete(`/api/v1/cards/${cardId}`)
-        .set(alice.auth)
-        .expect(204);
-      await http()
-        .get(`/api/v1/verifications/${created.id}`)
-        .set(alice.auth)
-        .expect(404);
+    describe('when its card is deleted', () => {
+      const deleteCard = () =>
+        http().delete(`/api/v1/cards/${cardId}`).set(alice.auth).expect(204);
+
+      it('keeps the history readable with the card alias and last4', async () => {
+        const created = (await start(alice)).body;
+        expect(created.card).toEqual({
+          alias: 'Daily',
+          bank: 'BBVA',
+          last4: '4321',
+          deleted: false,
+        });
+        await deleteCard();
+        const detail = await http()
+          .get(`/api/v1/verifications/${created.id}`)
+          .set(alice.auth)
+          .expect(200);
+        expect(detail.body.card).toEqual({
+          alias: 'Daily',
+          bank: 'BBVA',
+          last4: '4321',
+          deleted: true,
+        });
+        const list = await http()
+          .get('/api/v1/verifications')
+          .set(alice.auth)
+          .expect(200);
+        expect(list.body.items).toHaveLength(1);
+        expect(list.body.items[0]).toMatchObject({
+          id: created.id,
+          card: { alias: 'Daily', last4: '4321', deleted: true },
+        });
+        await http().get('/api/v1/cards').set(alice.auth).expect(200);
+      });
+
+      it('rejects new uploads and confirmations against the deleted card', async () => {
+        const pending = (await start(alice)).body;
+        await deleteCard();
+        await upload(alice).expect(404);
+        await confirm(alice, pending.id).expect(404);
+        await http()
+          .get(`/api/v1/verifications?cardId=${cardId}`)
+          .set(alice.auth)
+          .expect(404);
+      });
+
+      it('allows re-creating the same card', async () => {
+        const created = (await start(alice)).body;
+        await deleteCard();
+        const again = await http()
+          .post('/api/v1/cards')
+          .set(alice.auth)
+          .send({
+            alias: 'Daily',
+            bank: 'BBVA',
+            last4: '4321',
+            rewardUnit: 'CASHBACK_CURRENCY',
+            baseRatePercent: 1,
+            currency: 'MXN',
+          })
+          .expect(201);
+        expect(again.body.id).not.toBe(cardId);
+        const cards = await http().get('/api/v1/cards').set(alice.auth);
+        expect(cards.body.map((c: { id: string }) => c.id)).toEqual([
+          again.body.id,
+        ]);
+        await http()
+          .get(`/api/v1/verifications/${created.id}`)
+          .set(alice.auth)
+          .expect(200);
+      });
     });
   });
 });

@@ -99,6 +99,8 @@ model Card {
   rewardProgramName     String?
   /// Currency the reward is paid in when it differs from `currency`; overrides detection.
   rewardCurrency        String?    @db.Char(3)
+  /// Soft delete: a deleted card is hidden but keeps its verification history.
+  deletedAt             DateTime?
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 
@@ -189,7 +191,7 @@ enum VerificationFailureCode {
 model Verification {
   id             String         @id @default(uuid()) @db.Uuid
   userId         String         @db.Uuid
-  /// History is removed together with its card.
+  /// Card rows are soft-deleted, so history outlives its card.
   cardId         String         @db.Uuid
   statementBank  String?
   statementLast4 String?

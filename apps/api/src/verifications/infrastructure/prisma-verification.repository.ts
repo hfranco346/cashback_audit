@@ -257,11 +257,26 @@ const asRecord = (value: unknown): Json =>
   value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Json)
     : {};
-function toSummary(row: PrismaVerification): VerificationSummary {
+type Row = PrismaVerification & {
+  card?: { alias: string; bank: string; last4: string; deletedAt: Date | null };
+};
+const CARD_REF = {
+  card: { select: { alias: true, bank: true, last4: true, deletedAt: true } },
+} as const;
+
+function toSummary(row: Row): VerificationSummary {
   return {
     id: row.id,
     userId: row.userId,
     cardId: row.cardId,
+    ...(row.card && {
+      card: {
+        alias: row.card.alias,
+        bank: row.card.bank,
+        last4: row.card.last4,
+        deleted: row.card.deletedAt !== null,
+      },
+    }),
     statementBank: row.statementBank,
     statementLast4: row.statementLast4,
     periodStart: dateOnly(row.periodStart),
@@ -297,7 +312,7 @@ function toSummary(row: PrismaVerification): VerificationSummary {
 const asArray = (value: unknown): Json[] =>
   Array.isArray(value) ? (value as Json[]) : [];
 
-function toDomain(row: PrismaVerification): Verification {
+function toDomain(row: Row): Verification {
   return {
     ...toSummary(row),
     breakdown: asArray(row.breakdown).map(deserializeLine),
@@ -386,6 +401,7 @@ export class PrismaVerificationRepository extends VerificationRepository {
         cardId: input.cardId,
         ...toData(input),
       } as Prisma.VerificationUncheckedCreateInput,
+      include: CARD_REF,
     });
     return toDomain(row);
   }
@@ -411,6 +427,7 @@ export class PrismaVerificationRepository extends VerificationRepository {
   async findById(userId: string, id: string): Promise<Verification | null> {
     const row = await this.prisma.verification.findFirst({
       where: { id, userId },
+      include: CARD_REF,
     });
     return row ? toDomain(row) : null;
   }
@@ -435,6 +452,7 @@ export class PrismaVerificationRepository extends VerificationRepository {
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: filter.skip,
         take: filter.take,
+        include: CARD_REF,
       }),
       this.prisma.verification.count({ where }),
     ]);
@@ -451,6 +469,7 @@ export class PrismaVerificationRepository extends VerificationRepository {
         ],
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: CARD_REF,
     });
     return rows.map(toSummary);
   }

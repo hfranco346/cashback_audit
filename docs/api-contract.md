@@ -531,7 +531,12 @@ card. Errors: `400`, `404 CARD_NOT_FOUND`, `404 CATEGORY_NOT_FOUND`.
 
 ### DELETE /cards/:id
 
-`204`. **Also deletes the verification history of that card.**
+`204`. Soft delete: the card disappears from `GET /cards` and `GET/PATCH/DELETE
+/cards/:id` answer `404 CARD_NOT_FOUND`. Its **verification history is kept**
+(list, detail, attention) and every verification carries a `card` snapshot (see
+section 8). A deleted card cannot receive new verifications, be confirmed against
+or be used in the `cardId` list filter (`404 CARD_NOT_FOUND`). Creating a card
+with the same bank/last4 afterwards is allowed (a new card with a new `id`).
 
 ---
 
@@ -633,6 +638,7 @@ in a queue.
 {
   "id": "e5f6...",
   "cardId": "c3d4...",
+  "card": { "alias": "Daily", "bank": "BBVA", "last4": "4321", "deleted": false },
   "status": "PROCESSING",
   "failureCode": null,
   "seenAt": null,
@@ -745,6 +751,7 @@ Full verification object (what `GET /verifications/:id` returns once step 1 fini
 {
   "id": "e5f6...",
   "cardId": "c3d4...",
+  "card": { "alias": "Daily", "bank": "BBVA", "last4": "4321", "deleted": false },
   "status": "AWAITING_RATES",
   "statement": { "bank": "Example Bank", "cardLast4": "4321", "periodStart": "2026-01-01", "periodEnd": "2026-01-31", "currency": "MXN", "totalSpent": "1400", "totalToPay": "1400", "summaries": [ { "currency": "MXN", "previousBalance": "0", "purchasesAndCharges": "1400", "purchases": "1400", "chargesAndInterest": null, "totalBalance": "1400" } ] },
   "primaryCurrency": "MXN",
@@ -1117,6 +1124,7 @@ Query: `cardId` (optional uuid; `404` if not yours), `status` (optional,
     {
       "id": "e5f6...",
       "cardId": "c3d4...",
+      "card": { "alias": "Daily", "bank": "BBVA", "last4": "4321", "deleted": false },
       "status": "COMPLETED",
       "failureCode": null,
       "seenAt": null,
@@ -1436,6 +1444,16 @@ consumable products in RevenueCat/the stores.
 ---
 
 ## 12. Changelog (breaking changes)
+
+### Card deletion keeps verification history
+
+- **Behavior change**: `DELETE /cards/:id` no longer deletes the card's
+  verifications; it soft-deletes the card.
+- New `card` field on every verification and list item:
+  `{ alias, bank, last4, deleted }` (`deleted: true` once the card was deleted).
+  Clients should use it instead of looking `cardId` up in `GET /cards`.
+- Deleted cards answer `404 CARD_NOT_FOUND` on upload, confirm and the `cardId`
+  list filter.
 
 ### Asynchronous verification, attention, seen and preferences (redesign v2)
 

@@ -68,7 +68,7 @@ export class PrismaCardRepository extends CardRepository {
 
   async findById(userId: string, id: string): Promise<Card | null> {
     const row = await this.prisma.card.findFirst({
-      where: { id, userId },
+      where: { id, userId, deletedAt: null },
       include: { rules: { orderBy: { id: 'asc' } } },
     });
     return row ? toDomainCard(row) : null;
@@ -76,7 +76,7 @@ export class PrismaCardRepository extends CardRepository {
 
   async list(userId: string): Promise<Card[]> {
     const rows = await this.prisma.card.findMany({
-      where: { userId },
+      where: { userId, deletedAt: null },
       orderBy: { createdAt: 'asc' },
       include: { rules: { orderBy: { id: 'asc' } } },
     });
@@ -91,7 +91,7 @@ export class PrismaCardRepository extends CardRepository {
     const { rules, pointsPerCurrencyUnit, baseRatePercent, ...rest } = patch;
     return this.prisma.$transaction(async (tx) => {
       const owned = await tx.card.findFirst({
-        where: { id, userId },
+        where: { id, userId, deletedAt: null },
         select: { id: true },
       });
       if (!owned) return null;
@@ -116,7 +116,10 @@ export class PrismaCardRepository extends CardRepository {
   }
 
   async delete(userId: string, id: string): Promise<boolean> {
-    const result = await this.prisma.card.deleteMany({ where: { id, userId } });
+    const result = await this.prisma.card.updateMany({
+      where: { id, userId, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
     return result.count > 0;
   }
 }

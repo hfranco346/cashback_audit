@@ -51,6 +51,7 @@ export function presentSummary(v: VerificationSummary) {
   return {
     id: v.id,
     cardId: v.cardId,
+    card: v.card ?? null,
     status: v.status,
     failureCode: v.failureCode,
     seenAt: v.seenAt?.toISOString() ?? null,
@@ -82,6 +83,7 @@ export function presentVerification(v: Verification, proposal: RateProposal) {
   return {
     id: v.id,
     cardId: v.cardId,
+    card: v.card ?? null,
     status: v.status,
     failureCode: v.failureCode,
     seenAt: v.seenAt?.toISOString() ?? null,
