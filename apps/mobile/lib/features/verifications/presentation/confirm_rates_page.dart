@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/l10n/strings.dart';
+import '../../../core/l10n/l10n_context.dart';
+import '../../../core/ui/ui.dart';
 import '../../../core/utils/decimal_utils.dart';
-import '../../../shared/widgets/molecules/inline_message.dart';
 import '../../cards/domain/card_entities.dart';
 import 'confirm_rates_controller.dart';
+import 'period_label.dart';
 import 'widgets/confirm_rates_view.dart';
 
 /// Container: wires [ConfirmRatesController] to [ConfirmRatesView].
@@ -14,27 +15,42 @@ class ConfirmRatesPage extends GetView<ConfirmRatesController> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Obx(() {
       final v = controller.verification.value;
       if (v == null) {
         return Scaffold(
-          appBar: AppBar(title: Text(S.confirmRatesTitle)),
+          appBar: AppBar(
+            leading: IconButton(
+              tooltip: l10n.back,
+              onPressed: Get.back<void>,
+              icon: const Icon(Icons.arrow_back_rounded),
+            ),
+          ),
           body: controller.loading.value
               ? const Center(child: CircularProgressIndicator())
               : Padding(
                   padding: const EdgeInsets.all(20),
-                  child: InlineMessage(
+                  child: InlineNotice(
                     message:
-                        controller.errorMessage.value ?? S.confirmLoadError,
-                    actionLabel: S.retry,
+                        controller.errorMessage.value ?? l10n.confirmLoadError,
+                    actionLabel: l10n.retry,
                     onAction: controller.fetch,
                   ),
                 ),
         );
       }
       final sr = controller.statementRate;
+      final card = controller.card;
+      final period = statementPeriodLabel(v.statement, v.createdAt);
       return ConfirmRatesView(
         isRecalculation: controller.isRecalculation,
+        headerLine: card == null ? period : '${card.alias} · $period',
+        bankName: v.statement.bank ?? card?.bank,
+        programName: controller.programName,
+        missingFields: controller.missingFields,
+        invalidFields: controller.invalidFields,
+        onClose: Get.back<void>,
         entries: controller.entries.toList(),
         capSuffix: controller.unit == RewardUnit.points
             ? 'pts'
@@ -51,7 +67,7 @@ class ConfirmRatesPage extends GetView<ConfirmRatesController> {
         exchangeRateError: controller.exchangeRateError,
         statementRateNote: sr == null
             ? null
-            : S.exchangeRateStatement(sr.from, sr.to, decimalToApi(sr.rate)),
+            : l10n.exchangeRateStatement(sr.from, sr.to, decimalToApi(sr.rate)),
         foreignExcluded: controller.foreignWillBeExcluded,
         programChoices: controller.programChoices.toList(),
         selectedProgram: controller.selectedProgram.value,

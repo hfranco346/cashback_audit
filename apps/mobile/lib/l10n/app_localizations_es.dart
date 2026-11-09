@@ -517,17 +517,17 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get confirmRatesIntro =>
-      'Los bancos cambian sus políticas seguido. Revisa con qué porcentajes vamos a calcular lo que deberías haber recibido.';
+      'Los bancos cambian sus reglas. Revisa antes de calcular; cambiarlos después es gratis.';
 
   @override
   String get confirmRatesNoCharge =>
       'Calcular y recalcular no consume verificaciones.';
 
   @override
-  String get rateBaseTitle => 'Tasa base';
+  String get rateBaseTitle => 'Todo lo demás · tasa base';
 
   @override
-  String get rateBaseSubtitle => 'Se aplica a todo gasto fuera de tus rubros.';
+  String get rateBaseSubtitle => 'Compras fuera de tus rubros';
 
   @override
   String get rateFieldLabel => 'Porcentaje';
@@ -554,8 +554,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get saveToCardTitle => 'Guardar estos % en la tarjeta';
 
   @override
-  String get saveToCardSubtitle =>
-      'Reemplaza la tasa base y las reglas por rubro de tu tarjeta.';
+  String get saveToCardSubtitle => 'Se usarán en la próxima verificación';
 
   @override
   String get exchangeRateTitle => 'Tipo de cambio (opcional)';
@@ -2070,4 +2069,87 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get errVerificationNotReady =>
       'Tu estado de cuenta todavía se está analizando. Espera a que termine.';
+
+  @override
+  String suggestionsTitleN(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n rubros que no tienes',
+      one: '1 rubro que no tienes',
+    );
+    return 'Tu banco menciona $_temp0';
+  }
+
+  @override
+  String createNSuggestions(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Crear $n rubros · gratis',
+      one: 'Crear 1 rubro · gratis',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionTxns(int n) {
+    return '$n mov.';
+  }
+
+  @override
+  String get rateCapAdd => '+ Tope mensual (opcional)';
+
+  @override
+  String get exchangeRewardTitle => 'Tipo de cambio de tu cashback';
+
+  @override
+  String exchangeRewardBody(String bank, String reward, String primary) {
+    return '$bank te paga el cashback en $reward, pero tus compras son en $primary. Necesitamos convertirlo.';
+  }
+
+  @override
+  String get yourBankFallback => 'Tu banco';
+
+  @override
+  String exchangeQuestion(String unit, String target) {
+    return '1 $unit = ¿cuántos $target?';
+  }
+
+  @override
+  String exchangeEnterHint(String unit, String target) {
+    return 'Escribe cuántos $target vale 1 $unit.';
+  }
+
+  @override
+  String get exchangeFindHint =>
+      'Lo encuentras en tu estado de cuenta o en el sitio de tu banco.';
+
+  @override
+  String exchangeForeignTitle(String currency) {
+    return 'Compras en $currency';
+  }
+
+  @override
+  String get confirmProgramTitle => 'Programa que auditamos';
+
+  @override
+  String confirmProgramBody(String name) {
+    return '$name · se tomará el valor ganado en el periodo, no el saldo disponible.';
+  }
+
+  @override
+  String confirmMissingOne(String name) {
+    return 'Falta: $name';
+  }
+
+  @override
+  String confirmCheckOne(String name) {
+    return 'Revisa: $name';
+  }
+
+  @override
+  String confirmMissingMany(int n) {
+    return '$n campos por completar o revisar';
+  }
 }

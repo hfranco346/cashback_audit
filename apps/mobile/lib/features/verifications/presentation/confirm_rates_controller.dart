@@ -135,6 +135,8 @@ class ConfirmRatesController extends GetxController {
     required this._navigator,
     required this.args,
     this._catalog,
+    this.savedRates = const {},
+    this.savedRatesPrimary,
   });
 
   final VerificationRepository _repository;
@@ -142,6 +144,11 @@ class ConfirmRatesController extends GetxController {
   final AppNavigator _navigator;
   final CatalogController? _catalog;
   final ConfirmRatesArgs args;
+
+  /// The user's last rate per currency (`AppUser.currencyRates`), expressed
+  /// in [savedRatesPrimary] units. Suggested when nothing better exists.
+  final Map<String, Decimal> savedRates;
+  final String? savedRatesPrimary;
 
   final verification = Rxn<Verification>();
   final loading = false.obs;
@@ -187,6 +194,12 @@ class ConfirmRatesController extends GetxController {
     final v = verification.value;
     final card = v == null ? null : _cards.byId(v.cardId);
     return card?.rewardUnit ?? v?.unit ?? RewardUnit.cashbackCurrency;
+  }
+
+  /// The card being audited, once the cards are loaded.
+  CreditCard? get card {
+    final v = verification.value;
+    return v == null ? null : _cards.byId(v.cardId);
   }
 
   String get primaryCurrency => verification.value?.currency ?? 'MXN';
@@ -239,6 +252,53 @@ class ConfirmRatesController extends GetxController {
     final d = CardValidator.parse(t);
     if (d == null || d < Decimal.zero || d.scale > 2) return S.overrideInvalid;
     return null;
+  }
+
+  /// Name of the program that will be audited (single or chosen), if known.
+  String? get programName {
+    final loyalty = verification.value?.loyalty;
+    return selectedProgram.value ??
+        loyalty?.selectedProgram?.name ??
+        (loyalty != null && loyalty.programs.length == 1
+            ? loyalty.programs.first.name
+            : null);
+  }
+
+  /// Labels of the required fields still empty (drives the footer hint).
+  List<String> get missingFields {
+    _revision.value; // reactive dependency
+    return [
+      for (final e in entries)
+        if (e.mustHaveRate && !e.hasRate) e.name,
+      if (rewardConversion.value != null &&
+          rewardRate.text.trim().isEmpty &&
+          rewardRateError != null)
+        S.current.exchangeRewardTitle,
+      if (programChoices.isNotEmpty && selectedProgram.value == null)
+        S.current.programChooserTitle,
+      if (needsReportedOverride.value && reportedOverride.text.trim().isEmpty)
+        S.current.overrideLabel,
+    ];
+  }
+
+  /// Labels of the filled fields with an invalid value.
+  List<String> get invalidFields {
+    _revision.value; // reactive dependency
+    return [
+      for (final e in entries)
+        if (e.hasRate && !e.isValid) e.name,
+      if (rewardConversion.value != null &&
+          rewardRate.text.trim().isNotEmpty &&
+          rewardRateError != null)
+        S.current.exchangeRewardTitle,
+      for (final f in foreignRates)
+        if (f.error != null) S.current.exchangeForeignTitle(f.currency),
+      if (exchangeRateError != null) S.current.exchangeRateTitle,
+      if (needsReportedOverride.value &&
+          reportedOverride.text.trim().isNotEmpty &&
+          overrideError != null)
+        S.current.overrideLabel,
+    ];
   }
 
   /// All required fields are filled and valid.
@@ -320,9 +380,12 @@ class ConfirmRatesController extends GetxController {
     final used =
         v.appliedRates?.rewardExchangeRate?.rate ??
         v.conversion.requestedRewardRate;
-    final reward = used ?? conv?.rate;
+    final saved = conv == null
+        ? null
+        : _savedRate(code: conv.toCurrency, target: conv.fromCurrency);
+    final reward = used ?? conv?.rate ?? saved;
     rewardRate.text = reward == null ? '' : decimalToApi(reward);
-    rewardRateOrigin = used != null
+    rewardRateOrigin = (used != null || (conv?.rate == null && saved != null))
         ? RateOrigin.previous
         : (conv?.rate != null ? RateOrigin.statement : RateOrigin.none);
     rewardRateTouched = false;
@@ -334,10 +397,11 @@ class ConfirmRatesController extends GetxController {
       for (final e in v.exchangeRateProposal)
         () {
           final sent = v.conversion.requestedRates[e.currency];
-          final value = sent ?? e.rate;
+          final saved = _savedRate(code: e.currency, target: v.currency);
+          final value = sent ?? e.rate ?? saved;
           final draft = ForeignRateDraft(
             currency: e.currency,
-            origin: sent != null
+            origin: sent != null || (e.rate == null && saved != null)
                 ? RateOrigin.previous
                 : (e.rate != null ? RateOrigin.statement : RateOrigin.none),
             rate: value == null ? '' : decimalToApi(value),
@@ -351,6 +415,10 @@ class ConfirmRatesController extends GetxController {
     suggestionsCreatedNotice.value = false;
     _loadSuggestions(v, preselect: true);
   }
+
+  /// The user's saved rate for [code] when it is expressed in [target].
+  Decimal? _savedRate({required String code, required String target}) =>
+      savedRatesPrimary == target ? savedRates[code] : null;
 
   void _loadSuggestions(Verification v, {required bool preselect}) {
     final visible = [

@@ -518,18 +518,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmRatesIntro =>
-      'Banks change their policies often. Review the percentages we will use to calculate what you should have received.';
+      'Banks change their rules. Review before we calculate; changing them later is free.';
 
   @override
   String get confirmRatesNoCharge =>
       'Calculating and recalculating does not use up checks.';
 
   @override
-  String get rateBaseTitle => 'Base rate';
+  String get rateBaseTitle => 'Everything else · base rate';
 
   @override
-  String get rateBaseSubtitle =>
-      'Applies to all spending outside your categories.';
+  String get rateBaseSubtitle => 'Purchases outside your categories';
 
   @override
   String get rateFieldLabel => 'Percentage';
@@ -556,8 +555,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveToCardTitle => 'Save these % on the card';
 
   @override
-  String get saveToCardSubtitle =>
-      'Replaces your card’s base rate and category rules.';
+  String get saveToCardSubtitle => 'Used in your next check';
 
   @override
   String get exchangeRateTitle => 'Exchange rate (optional)';
@@ -2062,4 +2060,87 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errVerificationNotReady =>
       'Your statement is still being analyzed. Wait for it to finish.';
+
+  @override
+  String suggestionsTitleN(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n categories you don\'t have',
+      one: '1 category you don\'t have',
+    );
+    return 'Your bank mentions $_temp0';
+  }
+
+  @override
+  String createNSuggestions(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Create $n categories · free',
+      one: 'Create 1 category · free',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionTxns(int n) {
+    return '$n txns';
+  }
+
+  @override
+  String get rateCapAdd => '+ Monthly cap (optional)';
+
+  @override
+  String get exchangeRewardTitle => 'Cashback exchange rate';
+
+  @override
+  String exchangeRewardBody(String bank, String reward, String primary) {
+    return '$bank pays your cashback in $reward, but your purchases are in $primary. We need to convert it.';
+  }
+
+  @override
+  String get yourBankFallback => 'Your bank';
+
+  @override
+  String exchangeQuestion(String unit, String target) {
+    return '1 $unit = how many $target?';
+  }
+
+  @override
+  String exchangeEnterHint(String unit, String target) {
+    return 'Enter how many $target 1 $unit is worth.';
+  }
+
+  @override
+  String get exchangeFindHint =>
+      'You\'ll find it on your statement or your bank\'s website.';
+
+  @override
+  String exchangeForeignTitle(String currency) {
+    return 'Purchases in $currency';
+  }
+
+  @override
+  String get confirmProgramTitle => 'Program we audit';
+
+  @override
+  String confirmProgramBody(String name) {
+    return '$name · we take the amount earned in the period, not the available balance.';
+  }
+
+  @override
+  String confirmMissingOne(String name) {
+    return 'Missing: $name';
+  }
+
+  @override
+  String confirmCheckOne(String name) {
+    return 'Check: $name';
+  }
+
+  @override
+  String confirmMissingMany(int n) {
+    return '$n fields to fill in or check';
+  }
 }

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/l10n/strings.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/l10n/l10n_context.dart';
+import '../../../../core/ui/ui.dart';
 import '../confirm_rates_controller.dart';
 
-/// One rate to confirm: the base rate or one category. Shows where the
-/// prefilled value came from (statement quote, card rule, previous audit) or
-/// marks the field as required when there is nothing to prefill.
+/// One rate to confirm: the base rate or one category, as a design
+/// [RateField] with its source label (statement + quote / card rules /
+/// previous / required) and, for categories, the optional monthly cap.
 class RateEntryCard extends StatelessWidget {
   const RateEntryCard({
     super.key,
@@ -26,165 +26,113 @@ class RateEntryCard extends StatelessWidget {
 
   String get _slug => entry.categoryId ?? 'base';
 
+  RateSource get _source => switch (entry.origin) {
+    RateOrigin.statement => RateSource.detected,
+    RateOrigin.cardRule => RateSource.cardRules,
+    RateOrigin.previous => RateSource.previous,
+    RateOrigin.none => RateSource.required,
+  };
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final showError = entry.hasRate || entry.touched;
-    final rateError = showError ? entry.rateError : null;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    entry.name,
-                    key: Key('rate-title-$_slug'),
-                    style: theme.textTheme.titleMedium,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                RateOriginBadge(
-                  key: Key('rate-badge-$_slug'),
-                  origin: entry.origin,
-                ),
-              ],
+    return RateField(
+      title: entry.name,
+      subtitle: subtitle,
+      source: _source,
+      controller: entry.rate,
+      fieldKey: Key('rate-field-$_slug'),
+      quote: entry.evidence,
+      errorText: showError ? entry.rateError : null,
+      onChanged: (_) => onTouched(),
+      onTapOutside: onTouched,
+      footer: entry.isBase
+          ? (entry.unitNote == null ? null : _UnitNote(entry.unitNote!))
+          : _CapEditor(
+              key: Key('cap-editor-$_slug'),
+              entry: entry,
+              suffix: capSuffix,
+              unitNote: entry.unitNote,
             ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                subtitle!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-            if (entry.evidence != null) ...[
-              const SizedBox(height: 10),
-              Container(
-                key: Key('rate-evidence-$_slug'),
-                width: double.infinity,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  S.evidenceQuote(entry.evidence!),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-            ],
-            if (entry.unitNote != null) ...[
-              const SizedBox(height: 6),
-              Text(entry.unitNote!, style: theme.textTheme.bodySmall),
-            ],
-            const SizedBox(height: 12),
-            TextField(
-              key: Key('rate-field-$_slug'),
-              controller: entry.rate,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [_decimal],
-              onChanged: (_) => onTouched(),
-              onTapOutside: (_) => onTouched(),
-              decoration: InputDecoration(
-                labelText: S.rateFieldLabel,
-                suffixText: '%',
-                errorText: rateError,
-              ),
-            ),
-            if (!entry.isBase) ...[
-              const SizedBox(height: 10),
-              TextField(
-                key: Key('rate-cap-$_slug'),
-                controller: entry.cap,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                inputFormatters: [_decimal],
-                decoration: InputDecoration(
-                  labelText: S.rateCapLabel,
-                  suffixText: capSuffix,
-                  errorText: entry.capError,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
     );
   }
 }
 
-/// Origin chip: statement / card rule / previous audit / required.
-class RateOriginBadge extends StatelessWidget {
-  const RateOriginBadge({super.key, required this.origin});
+class _UnitNote extends StatelessWidget {
+  const _UnitNote(this.text);
 
-  final RateOrigin origin;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 6),
+    child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+  );
+}
+
+/// "+ Monthly cap (optional)": collapsed until tapped (or until it has a
+/// value, e.g. when recalculating).
+class _CapEditor extends StatefulWidget {
+  const _CapEditor({
+    super.key,
+    required this.entry,
+    required this.suffix,
+    this.unitNote,
+  });
+
+  final RateEntryDraft entry;
+  final String suffix;
+  final String? unitNote;
+
+  @override
+  State<_CapEditor> createState() => _CapEditorState();
+}
+
+class _CapEditorState extends State<_CapEditor> {
+  late bool _open = widget.entry.cap.text.trim().isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
-    final status = context.statusColors;
-    final verdicts = context.verdictColors;
-    final (label, icon, fg, bg) = switch (origin) {
-      RateOrigin.statement => (
-        S.badgeStatement,
-        Icons.description_outlined,
-        status.success,
-        status.successContainer,
-      ),
-      RateOrigin.cardRule => (
-        S.badgeCardRule,
-        Icons.credit_card_rounded,
-        theme.colorScheme.onSecondaryContainer,
-        theme.colorScheme.secondaryContainer,
-      ),
-      RateOrigin.previous => (
-        S.badgePrevious,
-        Icons.history_rounded,
-        theme.colorScheme.onSecondaryContainer,
-        theme.colorScheme.secondaryContainer,
-      ),
-      RateOrigin.none => (
-        S.badgeRequired,
-        Icons.edit_note_rounded,
-        verdicts.warning,
-        verdicts.warningContainer,
-      ),
-    };
-    return Flexible(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: fg),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: fg,
-                  fontWeight: FontWeight.w700,
-                ),
+    final entry = widget.entry;
+    final slug = entry.categoryId ?? 'base';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (widget.unitNote != null) _UnitNote(widget.unitNote!),
+        if (!_open)
+          TextButton(
+            key: Key('rate-cap-add-$slug'),
+            onPressed: () => setState(() => _open = true),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(48, 36),
+              alignment: Alignment.centerLeft,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(l10n.rateCapAdd),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: TextField(
+              key: Key('rate-cap-$slug'),
+              controller: entry.cap,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [RateEntryCard._decimal],
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+              decoration: AppField.decoration(suffix: widget.suffix).copyWith(
+                labelText: l10n.rateCapLabel,
+                errorText: entry.capError,
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 }

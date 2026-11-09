@@ -218,6 +218,11 @@ abstract final class AppPages {
             cards: Get.find<CardsController>(),
             navigator: Get.find<AppNavigator>(),
             catalog: Get.find<CatalogController>(),
+            savedRates:
+                Get.find<SessionController>().user.value?.currencyRates ??
+                const {},
+            savedRatesPrimary:
+                Get.find<SessionController>().user.value?.primaryCurrency,
             args: args is ConfirmRatesArgs
                 ? args
                 : ConfirmRatesArgs.byId(args as String),

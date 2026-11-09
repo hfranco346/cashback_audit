@@ -156,10 +156,10 @@
   "analyzingExpect": "Este paso suele tardar cerca de 1 minuto. Después podrás confirmar los porcentajes.",
   "confirmRatesTitle": "Confirma los porcentajes",
   "recalcRatesTitle": "Recalcular con otros %",
-  "confirmRatesIntro": "Los bancos cambian sus políticas seguido. Revisa con qué porcentajes vamos a calcular lo que deberías haber recibido.",
+  "confirmRatesIntro": "Los bancos cambian sus reglas. Revisa antes de calcular; cambiarlos después es gratis.",
   "confirmRatesNoCharge": "Calcular y recalcular no consume verificaciones.",
-  "rateBaseTitle": "Tasa base",
-  "rateBaseSubtitle": "Se aplica a todo gasto fuera de tus rubros.",
+  "rateBaseTitle": "Todo lo demás · tasa base",
+  "rateBaseSubtitle": "Compras fuera de tus rubros",
   "rateFieldLabel": "Porcentaje",
   "rateCapLabel": "Tope mensual (opcional)",
   "badgeStatement": "Detectado en tu estado de cuenta",
@@ -168,7 +168,7 @@
   "badgeRequired": "Obligatorio",
   "rateRequiredError": "Escribe el porcentaje para continuar",
   "saveToCardTitle": "Guardar estos % en la tarjeta",
-  "saveToCardSubtitle": "Reemplaza la tasa base y las reglas por rubro de tu tarjeta.",
+  "saveToCardSubtitle": "Se usarán en la próxima verificación",
   "exchangeRateTitle": "Tipo de cambio (opcional)",
   "exchangeRateMissing": "Hay compras en moneda extranjera. Sin tipo de cambio quedarán fuera del cálculo.",
   "exchangeRateInvalid": "Escribe un número mayor a 0 (máximo 6 decimales)",
@@ -1107,5 +1107,110 @@
   "failureTitleNotAStatement": "No parece un estado de cuenta",
   "failureTitleExtraction": "No pudimos leerlo",
   "failureTitleInterrupted": "Se interrumpió el análisis",
-  "errVerificationNotReady": "Tu estado de cuenta todavía se está analizando. Espera a que termine."
+  "errVerificationNotReady": "Tu estado de cuenta todavía se está analizando. Espera a que termine.",
+  "suggestionsTitleN": "Tu banco menciona {n, plural, =1{1 rubro que no tienes} other{{n} rubros que no tienes}}",
+  "@suggestionsTitleN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "createNSuggestions": "{n, plural, =1{Crear 1 rubro · gratis} other{Crear {n} rubros · gratis}}",
+  "@createNSuggestions": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "suggestionTxns": "{n} mov.",
+  "@suggestionTxns": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "rateCapAdd": "+ Tope mensual (opcional)",
+  "exchangeRewardTitle": "Tipo de cambio de tu cashback",
+  "exchangeRewardBody": "{bank} te paga el cashback en {reward}, pero tus compras son en {primary}. Necesitamos convertirlo.",
+  "@exchangeRewardBody": {
+    "placeholders": {
+      "bank": {
+        "type": "String"
+      },
+      "reward": {
+        "type": "String"
+      },
+      "primary": {
+        "type": "String"
+      }
+    }
+  },
+  "yourBankFallback": "Tu banco",
+  "exchangeQuestion": "1 {unit} = ¿cuántos {target}?",
+  "@exchangeQuestion": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "exchangeEnterHint": "Escribe cuántos {target} vale 1 {unit}.",
+  "@exchangeEnterHint": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "exchangeFindHint": "Lo encuentras en tu estado de cuenta o en el sitio de tu banco.",
+  "exchangeForeignTitle": "Compras en {currency}",
+  "@exchangeForeignTitle": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmProgramTitle": "Programa que auditamos",
+  "confirmProgramBody": "{name} · se tomará el valor ganado en el periodo, no el saldo disponible.",
+  "@confirmProgramBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmMissingOne": "Falta: {name}",
+  "@confirmMissingOne": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmCheckOne": "Revisa: {name}",
+  "@confirmCheckOne": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmMissingMany": "{n} campos por completar o revisar",
+  "@confirmMissingMany": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  }
 }

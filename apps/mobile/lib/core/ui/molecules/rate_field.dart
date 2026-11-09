@@ -21,6 +21,9 @@ class RateField extends StatelessWidget {
     this.errorText,
     this.onChanged,
     this.sourceLabel,
+    this.fieldKey,
+    this.onTapOutside,
+    this.footer,
   });
 
   /// Category (or "base rate") name.
@@ -36,6 +39,15 @@ class RateField extends StatelessWidget {
 
   /// Overrides the localized label of [source].
   final String? sourceLabel;
+
+  /// Key of the percentage [TextField] (tests, focus).
+  final Key? fieldKey;
+
+  /// The user tapped away from the field (to start showing its errors).
+  final VoidCallback? onTapOutside;
+
+  /// Extra content under the quote, e.g. the optional monthly cap.
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -105,8 +117,12 @@ class RateField extends StatelessWidget {
                   width: 96,
                   height: 48,
                   child: TextField(
+                    key: fieldKey,
                     controller: controller,
                     onChanged: onChanged,
+                    onTapOutside: onTapOutside == null
+                        ? null
+                        : (_) => onTapOutside!(),
                     textAlign: TextAlign.end,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -188,6 +204,7 @@ class RateField extends StatelessWidget {
                 ),
               ),
             ],
+            if (footer != null) ...[const SizedBox(height: 4), footer!],
           ],
         ),
       ),

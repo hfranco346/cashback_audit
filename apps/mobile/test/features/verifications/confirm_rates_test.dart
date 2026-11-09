@@ -9,7 +9,6 @@ import 'package:cashback_audit/features/cards/presentation/cards_controller.dart
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
 import 'package:cashback_audit/features/verifications/presentation/confirm_rates_controller.dart';
-import 'package:cashback_audit/features/verifications/presentation/widgets/confirm_rates_view.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/verification_summary_tile.dart';
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
@@ -397,124 +396,7 @@ void main() {
     expect(c.isRecalculation, isFalse);
   });
 
-  group('widgets', () {
-    Future<ConfirmRatesController> pump(
-      WidgetTester tester,
-      Verification v,
-    ) async {
-      // Tall surface so the whole (lazy) list is built.
-      tester.view.physicalSize = const Size(800, 3000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      final c = make(ConfirmRatesArgs.verification(v));
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: StatefulBuilder(
-            builder: (context, setState) => ConfirmRatesView(
-              entries: c.entries.toList(),
-              capSuffix: 'HNL',
-              onTouched: (e) => setState(() => c.touch(e)),
-              saveToCard: c.saveToCard.value,
-              onSaveToCard: (b) => setState(() => c.setSaveToCard(b)),
-              canConfirm: c.canConfirm,
-              submitting: false,
-              onConfirm: c.confirm,
-              primaryCurrency: 'HNL',
-              showExchangeRate: c.showExchangeRate,
-              exchangeRate: c.exchangeRate,
-              foreignExcluded: c.foreignWillBeExcluded,
-              programChoices: const [],
-              selectedProgram: null,
-              onSelectProgram: (_) {},
-              needsOverride: false,
-              reportedOverride: c.reportedOverride,
-            ),
-          ),
-        ),
-      );
-      await tester.pump(const Duration(seconds: 2));
-      return c;
-    }
-
-    FilledButton confirmButton(WidgetTester tester) =>
-        tester.widget<FilledButton>(find.byKey(const Key('confirm-button')));
-
-    testWidgets('a required field blocks submit until it is filled', (
-      tester,
-    ) async {
-      await pump(tester, _awaiting());
-      expect(find.text(S.badgeRequired), findsNWidgets(2));
-      expect(confirmButton(tester).onPressed, isNull);
-
-      await tester.enterText(find.byKey(const Key('rate-field-base')), '1');
-      await tester.pump();
-      expect(confirmButton(tester).onPressed, isNull);
-
-      // Emptying a required field shows the inline error.
-      await tester.enterText(find.byKey(const Key('rate-field-cat1')), '5');
-      await tester.enterText(find.byKey(const Key('rate-field-cat1')), '');
-      await tester.pump();
-      expect(find.text(S.rateRequiredError), findsOneWidget);
-      expect(confirmButton(tester).onPressed, isNull);
-
-      await tester.enterText(find.byKey(const Key('rate-field-cat1')), '7');
-      await tester.pump();
-      expect(find.text(S.rateRequiredError), findsNothing);
-      expect(confirmButton(tester).onPressed, isNotNull);
-    });
-
-    testWidgets('STATEMENT entries show the badge and the evidence quote', (
-      tester,
-    ) async {
-      await pump(
-        tester,
-        _awaiting(
-          proposal: [
-            proposalJson(null, null, '1', 'CARD_RULE'),
-            proposalJson(
-              'cat1',
-              'Supermercados',
-              '7',
-              'STATEMENT',
-              evidence: '7% en supermercados',
-            ),
-          ],
-        ),
-      );
-      expect(find.text(S.badgeStatement), findsOneWidget);
-      expect(find.text(S.badgeCardRule), findsOneWidget);
-      expect(find.text(S.evidenceQuote('7% en supermercados')), findsOneWidget);
-      final field = tester.widget<TextField>(
-        find.byKey(const Key('rate-field-cat1')),
-      );
-      expect(field.controller?.text, '7');
-      expect(confirmButton(tester).onPressed, isNotNull);
-      expect(find.byKey(const Key('exchange-rate-field')), findsNothing);
-    });
-
-    testWidgets('exchange rate field and warning appear for foreign lines', (
-      tester,
-    ) async {
-      await pump(
-        tester,
-        _awaiting(
-          transactions: [
-            txJson(0, 'AMAZON', '20', currency: 'USD', awaiting: true),
-          ],
-        ),
-      );
-      await tester.scrollUntilVisible(
-        find.byKey(const Key('exchange-rate-field')),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(find.byKey(const Key('exchange-rate-field')), findsOneWidget);
-      expect(find.byKey(const Key('exchange-rate-warning')), findsOneWidget);
-    });
-  });
-
-  group('analyzing and history widgets', () {
+  group('history widgets', () {
     testWidgets('history shows the pending chip for AWAITING_RATES', (
       tester,
     ) async {

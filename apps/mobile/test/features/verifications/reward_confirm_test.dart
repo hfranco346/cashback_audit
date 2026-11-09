@@ -1,6 +1,5 @@
 import 'package:cashback_audit/core/errors/app_exception.dart';
 import 'package:cashback_audit/core/l10n/strings.dart';
-import 'package:cashback_audit/core/theme/app_theme.dart';
 import 'package:cashback_audit/core/utils/cached.dart';
 import 'package:cashback_audit/features/cards/data/card_mapper.dart';
 import 'package:cashback_audit/features/cards/domain/card_entities.dart';
@@ -8,9 +7,7 @@ import 'package:cashback_audit/features/cards/domain/card_repository.dart';
 import 'package:cashback_audit/features/cards/presentation/cards_controller.dart';
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
 import 'package:cashback_audit/features/verifications/presentation/confirm_rates_controller.dart';
-import 'package:cashback_audit/features/verifications/presentation/confirm_rates_page.dart';
 import 'package:decimal/decimal.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -321,146 +318,6 @@ void main() {
       expect(c.suggestions, hasLength(3));
       expect(c.selectedSuggestions, {'Tiendas por Departamento'});
       expect(c.creatingSuggestions.value, isFalse);
-    });
-  });
-
-  group('page', () {
-    Future<ConfirmRatesController> pumpPage(
-      WidgetTester tester,
-      Map<String, dynamic> json, {
-      ThemeData? theme,
-    }) async {
-      tester.view.physicalSize = const Size(800, 3600);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      final c = make(json);
-      Get.put<ConfirmRatesController>(c);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: theme ?? AppTheme.light,
-          home: const ConfirmRatesPage(),
-        ),
-      );
-      await tester.pump(const Duration(seconds: 2));
-      return c;
-    }
-
-    FilledButton button(WidgetTester tester) =>
-        tester.widget<FilledButton>(find.byKey(const Key('confirm-button')));
-
-    for (final (name, theme) in [
-      ('light', AppTheme.light),
-      ('dark', AppTheme.dark),
-    ]) {
-      testWidgets('reward conversion field blocks submit ($name)', (
-        tester,
-      ) async {
-        final c = await pumpPage(tester, _withConversion(), theme: theme);
-        fillRates(c);
-        c.touchRewardRate();
-        await tester.pump();
-
-        expect(
-          find.text(
-            'Tu banco paga la recompensa en USD y tus compras están en HNL',
-          ),
-          findsOneWidget,
-        );
-        expect(find.text('¿Cuántos HNL vale 1 USD?'), findsOneWidget);
-        expect(find.text(S.rewardRateRequiredError), findsOneWidget);
-        expect(find.text(S.badgeRequired), findsWidgets);
-        expect(button(tester).onPressed, isNull);
-
-        await tester.enterText(
-          find.byKey(const Key('reward-rate-field')),
-          '26',
-        );
-        await tester.pump();
-        expect(find.text(S.rewardRateRequiredError), findsNothing);
-        expect(button(tester).onPressed, isNotNull);
-
-        await tester.enterText(find.byKey(const Key('reward-rate-field')), '0');
-        await tester.pump();
-        expect(find.text(S.exchangeRateInvalid), findsOneWidget);
-        expect(button(tester).onPressed, isNull);
-      });
-
-      testWidgets('suggestions card lists % and lines, preselects ($name)', (
-        tester,
-      ) async {
-        await pumpPage(tester, _withConversion(), theme: theme);
-        expect(find.text(S.suggestionsTitle), findsOneWidget);
-        expect(find.text(S.suggestionsFree), findsOneWidget);
-        expect(find.text('7% · 7 movimientos'), findsOneWidget);
-        expect(find.text('7% · Sin movimientos'), findsNWidgets(2));
-        bool checked(String name) => tester
-            .widget<CheckboxListTile>(find.byKey(Key('suggestion-$name')))
-            .value!;
-        expect(checked('Restaurantes y Comida rápida'), isTrue);
-        expect(checked('Tiendas por Departamento'), isFalse);
-        expect(find.text(S.createSuggestions), findsOneWidget);
-      });
-    }
-
-    testWidgets('statement-prefilled reward rate shows the badge', (
-      tester,
-    ) async {
-      final c = await pumpPage(
-        tester,
-        _withConversion(rate: '26.35', source: 'STATEMENT', required: false),
-      );
-      fillRates(c);
-      await tester.pump();
-      final field = tester.widget<TextField>(
-        find.byKey(const Key('reward-rate-field')),
-      );
-      expect(field.controller?.text, '26.35');
-      expect(find.text(S.badgeStatement), findsWidgets);
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('reward-conversion-card')),
-          matching: find.text(S.badgeStatement),
-        ),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('one field per foreign currency with the left-out note', (
-      tester,
-    ) async {
-      await pumpPage(tester, _withConversion());
-      expect(find.byKey(const Key('foreign-rate-EUR')), findsOneWidget);
-      expect(find.text('¿Cuántos HNL vale 1 EUR?'), findsOneWidget);
-      expect(find.byKey(const Key('foreign-excluded-EUR')), findsOneWidget);
-      await tester.enterText(find.byKey(const Key('foreign-rate-EUR')), '28.1');
-      await tester.pump();
-      expect(find.byKey(const Key('foreign-excluded-EUR')), findsNothing);
-    });
-
-    testWidgets('tapping Crear rubros seleccionados refreshes in place', (
-      tester,
-    ) async {
-      final c = await pumpPage(tester, _withConversion());
-      repo.suggestionsResultJson = ficohsaAwaitingJson()
-        ..['rateProposal'] = [
-          proposalJson(null, null, '1', 'CARD_RULE'),
-          proposalJson('cat1', 'Supermercados', '7', 'STATEMENT'),
-          proposalJson(
-            'cat-rest',
-            'Restaurantes y Comida rápida',
-            '7',
-            'STATEMENT',
-          ),
-        ]
-        ..['suggestedCategories'] = <Map<String, dynamic>>[];
-      await tester.tap(find.byKey(const Key('create-suggestions')));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 2));
-      expect(repo.suggestionRequests, hasLength(1));
-      expect(find.byKey(const Key('rate-field-cat-rest')), findsOneWidget);
-      expect(find.byKey(const Key('suggested-categories-card')), findsNothing);
-      expect(find.byKey(const Key('suggestions-created')), findsOneWidget);
-      expect(c.entries.length, 3);
     });
   });
 }

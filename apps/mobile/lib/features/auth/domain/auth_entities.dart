@@ -1,3 +1,4 @@
+import 'package:decimal/decimal.dart';
 import 'package:equatable/equatable.dart';
 
 class AppUser extends Equatable {
@@ -7,6 +8,7 @@ class AppUser extends Equatable {
     this.name,
     this.primaryCurrency,
     this.currencies = const [],
+    this.currencyRates = const {},
   });
 
   /// Also the RevenueCat app user id.
@@ -20,6 +22,10 @@ class AppUser extends Equatable {
   /// ISO codes of the currencies the user works with, most relevant first.
   /// Suggested before the common ones when creating cards.
   final List<String> currencies;
+
+  /// Last exchange rate used per currency code: primary-currency units per
+  /// 1 unit of the code (`lastRateToPrimary`). Only codes with a known rate.
+  final Map<String, Decimal> currencyRates;
 
   /// First name for greetings; falls back to the e-mail local part.
   String? get firstName {
@@ -35,7 +41,14 @@ class AppUser extends Equatable {
     'email': email,
     'name': name,
     'primaryCurrency': primaryCurrency,
-    'currencies': currencies,
+    'currencies': [
+      for (final c in currencies)
+        {
+          'code': c,
+          if (currencyRates[c] != null)
+            'lastRateToPrimary': currencyRates[c].toString(),
+        },
+    ],
   };
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
@@ -44,6 +57,7 @@ class AppUser extends Equatable {
     name: json['name'] as String?,
     primaryCurrency: json['primaryCurrency'] as String?,
     currencies: _currencyCodes(json['currencies']),
+    currencyRates: _currencyRates(json['currencies']),
   );
 
   /// Accepts `[{code: 'USD', ...}]` (API) or `['USD']` (local cache).
@@ -58,8 +72,28 @@ class AppUser extends Equatable {
     ];
   }
 
+  static Map<String, Decimal> _currencyRates(Object? raw) {
+    if (raw is! List) return const {};
+    final rates = <String, Decimal>{};
+    for (final e in raw) {
+      if (e is! Map || e['code'] is! String) continue;
+      final rate = Decimal.tryParse('${e['lastRateToPrimary']}');
+      if (rate != null && rate > Decimal.zero) {
+        rates[e['code'] as String] = rate;
+      }
+    }
+    return rates;
+  }
+
   @override
-  List<Object?> get props => [id, email, name, primaryCurrency, currencies];
+  List<Object?> get props => [
+    id,
+    email,
+    name,
+    primaryCurrency,
+    currencies,
+    currencyRates,
+  ];
 }
 
 /// Credential obtained from Apple on the device.

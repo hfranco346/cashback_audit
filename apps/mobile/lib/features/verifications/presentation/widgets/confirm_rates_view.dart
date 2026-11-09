@@ -2,17 +2,19 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/l10n/strings.dart';
-import '../../../../shared/widgets/atoms/staggered_entrance.dart';
-import '../../../../shared/widgets/molecules/inline_message.dart';
+import '../../../../core/l10n/l10n_context.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/ui.dart';
+import '../../domain/verification_entities.dart'
+    show RewardConversion, SuggestedCategory;
 import '../confirm_rates_controller.dart';
-import '../../domain/verification_entities.dart';
-import 'foreign_rates_card.dart';
+import 'exchange_rate_card.dart';
 import 'rate_entry_card.dart';
-import 'reward_conversion_card.dart';
 import 'suggested_categories_card.dart';
 
-/// Pure presentational rate confirmation screen (step 2).
+/// Pure presentational rate confirmation screen (step 2): every rate with
+/// where it came from, the exchange rates that are needed and one footer
+/// that says what is still missing.
 class ConfirmRatesView extends StatelessWidget {
   const ConfirmRatesView({
     super.key,
@@ -24,6 +26,7 @@ class ConfirmRatesView extends StatelessWidget {
     required this.canConfirm,
     required this.submitting,
     required this.onConfirm,
+    required this.onClose,
     required this.primaryCurrency,
     required this.showExchangeRate,
     required this.exchangeRate,
@@ -33,6 +36,11 @@ class ConfirmRatesView extends StatelessWidget {
     required this.onSelectProgram,
     required this.needsOverride,
     required this.reportedOverride,
+    this.headerLine,
+    this.bankName,
+    this.programName,
+    this.missingFields = const [],
+    this.invalidFields = const [],
     this.rewardConversion,
     this.rewardRate,
     this.rewardRateOrigin = RateOrigin.none,
@@ -60,7 +68,19 @@ class ConfirmRatesView extends StatelessWidget {
   final bool canConfirm;
   final bool submitting;
   final VoidCallback onConfirm;
+  final VoidCallback onClose;
   final bool isRecalculation;
+
+  /// `Ficohsa Signature · Sep 21 – Oct 21, 2026`.
+  final String? headerLine;
+  final String? bankName;
+
+  /// Program that will be audited, when known.
+  final String? programName;
+
+  /// Required fields still empty / filled with an invalid value (footer).
+  final List<String> missingFields;
+  final List<String> invalidFields;
 
   final String primaryCurrency;
   final bool showExchangeRate;
@@ -102,215 +122,301 @@ class ConfirmRatesView extends StatelessWidget {
 
   static final _decimal = FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'));
 
+  String? _footerHint(AppLocalizations l10n) {
+    final all = [...missingFields, ...invalidFields];
+    if (all.isEmpty) return null;
+    if (all.length > 1) return l10n.confirmMissingMany(all.length);
+    return missingFields.isNotEmpty
+        ? l10n.confirmMissingOne(all.single)
+        : l10n.confirmCheckOne(all.single);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
-    var position = 0;
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final hint = canConfirm ? null : _footerHint(l10n);
+    final conv = rewardConversion;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isRecalculation ? S.recalcRatesTitle : S.confirmRatesTitle),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
-        children: [
-          FadeIn(
-            child: Text(S.confirmRatesIntro, style: theme.textTheme.bodyMedium),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            S.confirmRatesNoCharge,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (suggestions.isNotEmpty || suggestionsCreated) ...[
-            SuggestedCategoriesCard(
-              suggestions: suggestions,
-              selected: selectedSuggestions,
-              onToggle: onToggleSuggestion ?? (_, _) {},
-              onCreate: onCreateSuggestions ?? () {},
-              creating: creatingSuggestions,
-              createdNotice: suggestionsCreated,
-            ),
-            const SizedBox(height: 12),
-          ],
-          for (final entry in entries)
-            Padding(
-              key: ValueKey(entry.categoryId ?? 'base'),
-              padding: const EdgeInsets.only(bottom: 12),
-              child: StaggeredEntrance(
-                index: position++,
-                child: RateEntryCard(
-                  entry: entry,
-                  capSuffix: capSuffix,
-                  subtitle: entry.isBase ? S.rateBaseSubtitle : null,
-                  onTouched: () => onTouched(entry),
+        leading: IconButton(
+          key: const Key('confirm-close'),
+          tooltip: l10n.back,
+          onPressed: onClose,
+          icon: const Icon(Icons.arrow_back_rounded),
+        ),
+        titleSpacing: 0,
+        title: headerLine == null
+            ? null
+            : Text(
+                headerLine!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: muted,
+                  fontFeatures: appFigures,
                 ),
               ),
-            ),
-          if (rewardConversion != null && rewardRate != null) ...[
-            const SizedBox(height: 4),
-            RewardConversionCard(
-              conversion: rewardConversion!,
-              controller: rewardRate!,
-              origin: rewardRateOrigin,
-              onTouched: onRewardRateTouched ?? () {},
-              error: rewardRateError,
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (foreignRates.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            ForeignRatesCard(
-              primaryCurrency: primaryCurrency,
-              rates: foreignRates,
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (showExchangeRate) ...[
-            const SizedBox(height: 4),
-            _ExchangeRateSection(
-              primaryCurrency: primaryCurrency,
-              controller: exchangeRate,
-              error: exchangeRateError,
-              statementNote: statementRateNote,
-              excluded: foreignExcluded,
-              decimal: _decimal,
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (programChoices.isNotEmpty) ...[
-            _ProgramChooser(
-              choices: programChoices,
-              selected: selectedProgram,
-              onSelected: onSelectProgram,
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (needsOverride) ...[
-            Text(S.overrideTitle, style: theme.textTheme.titleMedium),
-            const SizedBox(height: 10),
-            TextField(
-              key: const Key('override-field'),
-              controller: reportedOverride,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [_decimal],
-              decoration: InputDecoration(
-                labelText: S.overrideLabel,
-                helperText: S.overrideHelper,
-                helperMaxLines: 2,
-                errorText: overrideError,
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          SwitchListTile(
-            key: const Key('save-to-card'),
-            contentPadding: EdgeInsets.zero,
-            value: saveToCard,
-            onChanged: submitting ? null : onSaveToCard,
-            title: Text(S.saveToCardTitle),
-            subtitle: Text(S.saveToCardSubtitle),
-          ),
-          if (errorMessage != null) ...[
-            const SizedBox(height: 8),
-            InlineMessage(
-              key: const Key('confirm-error'),
-              message: errorMessage!,
-            ),
-          ],
-          const SizedBox(height: 16),
-          FilledButton(
-            key: const Key('confirm-button'),
-            onPressed: canConfirm ? onConfirm : null,
-            child: submitting
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2.4),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(S.calculating),
-                    ],
-                  )
-                : Text(S.calculateResult),
-          ),
-        ],
       ),
-    );
-  }
-}
-
-class _ExchangeRateSection extends StatelessWidget {
-  const _ExchangeRateSection({
-    required this.primaryCurrency,
-    required this.controller,
-    required this.error,
-    required this.statementNote,
-    required this.excluded,
-    required this.decimal,
-  });
-
-  final String primaryCurrency;
-  final TextEditingController controller;
-  final String? error;
-  final String? statementNote;
-  final bool excluded;
-  final TextInputFormatter decimal;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(S.exchangeRateTitle, style: theme.textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              S.exchangeRateHelper(primaryCurrency),
-              style: theme.textTheme.bodySmall,
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screen,
+                  0,
+                  AppSpacing.screen,
+                  AppSpacing.lg,
+                ),
+                children: [
+                  Text(
+                    isRecalculation
+                        ? l10n.recalcRatesTitle
+                        : l10n.confirmRatesTitle,
+                    style: theme.textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  FadeIn(
+                    child: Text(
+                      l10n.confirmRatesIntro,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: muted,
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  if (suggestions.isNotEmpty || suggestionsCreated) ...[
+                    SuggestedCategoriesCard(
+                      suggestions: suggestions,
+                      selected: selectedSuggestions,
+                      onToggle: onToggleSuggestion ?? (_, _) {},
+                      onCreate: onCreateSuggestions ?? () {},
+                      creating: creatingSuggestions,
+                      createdNotice: suggestionsCreated,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  for (final entry in entries)
+                    Padding(
+                      key: ValueKey(entry.categoryId ?? 'base'),
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: RateEntryCard(
+                        entry: entry,
+                        capSuffix: capSuffix,
+                        subtitle: entry.isBase ? l10n.rateBaseSubtitle : null,
+                        onTouched: () => onTouched(entry),
+                      ),
+                    ),
+                  if (conv != null && rewardRate != null) ...[
+                    ExchangeRateCard(
+                      key: const Key('reward-conversion-card'),
+                      title: l10n.exchangeRewardTitle,
+                      body: l10n.exchangeRewardBody(
+                        bankName ?? l10n.yourBankFallback,
+                        conv.toCurrency,
+                        conv.fromCurrency,
+                      ),
+                      unit: conv.toCurrency,
+                      target: conv.fromCurrency,
+                      controller: rewardRate!,
+                      fieldKey: const Key('reward-rate-field'),
+                      origin: rewardRateOrigin,
+                      isRequired: conv.required,
+                      error: rewardRateError,
+                      onTouched: onRewardRateTouched,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  for (final rate in foreignRates) ...[
+                    ExchangeRateCard(
+                      key: Key('foreign-rate-card-${rate.currency}'),
+                      title: l10n.exchangeForeignTitle(rate.currency),
+                      unit: rate.currency,
+                      target: primaryCurrency,
+                      controller: rate.rate,
+                      fieldKey: Key('foreign-rate-${rate.currency}'),
+                      origin: rate.origin,
+                      isRequired: false,
+                      error: rate.error,
+                      emptyNote: l10n.foreignRateEmptyNote(rate.currency),
+                      emptyNoteKey: Key('foreign-excluded-${rate.currency}'),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (showExchangeRate) ...[
+                    ExchangeRateCard(
+                      title: l10n.exchangeRateTitle,
+                      body: l10n.exchangeRateHelper(primaryCurrency),
+                      target: primaryCurrency,
+                      controller: exchangeRate,
+                      fieldKey: const Key('exchange-rate-field'),
+                      origin: RateOrigin.none,
+                      isRequired: false,
+                      error: exchangeRateError,
+                      statementNote: statementRateNote,
+                      showFindHint: false,
+                    ),
+                    if (foreignExcluded) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      InlineNotice(
+                        key: const Key('exchange-rate-warning'),
+                        message: l10n.exchangeRateMissing,
+                        kind: StatusKind.warning,
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (programChoices.isNotEmpty) ...[
+                    _ProgramChooser(
+                      choices: programChoices,
+                      selected: selectedProgram,
+                      onSelected: onSelectProgram,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (needsOverride) ...[
+                    Text(
+                      l10n.overrideTitle,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 10),
+                    AppField(
+                      label: l10n.overrideLabel,
+                      help: l10n.overrideHelper,
+                      child: TextField(
+                        key: const Key('override-field'),
+                        controller: reportedOverride,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [_decimal],
+                        decoration: AppField.decoration().copyWith(
+                          errorText: overrideError,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.saveToCardTitle,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  l10n.saveToCardSubtitle,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: muted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            key: const Key('save-to-card'),
+                            value: saveToCard,
+                            onChanged: submitting ? null : onSaveToCard,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (programName != null) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    Card(
+                      key: const Key('program-audited'),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.confirmProgramTitle,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              l10n.confirmProgramBody(programName!),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: muted,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    InlineNotice(
+                      key: const Key('confirm-error'),
+                      message: errorMessage!,
+                    ),
+                  ],
+                ],
+              ),
             ),
-            if (statementNote != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                statementNote!,
-                key: const Key('statement-rate-note'),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: theme.colorScheme.outlineVariant),
                 ),
               ),
-            ],
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('exchange-rate-field'),
-              controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [decimal],
-              decoration: InputDecoration(
-                labelText: S.exchangeRateTitle,
-                suffixText: primaryCurrency,
-                errorText: error,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screen,
+                  AppSpacing.md,
+                  AppSpacing.screen,
+                  AppSpacing.lg,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AppButton(
+                      key: const Key('confirm-button'),
+                      label: submitting
+                          ? l10n.calculating
+                          : l10n.calculateResult,
+                      loading: submitting,
+                      onPressed: canConfirm ? onConfirm : null,
+                    ),
+                    if (hint != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        hint,
+                        key: const Key('confirm-missing'),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: context.appColors.error.fg,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
-            if (excluded) ...[
-              const SizedBox(height: 10),
-              InlineMessage(
-                key: Key('exchange-rate-warning'),
-                message: S.exchangeRateMissing,
-                tone: InlineMessageTone.warning,
-              ),
-            ],
           ],
         ),
       ),
@@ -331,6 +437,7 @@ class _ProgramChooser extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
     return Card(
       key: const Key('program-chooser'),
@@ -339,9 +446,9 @@ class _ProgramChooser extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(S.programChooserTitle, style: theme.textTheme.titleMedium),
+            Text(l10n.programChooserTitle, style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text(S.programChooserHelper, style: theme.textTheme.bodySmall),
+            Text(l10n.programChooserHelper, style: theme.textTheme.bodySmall),
             const SizedBox(height: 8),
             RadioGroup<String>(
               groupValue: selected,
@@ -359,11 +466,24 @@ class _ProgramChooser extends StatelessWidget {
               ),
             ),
             if (selected == null)
-              Text(
-                S.programRequired,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
+              Row(
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    size: 14,
+                    color: context.appColors.error.fg,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      l10n.programRequired,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: context.appColors.error.fg,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
           ],
         ),

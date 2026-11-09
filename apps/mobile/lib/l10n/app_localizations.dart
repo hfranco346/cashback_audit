@@ -1037,7 +1037,7 @@ abstract class AppLocalizations {
   /// No description provided for @confirmRatesIntro.
   ///
   /// In es, this message translates to:
-  /// **'Los bancos cambian sus políticas seguido. Revisa con qué porcentajes vamos a calcular lo que deberías haber recibido.'**
+  /// **'Los bancos cambian sus reglas. Revisa antes de calcular; cambiarlos después es gratis.'**
   String get confirmRatesIntro;
 
   /// No description provided for @confirmRatesNoCharge.
@@ -1049,13 +1049,13 @@ abstract class AppLocalizations {
   /// No description provided for @rateBaseTitle.
   ///
   /// In es, this message translates to:
-  /// **'Tasa base'**
+  /// **'Todo lo demás · tasa base'**
   String get rateBaseTitle;
 
   /// No description provided for @rateBaseSubtitle.
   ///
   /// In es, this message translates to:
-  /// **'Se aplica a todo gasto fuera de tus rubros.'**
+  /// **'Compras fuera de tus rubros'**
   String get rateBaseSubtitle;
 
   /// No description provided for @rateFieldLabel.
@@ -1109,7 +1109,7 @@ abstract class AppLocalizations {
   /// No description provided for @saveToCardSubtitle.
   ///
   /// In es, this message translates to:
-  /// **'Reemplaza la tasa base y las reglas por rubro de tu tarjeta.'**
+  /// **'Se usarán en la próxima verificación'**
   String get saveToCardSubtitle;
 
   /// No description provided for @exchangeRateTitle.
@@ -3529,6 +3529,102 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Tu estado de cuenta todavía se está analizando. Espera a que termine.'**
   String get errVerificationNotReady;
+
+  /// No description provided for @suggestionsTitleN.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu banco menciona {n, plural, =1{1 rubro que no tienes} other{{n} rubros que no tienes}}'**
+  String suggestionsTitleN(int n);
+
+  /// No description provided for @createNSuggestions.
+  ///
+  /// In es, this message translates to:
+  /// **'{n, plural, =1{Crear 1 rubro · gratis} other{Crear {n} rubros · gratis}}'**
+  String createNSuggestions(int n);
+
+  /// No description provided for @suggestionTxns.
+  ///
+  /// In es, this message translates to:
+  /// **'{n} mov.'**
+  String suggestionTxns(int n);
+
+  /// No description provided for @rateCapAdd.
+  ///
+  /// In es, this message translates to:
+  /// **'+ Tope mensual (opcional)'**
+  String get rateCapAdd;
+
+  /// No description provided for @exchangeRewardTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo de cambio de tu cashback'**
+  String get exchangeRewardTitle;
+
+  /// No description provided for @exchangeRewardBody.
+  ///
+  /// In es, this message translates to:
+  /// **'{bank} te paga el cashback en {reward}, pero tus compras son en {primary}. Necesitamos convertirlo.'**
+  String exchangeRewardBody(String bank, String reward, String primary);
+
+  /// No description provided for @yourBankFallback.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu banco'**
+  String get yourBankFallback;
+
+  /// No description provided for @exchangeQuestion.
+  ///
+  /// In es, this message translates to:
+  /// **'1 {unit} = ¿cuántos {target}?'**
+  String exchangeQuestion(String unit, String target);
+
+  /// No description provided for @exchangeEnterHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe cuántos {target} vale 1 {unit}.'**
+  String exchangeEnterHint(String unit, String target);
+
+  /// No description provided for @exchangeFindHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo encuentras en tu estado de cuenta o en el sitio de tu banco.'**
+  String get exchangeFindHint;
+
+  /// No description provided for @exchangeForeignTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Compras en {currency}'**
+  String exchangeForeignTitle(String currency);
+
+  /// No description provided for @confirmProgramTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Programa que auditamos'**
+  String get confirmProgramTitle;
+
+  /// No description provided for @confirmProgramBody.
+  ///
+  /// In es, this message translates to:
+  /// **'{name} · se tomará el valor ganado en el periodo, no el saldo disponible.'**
+  String confirmProgramBody(String name);
+
+  /// No description provided for @confirmMissingOne.
+  ///
+  /// In es, this message translates to:
+  /// **'Falta: {name}'**
+  String confirmMissingOne(String name);
+
+  /// No description provided for @confirmCheckOne.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa: {name}'**
+  String confirmCheckOne(String name);
+
+  /// No description provided for @confirmMissingMany.
+  ///
+  /// In es, this message translates to:
+  /// **'{n} campos por completar o revisar'**
+  String confirmMissingMany(int n);
 }
 
 class _AppLocalizationsDelegate

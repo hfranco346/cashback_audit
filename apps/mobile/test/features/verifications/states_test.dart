@@ -11,6 +11,7 @@ import 'package:cashback_audit/features/verifications/presentation/confirm_rates
 import 'package:cashback_audit/features/verifications/presentation/result_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/transactions_section.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/verification_result_view.dart';
+import 'package:cashback_audit/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -52,7 +53,13 @@ void main() {
     );
     Get.put(controller);
     await tester.pumpWidget(
-      GetMaterialApp(theme: AppTheme.light, home: const ConfirmRatesPage()),
+      GetMaterialApp(
+        theme: AppTheme.light,
+        locale: const Locale('es'),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: const ConfirmRatesPage(),
+      ),
     );
     await tester.pump();
     // The abandoned statement was cleaned up after 7 days.
