@@ -970,21 +970,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywallHeadline => 'More checks, whenever you need them';
 
   @override
-  String get paywallBenefit1 => 'Each statement you analyze uses 1 check';
+  String get paywallBenefit1 =>
+      'A verdict in under a minute: right, short or over.';
 
   @override
-  String get paywallBenefit2 =>
-      'Confirming, recalculating and correcting transactions costs nothing';
+  String get paywallBenefit2 => 'Breakdown by category and by transaction.';
 
   @override
-  String get paywallBenefit3 => 'Your history is always available';
+  String get paywallBenefit3 =>
+      'You\'re only charged if the PDF read succeeds.';
 
   @override
-  String get paywallSubscriptionTitle => 'Monthly subscription';
+  String get paywallSubscriptionTitle => 'Monthly plan';
 
   @override
-  String get paywallSubscriptionPerks =>
-      '5 checks per month · they do not roll over';
+  String get paywallSubscriptionPerks => '5 checks a month · don\'t roll over';
 
   @override
   String get paywallPacksTitle => 'Check packs';
@@ -1017,7 +1017,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paywallLegal =>
-      'The subscription renews automatically. You can cancel at any time from your app store settings.';
+      'Charged to your store account; the plan renews automatically. Cancel anytime from your store settings.';
 
   @override
   String get paywallNoPackages =>
@@ -1335,8 +1335,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       n,
       locale: localeName,
-      other: 'You have $n free checks. Use them before buying anything.',
-      one: 'You have 1 free check. Use it before buying anything.',
+      other:
+          'You still have $n free checks. You can use them without buying anything.',
+      one: 'You still have 1 free check. You can use it without buying anything.',
     );
     return '$_temp0';
   }
@@ -2329,4 +2330,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get historyCardUnknown => 'Card';
+
+  @override
+  String get paywallTitleFree => 'Check every month without a second thought';
+
+  @override
+  String get paywallTitleNone => 'Get more checks';
+
+  @override
+  String get paywallBannerNone =>
+      'You\'ve used your checks. Recalculating the ones you already ran is still free.';
+
+  @override
+  String get paywallPackPerk => 'Never expire';
+
+  @override
+  String get paywallPerMonth => 'per month';
+
+  @override
+  String get paywallUseFree => 'Use my free check';
+
+  @override
+  String get paywallClose => 'Close';
+
+  @override
+  String get paywallOptions => 'Purchase options';
 }

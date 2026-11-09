@@ -973,17 +973,17 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get paywallBenefit1 =>
-      'Cada estado de cuenta que analizas usa 1 verificación';
+      'Veredicto en menos de un minuto: bien, de menos o de más.';
 
   @override
-  String get paywallBenefit2 =>
-      'Confirmar, recalcular y corregir movimientos no cuesta nada';
+  String get paywallBenefit2 => 'Desglose por rubro y por movimiento.';
 
   @override
-  String get paywallBenefit3 => 'Tu historial siempre queda disponible';
+  String get paywallBenefit3 =>
+      'Solo se cobra si la lectura del PDF sale bien.';
 
   @override
-  String get paywallSubscriptionTitle => 'Suscripción mensual';
+  String get paywallSubscriptionTitle => 'Plan mensual';
 
   @override
   String get paywallSubscriptionPerks =>
@@ -1020,7 +1020,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get paywallLegal =>
-      'La suscripción se renueva automáticamente. Puedes cancelarla en cualquier momento desde los ajustes de tu tienda de aplicaciones.';
+      'Se cobra a tu cuenta de la tienda y el plan se renueva solo. Cancela cuando quieras desde los ajustes de la tienda.';
 
   @override
   String get paywallNoPackages =>
@@ -1338,8 +1338,9 @@ class AppLocalizationsEs extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       n,
       locale: localeName,
-      other: 'Tienes $n verificaciones gratis. Úsalas antes de comprar nada.',
-      one: 'Tienes 1 verificación gratis. Úsala antes de comprar nada.',
+      other:
+          'Aún tienes $n verificaciones gratis. Puedes usarlas sin comprar nada.',
+      one: 'Aún tienes 1 verificación gratis. Puedes usarla sin comprar nada.',
     );
     return '$_temp0';
   }
@@ -2337,4 +2338,29 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get historyCardUnknown => 'Tarjeta';
+
+  @override
+  String get paywallTitleFree => 'Verifica cada mes sin pensarlo';
+
+  @override
+  String get paywallTitleNone => 'Consigue más verificaciones';
+
+  @override
+  String get paywallBannerNone =>
+      'Usaste tus verificaciones. Recalcular las que ya hiciste sigue siendo gratis.';
+
+  @override
+  String get paywallPackPerk => 'No vencen';
+
+  @override
+  String get paywallPerMonth => 'al mes';
+
+  @override
+  String get paywallUseFree => 'Usar mi verificación gratis';
+
+  @override
+  String get paywallClose => 'Cerrar';
+
+  @override
+  String get paywallOptions => 'Opciones de compra';
 }

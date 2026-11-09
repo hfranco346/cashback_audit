@@ -1,9 +1,12 @@
 import 'package:cashback_audit/core/errors/app_exception.dart';
+import 'package:cashback_audit/core/l10n/active_locale.dart';
 import 'package:cashback_audit/core/l10n/strings.dart';
+import 'package:cashback_audit/l10n/app_localizations.dart';
 import 'package:cashback_audit/core/network/dio_factory.dart';
 import 'package:cashback_audit/core/network/session_events.dart';
 import 'package:cashback_audit/core/storage/token_storage.dart';
 import 'package:cashback_audit/core/theme/app_theme.dart';
+import 'package:cashback_audit/core/ui/ui.dart';
 import 'package:cashback_audit/features/credits/domain/credit_entities.dart';
 import 'package:cashback_audit/features/credits/presentation/credits_controller.dart';
 import 'package:cashback_audit/features/subscription/data/revenuecat_billing_service.dart';
@@ -319,7 +322,19 @@ void main() {
   );
 
   group('widgets', () {
-    Widget wrap(Widget c) => MaterialApp(theme: AppTheme.light, home: c);
+    Widget wrap(Widget c, {bool dark = false, String lang = 'es'}) {
+      ActiveLocale.set(Locale(lang));
+      S.current = ActiveLocale.strings;
+      return MaterialApp(
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: dark ? ThemeMode.dark : ThemeMode.light,
+        locale: Locale(lang),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: c,
+      );
+    }
 
     PaywallView view({
       bool configured = true,
@@ -359,7 +374,6 @@ void main() {
       expect(find.text(S.paywallSubscriptionTitle), findsOneWidget);
       expect(find.text(S.paywallSubscriptionPerks), findsOneWidget);
       expect(find.text(r'$4.99'), findsOneWidget);
-      expect(find.text(S.paywallPacksTitle), findsOneWidget);
       expect(find.text(S.packTitle(3)), findsOneWidget);
       expect(find.text(S.packTitle(10)), findsOneWidget);
       expect(find.text(r'$2.99'), findsOneWidget);
@@ -392,6 +406,46 @@ void main() {
       expect(find.text(S.paywallFreeBanner(1)), findsOneWidget);
     });
 
+    testWidgets('both states per design: free check and no credits', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(500, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(wrap(view(freeCredits: 1)));
+      await tester.pumpAndSettle();
+      expect(find.text('Verifica cada mes sin pensarlo'), findsOneWidget);
+      expect(find.byKey(const Key('paywall-free-banner')), findsOneWidget);
+      expect(find.byKey(const Key('paywall-none-banner')), findsNothing);
+      expect(find.text(S.current.paywallUseFree), findsOneWidget);
+      await tester.pumpWidget(wrap(view()));
+      await tester.pumpAndSettle();
+      expect(find.text('Consigue más verificaciones'), findsOneWidget);
+      expect(find.byKey(const Key('paywall-none-banner')), findsOneWidget);
+      expect(find.byKey(const Key('use-free-button')), findsNothing);
+    });
+
+    for (final dark in [false, true]) {
+      for (final lang in ['es', 'en']) {
+        testWidgets('renders (dark=$dark, $lang)', (tester) async {
+          await tester.binding.setSurfaceSize(const Size(390, 844));
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+          await tester.pumpWidget(
+            wrap(view(freeCredits: 1), dark: dark, lang: lang),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.text(lang == 'es' ? 'Plan mensual' : 'Monthly plan'),
+            findsOneWidget,
+          );
+          expect(
+            find.text(lang == 'es' ? 'No vencen' : 'Never expire'),
+            findsNWidgets(2),
+          );
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
+
     testWidgets('no external or web payment is mentioned', (tester) async {
       await tester.binding.setSurfaceSize(const Size(500, 2000));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -413,7 +467,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('paywall-dev-notice')), findsOneWidget);
       await tester.ensureVisible(find.byKey(const Key('subscribe-button')));
-      final btn = tester.widget<FilledButton>(
+      final btn = tester.widget<AppButton>(
         find.byKey(const Key('subscribe-button')),
       );
       expect(btn.onPressed, isNull);

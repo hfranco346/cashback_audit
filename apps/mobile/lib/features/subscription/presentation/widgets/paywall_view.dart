@@ -1,12 +1,15 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/l10n/strings.dart';
-import '../../../../shared/widgets/molecules/inline_message.dart';
+import '../../../../core/l10n/l10n_context.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/ui.dart';
 import '../../domain/subscription_entities.dart';
 import '../paywall_controller.dart' show PaywallBusy;
 
-/// Pure presentational paywall.
+/// Pure presentational paywall. Two states: with free checks left (a green
+/// notice and "use my free check") and without credits (an amber notice).
+/// Prices come from the store packages; payment is always the app store's.
 class PaywallView extends StatelessWidget {
   const PaywallView({
     super.key,
@@ -33,7 +36,7 @@ class PaywallView extends StatelessWidget {
   /// Consumable credit packs, smallest first.
   final List<PaywallPackage> packs;
 
-  /// Free verifications the user still has (first-free messaging).
+  /// Free verifications the user still has.
   final int freeCredits;
   final String? selectedId;
   final ValueChanged<String> onSelect;
@@ -56,193 +59,260 @@ class PaywallView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final colors = context.appColors;
+    final hasFree = freeCredits > 0;
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: onClose,
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-        children: [
-          ZoomIn(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: scheme.primary,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Icon(
-                  Icons.workspace_premium_rounded,
-                  color: scheme.onPrimary,
-                  size: 38,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 4, 8, 0),
+                child: IconButton(
+                  key: const Key('paywall-close'),
+                  tooltip: l10n.paywallClose,
+                  iconSize: 24,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 48,
+                    height: 48,
+                  ),
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: onClose,
                 ),
               ),
             ),
-          ),
-          SizedBox(height: 20),
-          FadeInUp(
-            child: Text(
-              S.paywallHeadline,
-              style: theme.textTheme.headlineMedium,
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                children: [
+                  ZoomIn(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: colors.creditCard,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colors.brass.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        child: Text(
+                          'C',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            color: colors.onCreditCard,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FadeInUp(
+                    from: 14,
+                    child: Semantics(
+                      header: true,
+                      child: Text(
+                        hasFree ? l10n.paywallTitleFree : l10n.paywallTitleNone,
+                        key: const Key('paywall-title'),
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontSize: 30,
+                          height: 1.12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  FadeIn(
+                    delay: const Duration(milliseconds: 120),
+                    child: hasFree
+                        ? InlineNotice(
+                            key: const Key('paywall-free-banner'),
+                            kind: StatusKind.ok,
+                            message: l10n.paywallFreeBanner(freeCredits),
+                          )
+                        : InlineNotice(
+                            key: const Key('paywall-none-banner'),
+                            kind: StatusKind.warning,
+                            message: l10n.paywallBannerNone,
+                          ),
+                  ),
+                  const SizedBox(height: 14),
+                  for (final (i, text) in [
+                    l10n.paywallBenefit1,
+                    l10n.paywallBenefit2,
+                    l10n.paywallBenefit3,
+                  ].indexed)
+                    FadeInLeft(
+                      from: 16,
+                      delay: Duration(milliseconds: 120 * (i + 1)),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '—',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colors.brass,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                text,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  if (!configured)
+                    InlineNotice(
+                      key: const Key('paywall-dev-notice'),
+                      kind: StatusKind.warning,
+                      message:
+                          '${l10n.paywallDevNoticeTitle}. ${l10n.paywallDevNotice}',
+                    )
+                  else if (busy == PaywallBusy.loadingPackages)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else
+                    Semantics(
+                      container: true,
+                      label: l10n.paywallOptions,
+                      child: Column(
+                        children: [
+                          if (subscription != null)
+                            _PlanTile(
+                              package: subscription!,
+                              title: l10n.paywallSubscriptionTitle,
+                              subtitle: l10n.paywallSubscriptionPerks,
+                              priceNote: l10n.paywallPerMonth,
+                              selected: subscription!.id == selectedId,
+                              onTap: _busy
+                                  ? null
+                                  : () => onSelect(subscription!.id),
+                            ),
+                          for (final p in packs)
+                            _PlanTile(
+                              package: p,
+                              title: l10n.packTitle(p.credits ?? 0),
+                              subtitle: l10n.paywallPackPerk,
+                              selected: p.id == selectedId,
+                              onTap: _busy ? null : () => onSelect(p.id),
+                            ),
+                        ],
+                      ),
+                    ),
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    InlineNotice(message: errorMessage!),
+                  ],
+                  if (pending) ...[
+                    const SizedBox(height: 8),
+                    InlineNotice(
+                      key: const Key('paywall-pending'),
+                      kind: StatusKind.warning,
+                      message: (_selected?.isPack ?? false)
+                          ? l10n.paywallPendingPack
+                          : l10n.paywallPending,
+                      actionLabel: l10n.paywallCheckAgain,
+                      onAction: _busy ? null : onCheckAgain,
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-          SizedBox(height: 18),
-          for (final (i, text) in [
-            S.paywallBenefit1,
-            S.paywallBenefit2,
-            S.paywallBenefit3,
-          ].indexed)
-            FadeInLeft(
-              delay: Duration(milliseconds: 120 * (i + 1)),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                border: Border(top: BorderSide(color: scheme.outlineVariant)),
+              ),
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.check_circle_rounded, color: scheme.primary),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(text, style: theme.textTheme.bodyLarge),
+                    AppButton(
+                      key: const Key('subscribe-button'),
+                      label: switch (busy) {
+                        PaywallBusy.confirming => l10n.paywallConfirming,
+                        PaywallBusy.purchasing ||
+                        PaywallBusy.restoring => l10n.loading,
+                        _ =>
+                          (_selected?.isPack ?? false)
+                              ? l10n.paywallBuy
+                              : l10n.paywallSubscribe,
+                      },
+                      loading:
+                          busy == PaywallBusy.purchasing ||
+                          busy == PaywallBusy.confirming ||
+                          busy == PaywallBusy.restoring,
+                      onPressed: (!configured || _busy || _selected == null)
+                          ? null
+                          : onPurchase,
+                    ),
+                    if (hasFree)
+                      TextButton(
+                        key: const Key('use-free-button'),
+                        onPressed: onClose,
+                        child: Text(l10n.paywallUseFree),
+                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.paywallLegal,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        height: 1.4,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    TextButton(
+                      key: const Key('restore-button'),
+                      onPressed: (!configured || _busy) ? null : onRestore,
+                      child: Text(l10n.paywallRestore),
                     ),
                   ],
                 ),
               ),
             ),
-          const SizedBox(height: 20),
-          if (freeCredits > 0) ...[
-            InlineMessage(
-              key: const Key('paywall-free-banner'),
-              message: S.paywallFreeBanner(freeCredits),
-              tone: InlineMessageTone.info,
-            ),
-            const SizedBox(height: 16),
           ],
-          if (!configured)
-            InlineMessage(
-              key: Key('paywall-dev-notice'),
-              message: '${S.paywallDevNoticeTitle}. ${S.paywallDevNotice}',
-              tone: InlineMessageTone.warning,
-            )
-          else if (busy == PaywallBusy.loadingPackages)
-            const Center(child: CircularProgressIndicator())
-          else ...[
-            if (subscription != null)
-              _PackageTile(
-                package: subscription!,
-                title: S.paywallSubscriptionTitle,
-                subtitle: S.paywallSubscriptionPerks,
-                selected: subscription!.id == selectedId,
-                onTap: _busy ? null : () => onSelect(subscription!.id),
-              ),
-            if (packs.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              Text(S.paywallPacksTitle, style: theme.textTheme.titleMedium),
-              const SizedBox(height: 2),
-              Text(
-                S.paywallPacksSubtitle,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 10),
-              for (final p in packs)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _PackageTile(
-                    package: p,
-                    title: S.packTitle(p.credits ?? 0),
-                    selected: p.id == selectedId,
-                    onTap: _busy ? null : () => onSelect(p.id),
-                  ),
-                ),
-            ],
-          ],
-          if (errorMessage != null) ...[
-            const SizedBox(height: 8),
-            InlineMessage(message: errorMessage!),
-          ],
-          if (pending) ...[
-            const SizedBox(height: 8),
-            InlineMessage(
-              key: const Key('paywall-pending'),
-              message: (_selected?.isPack ?? false)
-                  ? S.paywallPendingPack
-                  : S.paywallPending,
-              tone: InlineMessageTone.info,
-              actionLabel: S.paywallCheckAgain,
-              onAction: _busy ? null : onCheckAgain,
-            ),
-          ],
-          const SizedBox(height: 20),
-          FilledButton(
-            key: const Key('subscribe-button'),
-            onPressed: (!configured || _busy || _selected == null)
-                ? null
-                : onPurchase,
-            child: switch (busy) {
-              PaywallBusy.purchasing ||
-              PaywallBusy.confirming ||
-              PaywallBusy.restoring => Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.4),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    busy == PaywallBusy.confirming
-                        ? S.paywallConfirming
-                        : S.loading,
-                  ),
-                ],
-              ),
-              _ => Text(
-                (_selected?.isPack ?? false)
-                    ? S.paywallBuy
-                    : S.paywallSubscribe,
-              ),
-            },
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            key: const Key('restore-button'),
-            onPressed: (!configured || _busy) ? null : onRestore,
-            child: Text(S.paywallRestore),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            S.paywallLegal,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _PackageTile extends StatelessWidget {
-  const _PackageTile({
+class _PlanTile extends StatelessWidget {
+  const _PlanTile({
     required this.package,
     required this.title,
+    required this.subtitle,
     required this.selected,
     required this.onTap,
-    this.subtitle,
+    this.priceNote,
   });
 
   final PaywallPackage package;
   final String title;
-  final String? subtitle;
+  final String subtitle;
+  final String? priceNote;
   final bool selected;
   final VoidCallback? onTap;
 
@@ -250,41 +320,80 @@ class _PackageTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return InkWell(
-      key: Key('package-${package.id}'),
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: selected ? scheme.primaryContainer : null,
-          border: Border.all(
-            color: selected ? scheme.primary : scheme.outlineVariant,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              selected
-                  ? Icons.radio_button_checked_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              color: scheme.primary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: theme.textTheme.titleSmall),
-                  if (subtitle != null)
-                    Text(subtitle!, style: theme.textTheme.bodySmall),
-                ],
+    final muted = scheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Semantics(
+        inMutuallyExclusiveGroup: true,
+        selected: selected,
+        button: true,
+        child: InkWell(
+          key: Key('package-${package.id}'),
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: scheme.surfaceContainerLowest,
+              border: Border.all(
+                color: selected ? scheme.primary : scheme.outlineVariant,
+                width: selected ? 2 : 1,
               ),
             ),
-            Text(package.priceString, style: theme.textTheme.titleMedium),
-          ],
+            child: Row(
+              children: [
+                Icon(
+                  selected
+                      ? Icons.radio_button_checked_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: selected ? scheme.primary : scheme.outline,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: muted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      package.priceString,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontFeatures: appFigures,
+                      ),
+                    ),
+                    if (priceNote != null)
+                      Text(
+                        priceNote!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: muted,
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

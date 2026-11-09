@@ -299,10 +299,10 @@
   "creditBucketPurchased": "Comprada",
   "paywallTitle": "Cashback Audit Pro",
   "paywallHeadline": "Más verificaciones, cuando las necesites",
-  "paywallBenefit1": "Cada estado de cuenta que analizas usa 1 verificación",
-  "paywallBenefit2": "Confirmar, recalcular y corregir movimientos no cuesta nada",
-  "paywallBenefit3": "Tu historial siempre queda disponible",
-  "paywallSubscriptionTitle": "Suscripción mensual",
+  "paywallBenefit1": "Veredicto en menos de un minuto: bien, de menos o de más.",
+  "paywallBenefit2": "Desglose por rubro y por movimiento.",
+  "paywallBenefit3": "Solo se cobra si la lectura del PDF sale bien.",
+  "paywallSubscriptionTitle": "Plan mensual",
   "paywallSubscriptionPerks": "5 verificaciones al mes · no se acumulan",
   "paywallPacksTitle": "Paquetes de verificaciones",
   "paywallPacksSubtitle": "Se compran una sola vez y no caducan.",
@@ -313,7 +313,7 @@
   "restoreNothing": "No encontramos compras para restaurar en esta cuenta.",
   "paywallSubscribe": "Suscribirme",
   "paywallRestore": "Restaurar compras",
-  "paywallLegal": "La suscripción se renueva automáticamente. Puedes cancelarla en cualquier momento desde los ajustes de tu tienda de aplicaciones.",
+  "paywallLegal": "Se cobra a tu cuenta de la tienda y el plan se renueva solo. Cancela cuando quieras desde los ajustes de la tienda.",
   "paywallNoPackages": "No hay planes disponibles por ahora. Inténtalo más tarde.",
   "paywallLoadFailed": "No pudimos cargar los planes. Revisa tu conexión e inténtalo de nuevo.",
   "paywallPurchaseFailed": "No se pudo completar la compra. No se te cobró nada.",
@@ -683,7 +683,7 @@
       }
     }
   },
-  "paywallFreeBanner": "{n, plural, =1{Tienes 1 verificación gratis. Úsala antes de comprar nada.} other{Tienes {n} verificaciones gratis. Úsalas antes de comprar nada.}}",
+  "paywallFreeBanner": "{n, plural, =1{Aún tienes 1 verificación gratis. Puedes usarla sin comprar nada.} other{Aún tienes {n} verificaciones gratis. Puedes usarlas sin comprar nada.}}",
   "@paywallFreeBanner": {
     "placeholders": {
       "n": {
@@ -1350,5 +1350,13 @@
   "historyPending": "Pendientes",
   "historyCompleted": "Completadas",
   "historyPillConfirm": "Confirmar %",
-  "historyCardUnknown": "Tarjeta"
+  "historyCardUnknown": "Tarjeta",
+  "paywallTitleFree": "Verifica cada mes sin pensarlo",
+  "paywallTitleNone": "Consigue más verificaciones",
+  "paywallBannerNone": "Usaste tus verificaciones. Recalcular las que ya hiciste sigue siendo gratis.",
+  "paywallPackPerk": "No vencen",
+  "paywallPerMonth": "al mes",
+  "paywallUseFree": "Usar mi verificación gratis",
+  "paywallClose": "Cerrar",
+  "paywallOptions": "Opciones de compra"
 }

@@ -1895,25 +1895,25 @@ abstract class AppLocalizations {
   /// No description provided for @paywallBenefit1.
   ///
   /// In es, this message translates to:
-  /// **'Cada estado de cuenta que analizas usa 1 verificación'**
+  /// **'Veredicto en menos de un minuto: bien, de menos o de más.'**
   String get paywallBenefit1;
 
   /// No description provided for @paywallBenefit2.
   ///
   /// In es, this message translates to:
-  /// **'Confirmar, recalcular y corregir movimientos no cuesta nada'**
+  /// **'Desglose por rubro y por movimiento.'**
   String get paywallBenefit2;
 
   /// No description provided for @paywallBenefit3.
   ///
   /// In es, this message translates to:
-  /// **'Tu historial siempre queda disponible'**
+  /// **'Solo se cobra si la lectura del PDF sale bien.'**
   String get paywallBenefit3;
 
   /// No description provided for @paywallSubscriptionTitle.
   ///
   /// In es, this message translates to:
-  /// **'Suscripción mensual'**
+  /// **'Plan mensual'**
   String get paywallSubscriptionTitle;
 
   /// No description provided for @paywallSubscriptionPerks.
@@ -1979,7 +1979,7 @@ abstract class AppLocalizations {
   /// No description provided for @paywallLegal.
   ///
   /// In es, this message translates to:
-  /// **'La suscripción se renueva automáticamente. Puedes cancelarla en cualquier momento desde los ajustes de tu tienda de aplicaciones.'**
+  /// **'Se cobra a tu cuenta de la tienda y el plan se renueva solo. Cancela cuando quieras desde los ajustes de la tienda.'**
   String get paywallLegal;
 
   /// No description provided for @paywallNoPackages.
@@ -2333,7 +2333,7 @@ abstract class AppLocalizations {
   /// No description provided for @paywallFreeBanner.
   ///
   /// In es, this message translates to:
-  /// **'{n, plural, =1{Tienes 1 verificación gratis. Úsala antes de comprar nada.} other{Tienes {n} verificaciones gratis. Úsalas antes de comprar nada.}}'**
+  /// **'{n, plural, =1{Aún tienes 1 verificación gratis. Puedes usarla sin comprar nada.} other{Aún tienes {n} verificaciones gratis. Puedes usarlas sin comprar nada.}}'**
   String paywallFreeBanner(int n);
 
   /// No description provided for @subscriptionRenews.
@@ -3925,6 +3925,54 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Tarjeta'**
   String get historyCardUnknown;
+
+  /// No description provided for @paywallTitleFree.
+  ///
+  /// In es, this message translates to:
+  /// **'Verifica cada mes sin pensarlo'**
+  String get paywallTitleFree;
+
+  /// No description provided for @paywallTitleNone.
+  ///
+  /// In es, this message translates to:
+  /// **'Consigue más verificaciones'**
+  String get paywallTitleNone;
+
+  /// No description provided for @paywallBannerNone.
+  ///
+  /// In es, this message translates to:
+  /// **'Usaste tus verificaciones. Recalcular las que ya hiciste sigue siendo gratis.'**
+  String get paywallBannerNone;
+
+  /// No description provided for @paywallPackPerk.
+  ///
+  /// In es, this message translates to:
+  /// **'No vencen'**
+  String get paywallPackPerk;
+
+  /// No description provided for @paywallPerMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'al mes'**
+  String get paywallPerMonth;
+
+  /// No description provided for @paywallUseFree.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar mi verificación gratis'**
+  String get paywallUseFree;
+
+  /// No description provided for @paywallClose.
+  ///
+  /// In es, this message translates to:
+  /// **'Cerrar'**
+  String get paywallClose;
+
+  /// No description provided for @paywallOptions.
+  ///
+  /// In es, this message translates to:
+  /// **'Opciones de compra'**
+  String get paywallOptions;
 }
 
 class _AppLocalizationsDelegate
