@@ -1345,5 +1345,10 @@
     }
   },
   "resultNotConfirmedAction": "Confirmar porcentajes",
-  "dismiss": "Descartar"
+  "dismiss": "Descartar",
+  "historyOffline": "Sin conexión · mostrando lo guardado. Para verificar necesitas internet.",
+  "historyPending": "Pendientes",
+  "historyCompleted": "Completadas",
+  "historyPillConfirm": "Confirmar %",
+  "historyCardUnknown": "Tarjeta"
 }

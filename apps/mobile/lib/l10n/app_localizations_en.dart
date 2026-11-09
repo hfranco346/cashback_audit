@@ -2313,4 +2313,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dismiss => 'Dismiss';
+
+  @override
+  String get historyOffline =>
+      'Offline · showing what was saved. You need internet to run a check.';
+
+  @override
+  String get historyPending => 'Pending';
+
+  @override
+  String get historyCompleted => 'Completed';
+
+  @override
+  String get historyPillConfirm => 'Confirm %';
+
+  @override
+  String get historyCardUnknown => 'Card';
 }

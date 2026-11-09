@@ -10,7 +10,6 @@ import 'package:cashback_audit/features/verifications/domain/verification_entiti
 import 'package:cashback_audit/features/verifications/presentation/excluded_reason_text.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_page.dart';
-import 'package:cashback_audit/features/verifications/presentation/widgets/verification_summary_tile.dart';
 import 'package:cashback_audit/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -588,34 +587,4 @@ void main() {
     expect(excludedReasonText(t('OTHER')), S.excludedOther);
     expect(excludedReasonText(t('PURCHASE')), isNull);
   });
-
-  for (final (name, theme) in [
-    ('light', AppTheme.light),
-    ('dark', AppTheme.dark),
-  ]) {
-    testWidgets('history tile shows the reward currency ($name)', (
-      tester,
-    ) async {
-      ActiveLocale.set(const Locale('es'));
-      S.current = ActiveLocale.strings;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: theme,
-          home: Scaffold(
-            body: VerificationSummaryTile(
-              summary: VerificationMapper.summary(
-                VerificationMapper.summaryJsonFromDetail(
-                  ficohsaCompletedJson(),
-                ),
-              ),
-              cardLabel: 'Ficohsa · 4321',
-              onTap: () {},
-            ),
-          ),
-        ),
-      );
-      expect(find.text('USD 19.32'), findsOneWidget);
-      expect(find.textContaining('USD 22.68'), findsOneWidget);
-    });
-  }
 }

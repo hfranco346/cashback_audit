@@ -898,6 +898,25 @@ class Verification extends Equatable {
   ];
 }
 
+/// The card as it was when the verification ran (`card` in the API). It
+/// survives the card's deletion, so the history keeps naming it.
+class CardSnapshot extends Equatable {
+  const CardSnapshot({
+    required this.alias,
+    required this.last4,
+    this.bank,
+    this.deleted = false,
+  });
+
+  final String alias;
+  final String? bank;
+  final String last4;
+  final bool deleted;
+
+  @override
+  List<Object?> get props => [alias, bank, last4, deleted];
+}
+
 class VerificationSummary extends Equatable {
   const VerificationSummary({
     required this.id,
@@ -914,10 +933,14 @@ class VerificationSummary extends Equatable {
     this.verdict,
     this.failureCode,
     this.seenAt,
+    this.card,
   });
 
   final String id;
   final String cardId;
+
+  /// Null for rows cached before the snapshot existed.
+  final CardSnapshot? card;
   final VerificationStatus status;
   final FailureCode? failureCode;
   final DateTime? seenAt;
@@ -961,6 +984,7 @@ class VerificationSummary extends Equatable {
     createdAt,
     failureCode,
     seenAt,
+    card,
   ];
 }
 

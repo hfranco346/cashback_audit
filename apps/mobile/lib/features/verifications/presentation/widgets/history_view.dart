@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/l10n/strings.dart';
+import '../../../../core/l10n/l10n_context.dart';
+import '../../../../core/ui/ui.dart';
 import '../../../../shared/widgets/atoms/staggered_entrance.dart';
 import '../../../../shared/widgets/molecules/empty_state.dart';
-import '../../../../shared/widgets/molecules/inline_message.dart';
 import '../../../cards/domain/card_entities.dart';
 import '../../domain/verification_entities.dart';
-import 'verification_summary_tile.dart';
+import 'history_row.dart';
 
-/// Pure presentational verification history with a per-card filter.
+/// Pure presentational verification history: per-card filter, pending
+/// entries first, then the finished audits. Works from the offline cache
+/// (a banner says so).
 class HistoryView extends StatelessWidget {
   const HistoryView({
     super.key,
@@ -16,7 +18,6 @@ class HistoryView extends StatelessWidget {
     required this.cardFilter,
     required this.onCardFilter,
     required this.items,
-    required this.cardLabel,
     required this.loading,
     required this.loadingMore,
     required this.hasMore,
@@ -32,7 +33,6 @@ class HistoryView extends StatelessWidget {
   final String? cardFilter;
   final ValueChanged<String?> onCardFilter;
   final List<VerificationSummary> items;
-  final String Function(String cardId) cardLabel;
   final bool loading;
   final bool loadingMore;
   final bool hasMore;
@@ -45,135 +45,210 @@ class HistoryView extends StatelessWidget {
   /// Asks for confirmation and deletes; resolves true when removed.
   final Future<bool> Function(VerificationSummary) confirmDelete;
 
+  /// Card snapshot of the entry, falling back to the live card list.
+  ({String name, String? last4, bool deleted}) _card(
+    BuildContext context,
+    VerificationSummary s,
+  ) {
+    final snap = s.card;
+    if (snap != null) {
+      return (name: snap.alias, last4: snap.last4, deleted: snap.deleted);
+    }
+    for (final c in cards) {
+      if (c.id == s.cardId) {
+        return (name: c.alias, last4: c.last4, deleted: false);
+      }
+    }
+    return (
+      name: s.statement.bank ?? context.l10n.historyCardUnknown,
+      last4: s.statement.cardLast4,
+      deleted: false,
+    );
+  }
+
+  Widget _row(
+    BuildContext context,
+    VerificationSummary item, {
+    required bool boxed,
+  }) {
+    final card = _card(context, item);
+    final scheme = Theme.of(context).colorScheme;
+    return Dismissible(
+      key: ValueKey(item.id),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) => confirmDelete(item),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: scheme.error,
+          borderRadius: BorderRadius.circular(boxed ? 18 : 0),
+        ),
+        child: Icon(Icons.delete_outline_rounded, color: scheme.onError),
+      ),
+      child: HistoryRow(
+        summary: item,
+        cardName: card.name,
+        cardLast4: card.last4,
+        cardDeleted: card.deleted,
+        boxed: boxed,
+        onTap: () => onOpen(item),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final pending = [
+      for (final i in items)
+        if (!i.isCompleted) i,
+    ];
+    final done = [
+      for (final i in items)
+        if (i.isCompleted) i,
+    ];
     return Scaffold(
-      appBar: AppBar(title: Text(S.historyTitle)),
-      body: Column(
-        children: [
-          if (cards.length > 1)
-            SizedBox(
-              height: 52,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      key: const Key('filter-all'),
-                      label: Text(S.allCards),
-                      selected: cardFilter == null,
-                      onSelected: (_) => onCardFilter(null),
-                    ),
-                  ),
-                  for (final c in cards)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        key: Key('filter-${c.id}'),
-                        label: Text('${c.alias} · ${c.last4}'),
-                        selected: cardFilter == c.id,
-                        onSelected: (_) => onCardFilter(c.id),
-                      ),
-                    ),
-                ],
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Semantics(
+                header: true,
+                child: Text(
+                  l10n.historyTitle,
+                  style: theme.textTheme.headlineLarge,
+                ),
               ),
             ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: onRefresh,
-              child: Builder(
-                builder: (context) {
-                  if (loading && items.isEmpty) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (items.isEmpty) {
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: onRefresh,
+                child: Builder(
+                  builder: (context) {
+                    if (loading && items.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
                     return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
                       children: [
-                        if (errorMessage != null)
-                          Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: InlineMessage(
-                              message: errorMessage!,
-                              actionLabel: S.retry,
-                              onAction: () => onRefresh(),
+                        if (offline) ...[
+                          InlineNotice(
+                            key: const Key('history-offline'),
+                            kind: StatusKind.neutral,
+                            message: l10n.historyOffline,
+                          ),
+                          const SizedBox(height: 14),
+                        ],
+                        if (cards.length > 1) ...[
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                AppChip(
+                                  key: const Key('filter-all'),
+                                  label: l10n.allCards,
+                                  selected: cardFilter == null,
+                                  onTap: () => onCardFilter(null),
+                                ),
+                                for (final c in cards) ...[
+                                  const SizedBox(width: 8),
+                                  AppChip(
+                                    key: Key('filter-${c.id}'),
+                                    label: c.alias,
+                                    selected: cardFilter == c.id,
+                                    onTap: () => onCardFilter(c.id),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
-                        SizedBox(
-                          height: MediaQuery.sizeOf(context).height * 0.5,
-                          child: EmptyState(
-                            icon: Icons.history_rounded,
-                            title: S.historyEmptyTitle,
-                            message: S.historyEmptyBody,
+                          const SizedBox(height: 14),
+                        ],
+                        if (errorMessage != null) ...[
+                          InlineNotice(
+                            message: errorMessage!,
+                            actionLabel: l10n.retry,
+                            onAction: () => onRefresh(),
                           ),
-                        ),
+                          const SizedBox(height: 14),
+                        ],
+                        if (items.isEmpty && errorMessage == null)
+                          SizedBox(
+                            height: MediaQuery.sizeOf(context).height * 0.45,
+                            child: EmptyState(
+                              icon: Icons.history_rounded,
+                              title: l10n.historyEmptyTitle,
+                              message: l10n.historyEmptyBody,
+                            ),
+                          ),
+                        if (pending.isNotEmpty) ...[
+                          SectionHeader(
+                            title: l10n.historyPending,
+                            caption: true,
+                          ),
+                          const SizedBox(height: 8),
+                          for (final (i, item) in pending.indexed)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: StaggeredEntrance(
+                                index: i,
+                                child: _row(context, item, boxed: true),
+                              ),
+                            ),
+                          const SizedBox(height: 6),
+                        ],
+                        if (done.isNotEmpty) ...[
+                          SectionHeader(
+                            title: l10n.historyCompleted,
+                            caption: true,
+                          ),
+                          const SizedBox(height: 8),
+                          Card(
+                            clipBehavior: Clip.antiAlias,
+                            child: Column(
+                              children: [
+                                for (final (i, item) in done.indexed) ...[
+                                  if (i > 0)
+                                    Divider(
+                                      height: 1,
+                                      color: theme.colorScheme.outlineVariant,
+                                    ),
+                                  StaggeredEntrance(
+                                    index: i,
+                                    child: _row(context, item, boxed: false),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (hasMore)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: loadingMore
+                                ? const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : AppButton.ghost(
+                                    key: const Key('load-more'),
+                                    label: l10n.loadMore,
+                                    onPressed: onLoadMore,
+                                  ),
+                          ),
                       ],
                     );
-                  }
-                  return ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                    itemCount: items.length + 1 + (offline ? 1 : 0),
-                    itemBuilder: (context, i) {
-                      if (offline && i == 0) {
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 12),
-                          child: InlineMessage(
-                            message: S.offlineBanner,
-                            tone: InlineMessageTone.info,
-                          ),
-                        );
-                      }
-                      final index = offline ? i - 1 : i;
-                      if (index == items.length) {
-                        if (!hasMore) return const SizedBox.shrink();
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: loadingMore
-                              ? const Center(child: CircularProgressIndicator())
-                              : OutlinedButton(
-                                  key: const Key('load-more'),
-                                  onPressed: onLoadMore,
-                                  child: Text(S.loadMore),
-                                ),
-                        );
-                      }
-                      final item = items[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: StaggeredEntrance(
-                          index: index,
-                          child: Dismissible(
-                            key: ValueKey(item.id),
-                            direction: DismissDirection.endToStart,
-                            confirmDismiss: (_) => confirmDelete(item),
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.error,
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: Icon(
-                                Icons.delete_outline_rounded,
-                                color: Theme.of(context).colorScheme.onError,
-                              ),
-                            ),
-                            child: VerificationSummaryTile(
-                              summary: item,
-                              cardLabel: cardLabel(item.cardId),
-                              onTap: () => onOpen(item),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

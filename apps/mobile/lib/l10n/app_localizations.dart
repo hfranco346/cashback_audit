@@ -3895,6 +3895,36 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Descartar'**
   String get dismiss;
+
+  /// No description provided for @historyOffline.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin conexión · mostrando lo guardado. Para verificar necesitas internet.'**
+  String get historyOffline;
+
+  /// No description provided for @historyPending.
+  ///
+  /// In es, this message translates to:
+  /// **'Pendientes'**
+  String get historyPending;
+
+  /// No description provided for @historyCompleted.
+  ///
+  /// In es, this message translates to:
+  /// **'Completadas'**
+  String get historyCompleted;
+
+  /// No description provided for @historyPillConfirm.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar %'**
+  String get historyPillConfirm;
+
+  /// No description provided for @historyCardUnknown.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta'**
+  String get historyCardUnknown;
 }
 
 class _AppLocalizationsDelegate

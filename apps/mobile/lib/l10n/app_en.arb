@@ -642,5 +642,10 @@
   "categoryChangedRemembered": "Category updated and result recalculated. We'll remember it in your next checks.",
   "rememberFailed": "This result was updated, but we couldn't remember the merchant: {error}",
   "resultNotConfirmedAction": "Confirm rates",
-  "dismiss": "Dismiss"
+  "dismiss": "Dismiss",
+  "historyOffline": "Offline · showing what was saved. You need internet to run a check.",
+  "historyPending": "Pending",
+  "historyCompleted": "Completed",
+  "historyPillConfirm": "Confirm %",
+  "historyCardUnknown": "Card"
 }

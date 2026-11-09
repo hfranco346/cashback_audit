@@ -334,11 +334,24 @@ abstract final class VerificationMapper {
     _ => CreditType.otherCredit,
   };
 
+  static CardSnapshot? _cardSnapshot(Object? raw) {
+    final j = _map(raw);
+    final last4 = j?['last4'];
+    if (j == null || last4 is! String) return null;
+    return CardSnapshot(
+      alias: j['alias'] as String? ?? '',
+      bank: j['bank'] as String?,
+      last4: last4,
+      deleted: j['deleted'] as bool? ?? false,
+    );
+  }
+
   static VerificationSummary summary(JsonMap j) {
     final statementJson = _map(j['statement']);
     return VerificationSummary(
       id: j['id'] as String,
       cardId: j['cardId'] as String,
+      card: _cardSnapshot(j['card']),
       status: VerificationStatus.fromApi(j['status'] as String?),
       failureCode: FailureCode.tryFromApi(j['failureCode'] as String?),
       seenAt: _date(j['seenAt']),
@@ -366,6 +379,7 @@ abstract final class VerificationMapper {
     return {
       'id': d['id'],
       'cardId': d['cardId'],
+      'card': d['card'],
       'status': d['status'] ?? 'COMPLETED',
       'failureCode': d['failureCode'],
       'seenAt': d['seenAt'],

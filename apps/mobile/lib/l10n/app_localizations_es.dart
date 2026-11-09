@@ -2321,4 +2321,20 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get dismiss => 'Descartar';
+
+  @override
+  String get historyOffline =>
+      'Sin conexión · mostrando lo guardado. Para verificar necesitas internet.';
+
+  @override
+  String get historyPending => 'Pendientes';
+
+  @override
+  String get historyCompleted => 'Completadas';
+
+  @override
+  String get historyPillConfirm => 'Confirmar %';
+
+  @override
+  String get historyCardUnknown => 'Tarjeta';
 }

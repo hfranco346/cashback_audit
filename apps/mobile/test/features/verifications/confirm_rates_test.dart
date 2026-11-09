@@ -1,6 +1,5 @@
 import 'package:cashback_audit/core/errors/app_exception.dart';
 import 'package:cashback_audit/core/l10n/strings.dart';
-import 'package:cashback_audit/core/theme/app_theme.dart';
 import 'package:cashback_audit/core/utils/cached.dart';
 import 'package:cashback_audit/features/cards/data/card_mapper.dart';
 import 'package:cashback_audit/features/cards/domain/card_entities.dart';
@@ -9,9 +8,7 @@ import 'package:cashback_audit/features/cards/presentation/cards_controller.dart
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
 import 'package:cashback_audit/features/verifications/presentation/confirm_rates_controller.dart';
-import 'package:cashback_audit/features/verifications/presentation/widgets/verification_summary_tile.dart';
 import 'package:decimal/decimal.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -394,36 +391,5 @@ void main() {
     expect(c.verification.value?.id, 'pending');
     expect(c.entries, isNotEmpty);
     expect(c.isRecalculation, isFalse);
-  });
-
-  group('history widgets', () {
-    testWidgets('history shows the pending chip for AWAITING_RATES', (
-      tester,
-    ) async {
-      var opened = 0;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: Scaffold(
-            body: VerificationSummaryTile(
-              summary: VerificationMapper.summary({
-                ...summaryJson('p'),
-                'status': 'AWAITING_RATES',
-                'reportedAmount': null,
-                'expectedAmount': null,
-                'difference': null,
-                'verdict': null,
-              }),
-              cardLabel: 'Daily · 4321',
-              onTap: () => opened++,
-            ),
-          ),
-        ),
-      );
-      expect(find.text(S.awaitingRatesChip), findsOneWidget);
-      expect(find.text(S.verdictUnderpaid), findsNothing);
-      await tester.tap(find.byKey(const Key('awaiting-tile')));
-      expect(opened, 1);
-    });
   });
 }
