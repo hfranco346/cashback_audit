@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:cashback_audit/core/errors/app_exception.dart';
+import 'package:cashback_audit/core/l10n/active_locale.dart';
 import 'package:cashback_audit/core/l10n/strings.dart';
 import 'package:cashback_audit/core/theme/app_theme.dart';
 import 'package:cashback_audit/core/utils/cached.dart';
@@ -6,14 +9,16 @@ import 'package:cashback_audit/features/cards/data/card_mapper.dart';
 import 'package:cashback_audit/features/cards/domain/card_entities.dart';
 import 'package:cashback_audit/features/cards/domain/card_repository.dart';
 import 'package:cashback_audit/features/cards/presentation/card_form_controller.dart';
+import 'package:cashback_audit/features/cards/presentation/card_form_page.dart';
 import 'package:cashback_audit/features/cards/presentation/cards_controller.dart';
-import 'package:cashback_audit/features/cards/presentation/widgets/card_form_view.dart';
-import 'package:cashback_audit/features/cards/presentation/widgets/card_tile.dart';
+import 'package:cashback_audit/features/cards/presentation/widgets/currency_picker.dart';
 import 'package:cashback_audit/features/cards/presentation/widgets/rule_editor.dart';
 import 'package:cashback_audit/features/categories/domain/catalog_entities.dart';
 import 'package:cashback_audit/features/categories/presentation/catalog_controller.dart';
+import 'package:cashback_audit/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import '../../support/fixtures.dart';
@@ -21,6 +26,7 @@ import '../categories/fake_catalog.dart';
 
 class _CardRepo implements CardRepository {
   final saved = <CardDraft>[];
+  final deleted = <String>[];
   Object? error;
 
   @override
@@ -39,200 +45,241 @@ class _CardRepo implements CardRepository {
   }
 
   @override
-  Future<void> deleteCard(String id) async {}
+  Future<void> deleteCard(String id) async {
+    if (error != null) throw error!;
+    deleted.add(id);
+  }
 }
 
-Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.light, home: child);
+const _cats = [
+  Category(id: 'cat1', name: 'Super'),
+  Category(id: 'cat2', name: 'Gasolina'),
+];
 
 void main() {
-  setUpAll(() => initializeDateFormatting('es_MX'));
+  setUpAll(() async {
+    await initializeDateFormatting('es_MX');
+    await initializeDateFormatting('en_US');
+  });
+  tearDown(Get.reset);
 
-  const cats = [
-    Category(id: 'cat1', name: 'Super'),
-    Category(id: 'cat2', name: 'Gasolina'),
-  ];
+  late _CardRepo repo;
+  late CardFormController controller;
+
+  /// Mounts the real container page (so the whole form is exercised).
+  Future<void> pumpPage(
+    WidgetTester tester, {
+    CreditCard? editing,
+    bool dark = false,
+    String lang = 'es',
+    List<String> userCurrencies = const [],
+    String? defaultCurrency,
+  }) async {
+    tester.view.physicalSize = const Size(390, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    ActiveLocale.set(Locale(lang));
+    S.current = ActiveLocale.strings;
+    repo = _CardRepo();
+    final catalog = CatalogController(
+      categories: FakeCategoryRepository(_cats),
+      merchants: FakeMerchantRepository(),
+    );
+    await catalog.load();
+    controller = Get.put(
+      CardFormController(
+        repository: repo,
+        cards: CardsController(repo),
+        catalog: catalog,
+        editing: editing,
+        userCurrencies: userCurrencies,
+        defaultCurrency: defaultCurrency,
+      ),
+    );
+    await tester.pumpWidget(
+      GetMaterialApp(
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: dark ? ThemeMode.dark : ThemeMode.light,
+        locale: Locale(lang),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: const Scaffold(),
+      ),
+    );
+    unawaited(Get.to<void>(() => const CardFormPage()));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> fillBasics(WidgetTester tester) async {
+    await tester.enterText(find.byKey(const Key('field-alias')), 'Daily');
+    await tester.enterText(find.byKey(const Key('field-bank')), 'BBVA');
+    await tester.enterText(find.byKey(const Key('field-last4')), '4321');
+    await tester.enterText(find.byKey(const Key('field-base-rate')), '1,5');
+  }
+
+  Future<void> openAdvanced(WidgetTester tester) async {
+    await tester.tap(find.byKey(const Key('advanced-toggle')));
+    await tester.pumpAndSettle();
+  }
 
   group('RuleEditor', () {
-    testWidgets('adds, edits and removes rules', (tester) async {
+    Widget host(Widget child) => MaterialApp(
+      theme: AppTheme.light,
+      locale: const Locale('es'),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      home: Scaffold(body: SingleChildScrollView(child: child)),
+    );
+
+    testWidgets('adds, edits and removes rules; cap is opt-in', (tester) async {
       final rules = <RuleDraft>[RuleDraft(categoryId: 'cat1')];
       var added = 0;
       int? removed;
       await tester.pumpWidget(
-        _wrap(
-          Scaffold(
-            body: SingleChildScrollView(
-              child: RuleEditor(
-                rules: rules,
-                categories: cats,
-                capSuffix: 'MXN',
-                onAdd: () => added++,
-                onRemove: (i) => removed = i,
-                onCategoryChanged: (_, _) {},
-                errors: const {0: 'Tasa inválida'},
-              ),
-            ),
+        host(
+          RuleEditor(
+            rules: rules,
+            categories: _cats,
+            capSuffix: 'MXN',
+            onAdd: () => added++,
+            onRemove: (i) => removed = i,
+            onCategoryChanged: (_, _) {},
+            errors: const {0: 'Tasa inválida'},
           ),
         ),
       );
       await tester.enterText(find.byKey(const Key('rule-rate-0')), '5');
       expect(rules.first.rate.text, '5');
       expect(find.text('Tasa inválida'), findsOneWidget);
+      expect(find.byKey(const Key('rule-cap-0')), findsNothing);
+      await tester.tap(find.byKey(const Key('add-cap-0')));
+      await tester.pump();
+      await tester.enterText(find.byKey(const Key('rule-cap-0')), '500');
+      expect(rules.first.cap.text, '500');
       await tester.tap(find.byKey(const Key('add-rule')));
       expect(added, 1);
       await tester.tap(find.byKey(const Key('remove-rule-0')));
       expect(removed, 0);
     });
 
+    testWidgets('a rule with a cap shows it right away', (tester) async {
+      await tester.pumpWidget(
+        host(
+          RuleEditor(
+            rules: [RuleDraft(categoryId: 'cat1', cap: '200')],
+            categories: _cats,
+            capSuffix: 'MXN',
+            onAdd: () {},
+            onRemove: (_) {},
+            onCategoryChanged: (_, _) {},
+          ),
+        ),
+      );
+      expect(find.byKey(const Key('rule-cap-0')), findsOneWidget);
+    });
+
     testWidgets('explains when there are no categories', (tester) async {
       await tester.pumpWidget(
-        _wrap(
-          Scaffold(
-            body: RuleEditor(
-              rules: const [],
-              categories: const [],
-              capSuffix: 'MXN',
-              onAdd: () {},
-              onRemove: (_) {},
-              onCategoryChanged: (_, _) {},
-            ),
+        host(
+          RuleEditor(
+            rules: const [],
+            categories: const [],
+            capSuffix: 'MXN',
+            onAdd: () {},
+            onRemove: (_) {},
+            onCategoryChanged: (_, _) {},
           ),
         ),
       );
       expect(find.byKey(const Key('rules-need-categories')), findsOneWidget);
-      final add = tester.widget<OutlinedButton>(
-        find.byKey(const Key('add-rule')),
-      );
+      final add = tester.widget<TextButton>(find.byKey(const Key('add-rule')));
       expect(add.onPressed, isNull);
     });
   });
 
-  group('CardFormController', () {
-    late _CardRepo repo;
-    late CardFormController controller;
+  test('suggestedCurrencies puts the user currencies first, deduped', () {
+    expect(suggestedCurrencies(['hnl', 'USD']).take(3), ['HNL', 'USD', 'EUR']);
+    expect(suggestedCurrencies(const [], max: 2), ['USD', 'EUR']);
+  });
 
-    Future<void> pumpForm(WidgetTester tester) async {
-      repo = _CardRepo();
-      final catalog = CatalogController(
-        categories: FakeCategoryRepository(cats),
-        merchants: FakeMerchantRepository(),
-      );
-      await catalog.load();
-      controller = CardFormController(
-        repository: repo,
-        cards: CardsController(repo),
-        catalog: catalog,
-      )..onInit();
-      await tester.pumpWidget(
-        _wrap(
-          Scaffold(
-            body: CardFormView(
-              formKey: controller.formKey,
-              alias: controller.alias,
-              bank: controller.bank,
-              last4: controller.last4,
-              network: controller.network,
-              rewardProgram: controller.rewardProgram,
-              rewardCurrency: controller.rewardCurrency,
-              currency: controller.currency,
-              pointsFactor: controller.pointsFactor,
-              baseRate: controller.baseRate,
-              rewardUnit: RewardUnit.cashbackCurrency,
-              onUnitChanged: (_) {},
-              rules: controller.rules.toList(),
-              categories: cats,
-              ruleErrors: const {},
-              onAddRule: () {},
-              onRemoveRule: (_) {},
-              onRuleCategoryChanged: (_, _) {},
-              onSubmit: () {},
-              submitting: false,
-              isEditing: false,
-            ),
-          ),
-        ),
-      );
-    }
+  group('basic form', () {
+    testWidgets('shows basics and keeps advanced options collapsed', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      expect(find.text(S.newCard), findsOneWidget);
+      expect(find.byKey(const Key('field-alias')), findsOneWidget);
+      expect(find.byKey(const Key('unit-selector')), findsOneWidget);
+      expect(find.byKey(const Key('add-rule')), findsOneWidget);
+      expect(find.byKey(const Key('field-currency')), findsNothing);
+      expect(find.byKey(const Key('delete-card')), findsNothing);
+      await openAdvanced(tester);
+      expect(find.byKey(const Key('field-currency')), findsOneWidget);
+      expect(find.byKey(const Key('network-Visa')), findsOneWidget);
+      // Creating: nothing to delete.
+      expect(find.byKey(const Key('delete-card')), findsNothing);
+    });
+
+    testWidgets('the preview band follows alias and last 4', (tester) async {
+      await pumpPage(tester);
+      await tester.enterText(find.byKey(const Key('field-alias')), 'BAC Cash');
+      await tester.enterText(find.byKey(const Key('field-last4')), '4821');
+      await tester.pump();
+      expect(find.text('BAC Cash'), findsWidgets);
+      expect(find.text('•••• 4821'), findsOneWidget);
+    });
 
     testWidgets('blocks invalid input and never builds a draft', (
       tester,
     ) async {
-      await pumpForm(tester);
-      controller.last4.text = '12345';
-      expect(controller.buildDraft(), isNull);
-      await tester.pump();
+      await pumpPage(tester);
+      await tester.enterText(find.byKey(const Key('field-last4')), '12');
+      await tester.tap(find.byKey(const Key('submit-card')));
+      await tester.pumpAndSettle();
       expect(find.text(S.fieldRequired), findsWidgets);
-      expect(await controller.save(), isFalse);
+      expect(find.text(S.last4Invalid), findsOneWidget);
       expect(repo.saved, isEmpty);
     });
 
-    testWidgets('saves a valid draft with rules', (tester) async {
-      await pumpForm(tester);
-      controller.alias.text = 'Daily';
-      controller.bank.text = 'BBVA';
-      controller.last4.text = '4321';
-      controller.baseRate.text = '1,5';
-      expect(controller.addRule(), isTrue);
-      controller.rules.first.rate.text = '5';
-      controller.rules.first.cap.text = '500';
-      expect(await controller.save(), isTrue);
+    testWidgets('saves a valid card with a rule through the UI', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      await fillBasics(tester);
+      await tester.tap(find.byKey(const Key('add-rule')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('rule-rate-0')), '5');
+      await tester.tap(find.byKey(const Key('add-cap-0')));
+      await tester.pump();
+      await tester.enterText(find.byKey(const Key('rule-cap-0')), '500');
+      await tester.tap(find.byKey(const Key('submit-card')));
+      await tester.pumpAndSettle();
       final d = repo.saved.single;
+      expect(d.alias, 'Daily');
       expect(d.baseRatePercent.toString(), '1.5');
       expect(d.rules.single.categoryId, 'cat1');
+      expect(d.rules.single.ratePercent.toString(), '5');
       expect(d.rules.single.monthlyCap.toString(), '500');
     });
 
-    testWidgets('reward program field is optional and trimmed', (tester) async {
-      await pumpForm(tester);
-      expect(find.byKey(const Key('field-reward-program')), findsOneWidget);
-      controller.alias.text = 'Daily';
-      controller.bank.text = 'BAC';
-      controller.last4.text = '4321';
-      controller.baseRate.text = '1';
-      expect(await controller.save(), isTrue);
-      expect(repo.saved.last.rewardProgramName, isNull);
-      controller.rewardProgram.text = '  CASH BAC CREDOMATIC ';
-      expect(await controller.save(), isTrue);
-      expect(repo.saved.last.rewardProgramName, 'CASH BAC CREDOMATIC');
-    });
-
-    testWidgets('reward currency is optional, validated and picked by chip', (
-      tester,
-    ) async {
-      await pumpForm(tester);
-      expect(find.byKey(const Key('field-reward-currency')), findsOneWidget);
-      expect(find.text(S.cardRewardCurrencyHelper), findsOneWidget);
-      controller.alias.text = 'Daily';
-      controller.bank.text = 'Ficohsa';
-      controller.last4.text = '4321';
-      controller.baseRate.text = '1';
-      // Empty = detect automatically.
-      expect(await controller.save(), isTrue);
-      expect(repo.saved.last.rewardCurrency, isNull);
-      // Invalid free entry blocks the form.
-      controller.rewardCurrency.text = 'US';
-      expect(controller.buildDraft(), isNull);
-      await tester.pump();
-      expect(find.text(S.currencyInvalid), findsOneWidget);
-      // A common code is one tap away.
-      await tester.tap(find.byKey(const Key('reward-currency-USD')));
-      await tester.pump();
-      expect(controller.rewardCurrency.text, 'USD');
-      expect(await controller.save(), isTrue);
-      expect(repo.saved.last.rewardCurrency, 'USD');
-      // Free entry is uppercased.
-      controller.rewardCurrency.text = 'kwd';
-      expect(await controller.save(), isTrue);
-      expect(repo.saved.last.rewardCurrency, 'KWD');
+    testWidgets('points unit asks for the points factor', (tester) async {
+      await pumpPage(tester);
+      expect(find.byKey(const Key('field-points-factor')), findsNothing);
+      await tester.tap(find.text(S.current.cardUnitPoints));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('field-points-factor')), findsOneWidget);
+      await openAdvanced(tester);
+      // Points are not paid in a currency.
+      expect(find.byKey(const Key('field-reward-currency')), findsNothing);
     });
 
     testWidgets('rejects duplicate categories and missing rates', (
       tester,
     ) async {
-      await pumpForm(tester);
-      controller.alias.text = 'A';
-      controller.bank.text = 'B';
-      controller.last4.text = '1111';
-      controller.baseRate.text = '1';
+      await pumpPage(tester);
+      await fillBasics(tester);
       controller.rules.addAll([
         RuleDraft(categoryId: 'cat1', rate: '5'),
         RuleDraft(categoryId: 'cat1', rate: '3'),
@@ -242,36 +289,196 @@ void main() {
       expect(controller.ruleErrors[1], S.ruleDuplicateCategory);
       expect(controller.ruleErrors[2], S.numberInvalid);
       expect(controller.ruleErrors.containsKey(0), isFalse);
+      await tester.pumpAndSettle();
+      expect(find.text(S.ruleDuplicateCategory), findsOneWidget);
     });
 
     testWidgets('API failure shows a mapped message', (tester) async {
-      await pumpForm(tester);
-      controller.alias.text = 'A';
-      controller.bank.text = 'B';
-      controller.last4.text = '1111';
-      controller.baseRate.text = '1';
+      await pumpPage(tester);
+      await fillBasics(tester);
       repo.error = const AppException(kind: AppErrorKind.network);
-      expect(await controller.save(), isFalse);
-      expect(controller.errorMessage.value, S.errNetwork);
+      await tester.tap(find.byKey(const Key('submit-card')));
+      await tester.pumpAndSettle();
+      expect(find.text(S.errNetwork), findsOneWidget);
     });
   });
 
-  testWidgets('CardTile shows alias, last4 and handles taps', (tester) async {
-    var taps = 0;
-    await tester.pumpWidget(
-      _wrap(
-        Scaffold(
-          body: CardTile(
-            card: CardMapper.fromJson(cardJson()),
-            onTap: () => taps++,
-          ),
-        ),
-      ),
-    );
-    expect(find.text('Daily'), findsOneWidget);
-    expect(find.text('•••• 4321'), findsOneWidget);
-    expect(find.text('1 regla'), findsOneWidget);
-    await tester.tap(find.byType(CardTile));
-    expect(taps, 1);
+  group('advanced options', () {
+    testWidgets('network chips pick, switch and clear the network', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      await fillBasics(tester);
+      await openAdvanced(tester);
+      await tester.tap(find.byKey(const Key('network-Visa')));
+      await tester.pump();
+      expect(controller.network.text, 'Visa');
+      await tester.tap(find.byKey(const Key('network-Visa')));
+      await tester.pump();
+      expect(controller.network.text, isEmpty);
+      await tester.tap(find.byKey(const Key('network-other')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('field-network')),
+        'Discover',
+      );
+      await tester.tap(find.byKey(const Key('submit-card')));
+      await tester.pumpAndSettle();
+      expect(repo.saved.single.network, 'Discover');
+    });
+
+    testWidgets('reward program is optional and trimmed', (tester) async {
+      await pumpPage(tester);
+      await fillBasics(tester);
+      await openAdvanced(tester);
+      await tester.enterText(
+        find.byKey(const Key('field-reward-program')),
+        '  CASH BAC CREDOMATIC ',
+      );
+      await tester.tap(find.byKey(const Key('submit-card')));
+      await tester.pumpAndSettle();
+      expect(repo.saved.single.rewardProgramName, 'CASH BAC CREDOMATIC');
+    });
+
+    testWidgets('reward currency: detect, chips and validated free entry', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      await fillBasics(tester);
+      await openAdvanced(tester);
+      expect(find.text(S.current.cardRewardCurrencyNote), findsOneWidget);
+      // Invalid free entry blocks the form.
+      await tester.enterText(
+        find.byKey(const Key('field-reward-currency')),
+        'US',
+      );
+      await tester.tap(find.byKey(const Key('submit-card')));
+      await tester.pumpAndSettle();
+      expect(find.text(S.currencyInvalid), findsOneWidget);
+      expect(repo.saved, isEmpty);
+      // A common code is one tap away; tapping it again goes back to detect.
+      await tester.tap(find.byKey(const Key('reward-currency-USD')));
+      await tester.pump();
+      expect(controller.rewardCurrency.text, 'USD');
+      await tester.tap(find.byKey(const Key('reward-currency-detect')));
+      await tester.pump();
+      expect(controller.rewardCurrency.text, isEmpty);
+      await tester.tap(find.byKey(const Key('reward-currency-USD')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('submit-card')));
+      await tester.pumpAndSettle();
+      expect(repo.saved.last.rewardCurrency, 'USD');
+    });
+
+    testWidgets('the user currencies are suggested first', (tester) async {
+      await pumpPage(
+        tester,
+        userCurrencies: const ['HNL', 'GBP'],
+        defaultCurrency: 'HNL',
+      );
+      expect(controller.currency.text, 'HNL');
+      await openAdvanced(tester);
+      expect(find.byKey(const Key('currency-GBP')), findsOneWidget);
+      expect(find.byKey(const Key('reward-currency-GBP')), findsOneWidget);
+      final gbp = tester.getTopLeft(
+        find.byKey(const Key('reward-currency-GBP')),
+      );
+      final usd = tester.getTopLeft(
+        find.byKey(const Key('reward-currency-USD')),
+      );
+      expect(
+        gbp.dx < usd.dx || gbp.dy < usd.dy,
+        isTrue,
+        reason: 'GBP (user) must come before USD (common)',
+      );
+      await tester.tap(find.byKey(const Key('currency-GBP')));
+      await tester.pump();
+      expect(controller.currency.text, 'GBP');
+    });
+
+    testWidgets('an invalid hidden field opens the section on save', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      await fillBasics(tester);
+      controller.currency.text = 'XX';
+      expect(controller.advancedOpen.value, isFalse);
+      await tester.tap(find.byKey(const Key('submit-card')));
+      await tester.pumpAndSettle();
+      expect(controller.advancedOpen.value, isTrue);
+      expect(find.text(S.currencyInvalid), findsOneWidget);
+      expect(repo.saved, isEmpty);
+    });
+  });
+
+  group('delete', () {
+    final card = CardMapper.fromJson(cardJson());
+
+    testWidgets('confirms, then deletes the card being edited', (tester) async {
+      await pumpPage(tester, editing: card);
+      expect(find.text(S.editCard), findsOneWidget);
+      await openAdvanced(tester);
+      await tester.tap(find.byKey(const Key('delete-card')));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.byKey(const Key('delete-card-confirm')));
+      await tester.pumpAndSettle();
+      expect(repo.deleted, ['c1']);
+    });
+
+    testWidgets('cancelling keeps the card', (tester) async {
+      await pumpPage(tester, editing: card);
+      await openAdvanced(tester);
+      await tester.tap(find.byKey(const Key('delete-card')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('delete-card-cancel')));
+      await tester.pumpAndSettle();
+      expect(repo.deleted, isEmpty);
+      expect(find.byKey(const Key('delete-card')), findsOneWidget);
+    });
+
+    testWidgets('a failed delete shows the mapped error', (tester) async {
+      await pumpPage(tester, editing: card);
+      repo.error = const AppException(kind: AppErrorKind.network);
+      await openAdvanced(tester);
+      await tester.tap(find.byKey(const Key('delete-card')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('delete-card-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.text(S.errNetwork), findsOneWidget);
+    });
+  });
+
+  group('theme and language smoke', () {
+    for (final dark in [false, true]) {
+      for (final lang in ['es', 'en']) {
+        testWidgets('renders both sections (dark=$dark, $lang)', (
+          tester,
+        ) async {
+          await pumpPage(
+            tester,
+            editing: CardMapper.fromJson(cardJson()),
+            dark: dark,
+            lang: lang,
+          );
+          expect(tester.takeException(), isNull);
+          await openAdvanced(tester);
+          expect(tester.takeException(), isNull);
+          expect(find.byKey(const Key('delete-card')), findsOneWidget);
+          expect(
+            find.text(lang == 'es' ? 'Opciones avanzadas' : 'Advanced options'),
+            findsOneWidget,
+          );
+        });
+      }
+    }
+
+    testWidgets('fits a 320 px wide phone', (tester) async {
+      await pumpPage(tester, editing: CardMapper.fromJson(cardJson()));
+      tester.view.physicalSize = const Size(320, 2000);
+      await tester.pumpAndSettle();
+      await openAdvanced(tester);
+      expect(tester.takeException(), isNull);
+    });
   });
 }

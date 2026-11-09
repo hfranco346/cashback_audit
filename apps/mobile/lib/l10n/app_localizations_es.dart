@@ -1869,4 +1869,124 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get navAria => 'Navegación principal';
+
+  @override
+  String get cardBasicCaption => 'Básico';
+
+  @override
+  String get cardNameLabel => 'Nombre de la tarjeta';
+
+  @override
+  String get cardLast4Short => 'Últimos 4';
+
+  @override
+  String get cardRewardKindQuestion => '¿Qué te da?';
+
+  @override
+  String get cardUnitCashback => 'Cashback en dinero';
+
+  @override
+  String get cardUnitPoints => 'Puntos o millas';
+
+  @override
+  String get cardBaseRateLabel => 'Tasa base';
+
+  @override
+  String get cardBaseRateHelp =>
+      'Lo que gana cualquier compra que no está en un rubro especial.';
+
+  @override
+  String get cardRulesTitle => 'Rubros con % especial';
+
+  @override
+  String get cardAddRule => '+ Agregar rubro';
+
+  @override
+  String get cardAddCap => '+ Tope mensual';
+
+  @override
+  String get cardAdvancedTitle => 'Opciones avanzadas';
+
+  @override
+  String get cardAdvancedSubtitle => 'Red, moneda, programa a auditar…';
+
+  @override
+  String get cardNetworkLabel => 'Red';
+
+  @override
+  String get cardOptionalTag => '(opcional)';
+
+  @override
+  String get cardNetworkOther => 'Otra';
+
+  @override
+  String get cardNetworkOtherHint => 'Nombre de la red';
+
+  @override
+  String get cardMainCurrency => 'Moneda principal de la tarjeta';
+
+  @override
+  String get cardProgramLabel => 'Programa a auditar';
+
+  @override
+  String get cardProgramHelp =>
+      'Si tu estado de cuenta trae varios programas (cash, puntos, millas), elige cuál revisamos.';
+
+  @override
+  String get cardRewardCurrencyQuestion => 'Moneda en que recibes el cashback';
+
+  @override
+  String get cardRewardDetect => 'Detectar sola';
+
+  @override
+  String get cardRewardCurrencyNote =>
+      'Si es distinta a la de tus compras, te pediremos el tipo de cambio al verificar.';
+
+  @override
+  String get cardCurrencyOtherHint => 'Otro código (3 letras)';
+
+  @override
+  String get cardDeleteAction => 'Eliminar tarjeta';
+
+  @override
+  String get cardDeleteNote =>
+      'También se elimina su historial de verificaciones.';
+
+  @override
+  String get cardClose => 'Cerrar';
+
+  @override
+  String get catalogNewCategory => '+ Nuevo rubro';
+
+  @override
+  String get catalogIntroTitle =>
+      'Los rubros son los tipos de compra que tu banco premia más';
+
+  @override
+  String get catalogIntroBody =>
+      'Por ejemplo, 7% en supermercados. Créalos una vez y los usamos en todas tus tarjetas. No necesitas registrar comercios: la IA reconoce que «Farmacia Kielsa 61» es una farmacia.';
+
+  @override
+  String get catalogQuickAdd => 'Agrega con un toque';
+
+  @override
+  String get catalogCreateOther => 'Crear otro rubro';
+
+  @override
+  String get catalogOptionalNote =>
+      'Registrar comercios es opcional; sirve para que una compra siempre caiga en el rubro correcto.';
+
+  @override
+  String get catalogByAi => 'Por IA';
+
+  @override
+  String get catalogAddMerchant => '+ Agregar comercio';
+
+  @override
+  String get catalogMore => 'Más acciones';
+
+  @override
+  String catalogRuleTag(String card, String rate) {
+    return '$card $rate%';
+  }
 }

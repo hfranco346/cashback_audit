@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/l10n/strings.dart';
+import '../../../../core/l10n/l10n_context.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/ui.dart';
 import '../../../../shared/widgets/molecules/inline_message.dart';
 import '../../../categories/domain/catalog_entities.dart';
 import '../../domain/card_entities.dart';
 import '../../domain/card_validator.dart';
 import '../card_form_controller.dart';
-import 'reward_currency_field.dart';
+import 'card_preview_band.dart';
+import 'currency_picker.dart';
 import 'rule_editor.dart';
 
 /// Pure presentational card form. All state lives in the controller passed
-/// by the container page; this widget only lays it out.
+/// by the container page; this widget only lays it out: a basic section, a
+/// collapsible "advanced options" section and a pinned save button.
 class CardFormView extends StatelessWidget {
   const CardFormView({
     super.key,
@@ -37,6 +41,14 @@ class CardFormView extends StatelessWidget {
     required this.submitting,
     required this.isEditing,
     this.errorMessage,
+    this.advancedOpen = false,
+    this.onToggleAdvanced,
+    this.selectedNetwork,
+    this.onPickNetwork,
+    this.onPickOtherNetwork,
+    this.userCurrencies = const [],
+    this.onDelete,
+    this.deleting = false,
   });
 
   final GlobalKey<FormState> formKey;
@@ -62,171 +74,391 @@ class CardFormView extends StatelessWidget {
   final bool isEditing;
   final String? errorMessage;
 
+  final bool advancedOpen;
+  final VoidCallback? onToggleAdvanced;
+
+  /// A name of [CardFormController.knownNetworks], `other` or null.
+  final String? selectedNetwork;
+  final ValueChanged<String>? onPickNetwork;
+  final VoidCallback? onPickOtherNetwork;
+  final List<String> userCurrencies;
+
+  /// Shown at the bottom of the advanced section when editing.
+  final VoidCallback? onDelete;
+  final bool deleting;
+
   static final _decimal = FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'));
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
     final isPoints = rewardUnit == RewardUnit.points;
-    return Form(
-      key: formKey,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-        children: [
-          TextFormField(
-            key: const Key('field-alias'),
-            controller: alias,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              labelText: S.cardAlias,
-              hintText: S.cardAliasHint,
-            ),
-            validator: CardValidator.required,
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            key: const Key('field-bank'),
-            controller: bank,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(labelText: S.cardBank),
-            validator: CardValidator.required,
-          ),
-          const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: TextFormField(
-                  key: const Key('field-last4'),
-                  controller: last4,
-                  keyboardType: TextInputType.number,
-                  maxLength: 4,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(
-                    labelText: S.cardLast4,
-                    helperText: S.cardLast4Helper,
-                    counterText: '',
+    const gap = SizedBox(height: 14);
+    return Column(
+      children: [
+        Expanded(
+          child: Form(
+            key: formKey,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+              children: [
+                CardPreviewBand(alias: alias, last4: last4),
+                gap,
+                SectionHeader(title: l10n.cardBasicCaption, caption: true),
+                gap,
+                AppField(
+                  label: l10n.cardNameLabel,
+                  child: TextFormField(
+                    key: const Key('field-alias'),
+                    controller: alias,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: AppField.decoration(hint: l10n.cardAliasHint),
+                    validator: CardValidator.required,
                   ),
-                  validator: CardValidator.last4,
                 ),
+                gap,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 14,
+                      child: AppField(
+                        label: l10n.cardBank,
+                        child: TextFormField(
+                          key: const Key('field-bank'),
+                          controller: bank,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: AppField.decoration(),
+                          validator: CardValidator.required,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 10,
+                      child: AppField(
+                        label: l10n.cardLast4Short,
+                        child: TextFormField(
+                          key: const Key('field-last4'),
+                          controller: last4,
+                          keyboardType: TextInputType.number,
+                          maxLength: 4,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          style: const TextStyle(
+                            fontFeatures: appFigures,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          decoration: AppField.decoration(),
+                          validator: CardValidator.last4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                gap,
+                AppField(
+                  label: l10n.cardRewardKindQuestion,
+                  child: AppSegmented<RewardUnit>(
+                    key: const Key('unit-selector'),
+                    options: [
+                      SegmentOption(
+                        value: RewardUnit.cashbackCurrency,
+                        label: l10n.cardUnitCashback,
+                      ),
+                      SegmentOption(
+                        value: RewardUnit.points,
+                        label: l10n.cardUnitPoints,
+                      ),
+                    ],
+                    selected: rewardUnit,
+                    onChanged: onUnitChanged,
+                  ),
+                ),
+                if (isPoints) ...[
+                  gap,
+                  AppField(
+                    label: l10n.pointsPerUnit,
+                    child: TextFormField(
+                      key: const Key('field-points-factor'),
+                      controller: pointsFactor,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [_decimal],
+                      decoration: AppField.decoration(),
+                      validator: CardValidator.pointsFactor,
+                    ),
+                  ),
+                ],
+                gap,
+                AppField(
+                  label: l10n.cardBaseRateLabel,
+                  help: l10n.cardBaseRateHelp,
+                  child: TextFormField(
+                    key: const Key('field-base-rate'),
+                    controller: baseRate,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [_decimal],
+                    style: const TextStyle(
+                      fontFeatures: appFigures,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: AppField.decoration(hint: '0', suffix: '%'),
+                    validator: CardValidator.percent,
+                  ),
+                ),
+                gap,
+                ListenableBuilder(
+                  listenable: currency,
+                  builder: (context, _) => RuleEditor(
+                    rules: rules,
+                    categories: categories,
+                    capSuffix: isPoints ? 'pts' : currency.text.toUpperCase(),
+                    errors: ruleErrors,
+                    onAdd: onAddRule,
+                    onRemove: onRemoveRule,
+                    onCategoryChanged: onRuleCategoryChanged,
+                  ),
+                ),
+                gap,
+                _AdvancedHeader(open: advancedOpen, onTap: onToggleAdvanced),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.topCenter,
+                  // Kept mounted while collapsed so the form still validates
+                  // its fields.
+                  child: Visibility(
+                    visible: advancedOpen,
+                    maintainState: true,
+                    child: _advanced(context, isPoints),
+                  ),
+                ),
+                if (errorMessage != null) ...[
+                  gap,
+                  InlineMessage(message: errorMessage!),
+                ],
+              ],
+            ),
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: theme.colorScheme.outlineVariant),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            minimum: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: AppButton(
+                key: const Key('submit-card'),
+                label: l10n.save,
+                loading: submitting,
+                onPressed: submitting ? null : onSubmit,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: TextFormField(
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _advanced(BuildContext context, bool isPoints) {
+    final l10n = context.l10n;
+    const gap = SizedBox(height: 14);
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppField(
+            label: l10n.cardNetworkLabel,
+            optionalTag: l10n.cardOptionalTag,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final n in CardFormController.knownNetworks)
+                      AppChip(
+                        key: Key('network-$n'),
+                        label: n,
+                        selected: selectedNetwork == n,
+                        onTap: onPickNetwork == null
+                            ? null
+                            : () => onPickNetwork!(n),
+                      ),
+                    AppChip(
+                      key: const Key('network-other'),
+                      label: l10n.cardNetworkOther,
+                      selected: selectedNetwork == 'other',
+                      onTap: onPickOtherNetwork,
+                    ),
+                  ],
+                ),
+                if (selectedNetwork == 'other') ...[
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    key: const Key('field-network'),
+                    controller: network,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: AppField.decoration(
+                      hint: l10n.cardNetworkOtherHint,
+                    ),
+                    validator: (v) => (v ?? '').trim().length > 30
+                        ? l10n.fieldTooLong(30)
+                        : null,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          gap,
+          AppField(
+            label: l10n.cardMainCurrency,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
                   key: const Key('field-currency'),
                   controller: currency,
                   textCapitalization: TextCapitalization.characters,
                   maxLength: 3,
-                  decoration: InputDecoration(
-                    labelText: S.cardCurrency,
-                    counterText: '',
-                  ),
+                  decoration: AppField.decoration(),
                   validator: CardValidator.currency,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            key: const Key('field-network'),
-            controller: network,
-            textCapitalization: TextCapitalization.characters,
-            decoration: InputDecoration(labelText: S.cardNetwork),
-            validator: (v) =>
-                (v ?? '').trim().length > 30 ? S.fieldTooLong(30) : null,
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            key: const Key('field-reward-program'),
-            controller: rewardProgram,
-            decoration: InputDecoration(
-              labelText: S.cardRewardProgram,
-              helperText: S.cardRewardProgramHelper,
+                if (userCurrencies.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  CurrencyChips(
+                    controller: currency,
+                    codes: userCurrencies,
+                    keyPrefix: 'currency',
+                  ),
+                ],
+              ],
             ),
-            validator: (v) =>
-                (v ?? '').trim().length > 80 ? S.fieldTooLong(80) : null,
+          ),
+          gap,
+          AppField(
+            label: l10n.cardProgramLabel,
+            optionalTag: l10n.cardOptionalTag,
+            help: l10n.cardProgramHelp,
+            child: TextFormField(
+              key: const Key('field-reward-program'),
+              controller: rewardProgram,
+              decoration: AppField.decoration(),
+              validator: (v) =>
+                  (v ?? '').trim().length > 80 ? l10n.fieldTooLong(80) : null,
+            ),
           ),
           if (!isPoints) ...[
-            const SizedBox(height: 14),
-            RewardCurrencyField(controller: rewardCurrency),
+            gap,
+            RewardCurrencyField(
+              controller: rewardCurrency,
+              userCurrencies: userCurrencies,
+            ),
           ],
-          SizedBox(height: 22),
-          Text(
-            S.rewardUnitLabel,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          SizedBox(height: 8),
-          SegmentedButton<RewardUnit>(
-            key: Key('unit-selector'),
-            segments: [
-              ButtonSegment(
-                value: RewardUnit.cashbackCurrency,
-                label: Text(S.unitCashback),
-                icon: Icon(Icons.savings_rounded),
+          if (onDelete != null) ...[
+            const SizedBox(height: 18),
+            Divider(color: scheme.outlineVariant, height: 1),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              key: const Key('delete-card'),
+              onPressed: deleting ? null : onDelete,
+              style: TextButton.styleFrom(
+                foregroundColor: scheme.error,
+                alignment: Alignment.centerLeft,
+                padding: EdgeInsets.zero,
               ),
-              ButtonSegment(
-                value: RewardUnit.points,
-                label: Text(S.unitPoints),
-                icon: Icon(Icons.stars_rounded),
+              icon: const Icon(Icons.delete_outline_rounded, size: 18),
+              label: Text(l10n.cardDeleteAction),
+            ),
+            Text(
+              l10n.cardDeleteNote,
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(fontSize: 12, color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// "Advanced options" toggle: a bordered row with a hint when collapsed, a
+/// plain bold row when expanded (as in the design).
+class _AdvancedHeader extends StatelessWidget {
+  const _AdvancedHeader({required this.open, required this.onTap});
+
+  final bool open;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Semantics(
+      button: true,
+      expanded: open,
+      child: InkWell(
+        key: const Key('advanced-toggle'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          constraints: BoxConstraints(minHeight: open ? 48 : 56),
+          padding: EdgeInsets.symmetric(horizontal: open ? 4 : 16),
+          decoration: BoxDecoration(
+            color: open ? Colors.transparent : scheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: open ? Colors.transparent : scheme.outlineVariant,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.cardAdvancedTitle,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontSize: 14,
+                        fontWeight: open ? FontWeight.w800 : FontWeight.w700,
+                      ),
+                    ),
+                    if (!open)
+                      Text(
+                        l10n.cardAdvancedSubtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              AnimatedRotation(
+                turns: open ? 0.5 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: const Icon(Icons.expand_more_rounded, size: 20),
               ),
             ],
-            selected: {rewardUnit},
-            onSelectionChanged: (s) => onUnitChanged(s.first),
           ),
-          if (isPoints) ...[
-            const SizedBox(height: 14),
-            TextFormField(
-              key: const Key('field-points-factor'),
-              controller: pointsFactor,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [_decimal],
-              decoration: InputDecoration(labelText: S.pointsPerUnit),
-              validator: CardValidator.pointsFactor,
-            ),
-          ],
-          const SizedBox(height: 14),
-          TextFormField(
-            key: const Key('field-base-rate'),
-            controller: baseRate,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [_decimal],
-            decoration: InputDecoration(
-              labelText: S.baseRate,
-              helperText: S.baseRateHelper,
-              suffixText: '%',
-            ),
-            validator: CardValidator.percent,
-          ),
-          const SizedBox(height: 26),
-          RuleEditor(
-            rules: rules,
-            categories: categories,
-            capSuffix: isPoints ? 'pts' : currency.text.toUpperCase(),
-            errors: ruleErrors,
-            onAdd: onAddRule,
-            onRemove: onRemoveRule,
-            onCategoryChanged: onRuleCategoryChanged,
-          ),
-          if (errorMessage != null) ...[
-            const SizedBox(height: 16),
-            InlineMessage(message: errorMessage!),
-          ],
-          const SizedBox(height: 24),
-          FilledButton(
-            key: const Key('submit-card'),
-            onPressed: submitting ? null : onSubmit,
-            child: submitting
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.4),
-                  )
-                : Text(S.save),
-          ),
-        ],
+        ),
       ),
     );
   }

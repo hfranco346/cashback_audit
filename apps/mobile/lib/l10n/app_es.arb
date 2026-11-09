@@ -1014,5 +1014,52 @@
   "navHistory": "Historial",
   "navCategories": "Rubros",
   "navProfile": "Perfil",
-  "navAria": "Navegación principal"
+  "navAria": "Navegación principal",
+  "cardBasicCaption": "Básico",
+  "cardNameLabel": "Nombre de la tarjeta",
+  "cardLast4Short": "Últimos 4",
+  "cardRewardKindQuestion": "¿Qué te da?",
+  "cardUnitCashback": "Cashback en dinero",
+  "cardUnitPoints": "Puntos o millas",
+  "cardBaseRateLabel": "Tasa base",
+  "cardBaseRateHelp": "Lo que gana cualquier compra que no está en un rubro especial.",
+  "cardRulesTitle": "Rubros con % especial",
+  "cardAddRule": "+ Agregar rubro",
+  "cardAddCap": "+ Tope mensual",
+  "cardAdvancedTitle": "Opciones avanzadas",
+  "cardAdvancedSubtitle": "Red, moneda, programa a auditar…",
+  "cardNetworkLabel": "Red",
+  "cardOptionalTag": "(opcional)",
+  "cardNetworkOther": "Otra",
+  "cardNetworkOtherHint": "Nombre de la red",
+  "cardMainCurrency": "Moneda principal de la tarjeta",
+  "cardProgramLabel": "Programa a auditar",
+  "cardProgramHelp": "Si tu estado de cuenta trae varios programas (cash, puntos, millas), elige cuál revisamos.",
+  "cardRewardCurrencyQuestion": "Moneda en que recibes el cashback",
+  "cardRewardDetect": "Detectar sola",
+  "cardRewardCurrencyNote": "Si es distinta a la de tus compras, te pediremos el tipo de cambio al verificar.",
+  "cardCurrencyOtherHint": "Otro código (3 letras)",
+  "cardDeleteAction": "Eliminar tarjeta",
+  "cardDeleteNote": "También se elimina su historial de verificaciones.",
+  "cardClose": "Cerrar",
+  "catalogNewCategory": "+ Nuevo rubro",
+  "catalogIntroTitle": "Los rubros son los tipos de compra que tu banco premia más",
+  "catalogIntroBody": "Por ejemplo, 7% en supermercados. Créalos una vez y los usamos en todas tus tarjetas. No necesitas registrar comercios: la IA reconoce que «Farmacia Kielsa 61» es una farmacia.",
+  "catalogQuickAdd": "Agrega con un toque",
+  "catalogCreateOther": "Crear otro rubro",
+  "catalogOptionalNote": "Registrar comercios es opcional; sirve para que una compra siempre caiga en el rubro correcto.",
+  "catalogByAi": "Por IA",
+  "catalogAddMerchant": "+ Agregar comercio",
+  "catalogMore": "Más acciones",
+  "catalogRuleTag": "{card} {rate}%",
+  "@catalogRuleTag": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  }
 }

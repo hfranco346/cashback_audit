@@ -54,6 +54,21 @@ void main() {
     expect(await repo.cachedUser(), user);
   });
 
+  test('AppUser reads preferences from /me and from its own cache', () {
+    final user = AppUser.fromJson({
+      'id': 'u1',
+      'primaryCurrency': 'HNL',
+      'currencies': [
+        {'code': 'HNL', 'lastRateToPrimary': null},
+        {'code': 'USD', 'lastRateToPrimary': '24.7'},
+      ],
+    });
+    expect(user.primaryCurrency, 'HNL');
+    expect(user.currencies, ['HNL', 'USD']);
+    expect(AppUser.fromJson(user.toJson()), user);
+    expect(AppUser.fromJson({'id': 'u2'}).currencies, isEmpty);
+  });
+
   test('apple sign-in sends fullName only when present', () async {
     adapter = FakeAdapter((o) => const FakeResponse(200, _authBody));
     final repo = build(

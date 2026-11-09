@@ -1868,4 +1868,123 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navAria => 'Main navigation';
+
+  @override
+  String get cardBasicCaption => 'Basics';
+
+  @override
+  String get cardNameLabel => 'Card name';
+
+  @override
+  String get cardLast4Short => 'Last 4';
+
+  @override
+  String get cardRewardKindQuestion => 'What does it give you?';
+
+  @override
+  String get cardUnitCashback => 'Cash back';
+
+  @override
+  String get cardUnitPoints => 'Points or miles';
+
+  @override
+  String get cardBaseRateLabel => 'Base rate';
+
+  @override
+  String get cardBaseRateHelp =>
+      'What any purchase outside a bonus category earns.';
+
+  @override
+  String get cardRulesTitle => 'Categories with a bonus rate';
+
+  @override
+  String get cardAddRule => '+ Add category';
+
+  @override
+  String get cardAddCap => '+ Monthly cap';
+
+  @override
+  String get cardAdvancedTitle => 'Advanced options';
+
+  @override
+  String get cardAdvancedSubtitle => 'Network, currency, audited program…';
+
+  @override
+  String get cardNetworkLabel => 'Network';
+
+  @override
+  String get cardOptionalTag => '(optional)';
+
+  @override
+  String get cardNetworkOther => 'Other';
+
+  @override
+  String get cardNetworkOtherHint => 'Network name';
+
+  @override
+  String get cardMainCurrency => 'Card\'s main currency';
+
+  @override
+  String get cardProgramLabel => 'Program to audit';
+
+  @override
+  String get cardProgramHelp =>
+      'If your statement lists several programs (cash, points, miles), pick the one we check.';
+
+  @override
+  String get cardRewardCurrencyQuestion => 'Currency you receive cashback in';
+
+  @override
+  String get cardRewardDetect => 'Detect it';
+
+  @override
+  String get cardRewardCurrencyNote =>
+      'If it differs from your purchases, we\'ll ask for the exchange rate when checking.';
+
+  @override
+  String get cardCurrencyOtherHint => 'Other code (3 letters)';
+
+  @override
+  String get cardDeleteAction => 'Delete card';
+
+  @override
+  String get cardDeleteNote => 'Its verification history is deleted too.';
+
+  @override
+  String get cardClose => 'Close';
+
+  @override
+  String get catalogNewCategory => '+ New category';
+
+  @override
+  String get catalogIntroTitle =>
+      'Categories are the kinds of purchases your bank rewards most';
+
+  @override
+  String get catalogIntroBody =>
+      'For example, 7% at supermarkets. Create them once and we use them across all your cards. No need to register merchants: AI knows «Farmacia Kielsa 61» is a pharmacy.';
+
+  @override
+  String get catalogQuickAdd => 'Add with one tap';
+
+  @override
+  String get catalogCreateOther => 'Create another category';
+
+  @override
+  String get catalogOptionalNote =>
+      'Registering merchants is optional; it makes a purchase always land in the right category.';
+
+  @override
+  String get catalogByAi => 'By AI';
+
+  @override
+  String get catalogAddMerchant => '+ Add merchant';
+
+  @override
+  String get catalogMore => 'More actions';
+
+  @override
+  String catalogRuleTag(String card, String rate) {
+    return '$card $rate%';
+  }
 }

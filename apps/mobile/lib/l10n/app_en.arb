@@ -512,5 +512,52 @@
   "navHistory": "History",
   "navCategories": "Categories",
   "navProfile": "Profile",
-  "navAria": "Main navigation"
+  "navAria": "Main navigation",
+  "cardBasicCaption": "Basics",
+  "cardNameLabel": "Card name",
+  "cardLast4Short": "Last 4",
+  "cardRewardKindQuestion": "What does it give you?",
+  "cardUnitCashback": "Cash back",
+  "cardUnitPoints": "Points or miles",
+  "cardBaseRateLabel": "Base rate",
+  "cardBaseRateHelp": "What any purchase outside a bonus category earns.",
+  "cardRulesTitle": "Categories with a bonus rate",
+  "cardAddRule": "+ Add category",
+  "cardAddCap": "+ Monthly cap",
+  "cardAdvancedTitle": "Advanced options",
+  "cardAdvancedSubtitle": "Network, currency, audited program…",
+  "cardNetworkLabel": "Network",
+  "cardOptionalTag": "(optional)",
+  "cardNetworkOther": "Other",
+  "cardNetworkOtherHint": "Network name",
+  "cardMainCurrency": "Card's main currency",
+  "cardProgramLabel": "Program to audit",
+  "cardProgramHelp": "If your statement lists several programs (cash, points, miles), pick the one we check.",
+  "cardRewardCurrencyQuestion": "Currency you receive cashback in",
+  "cardRewardDetect": "Detect it",
+  "cardRewardCurrencyNote": "If it differs from your purchases, we'll ask for the exchange rate when checking.",
+  "cardCurrencyOtherHint": "Other code (3 letters)",
+  "cardDeleteAction": "Delete card",
+  "cardDeleteNote": "Its verification history is deleted too.",
+  "cardClose": "Close",
+  "catalogNewCategory": "+ New category",
+  "catalogIntroTitle": "Categories are the kinds of purchases your bank rewards most",
+  "catalogIntroBody": "For example, 7% at supermarkets. Create them once and we use them across all your cards. No need to register merchants: AI knows «Farmacia Kielsa 61» is a pharmacy.",
+  "catalogQuickAdd": "Add with one tap",
+  "catalogCreateOther": "Create another category",
+  "catalogOptionalNote": "Registering merchants is optional; it makes a purchase always land in the right category.",
+  "catalogByAi": "By AI",
+  "catalogAddMerchant": "+ Add merchant",
+  "catalogMore": "More actions",
+  "catalogRuleTag": "{card} {rate}%",
+  "@catalogRuleTag": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  }
 }

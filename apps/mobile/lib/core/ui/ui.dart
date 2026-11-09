@@ -6,6 +6,7 @@ export 'atoms/app_button.dart';
 export 'atoms/app_chip.dart';
 export 'atoms/section_header.dart';
 export 'atoms/status_pill.dart';
+export 'molecules/app_field.dart';
 export 'molecules/app_segmented.dart';
 export 'molecules/collapsible_warning.dart';
 export 'molecules/credit_card_view.dart';

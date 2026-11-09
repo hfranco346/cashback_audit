@@ -1,12 +1,25 @@
 import 'package:equatable/equatable.dart';
 
 class AppUser extends Equatable {
-  const AppUser({required this.id, this.email, this.name});
+  const AppUser({
+    required this.id,
+    this.email,
+    this.name,
+    this.primaryCurrency,
+    this.currencies = const [],
+  });
 
   /// Also the RevenueCat app user id.
   final String id;
   final String? email;
   final String? name;
+
+  /// ISO code the user compares amounts in (`GET /me`), when set.
+  final String? primaryCurrency;
+
+  /// ISO codes of the currencies the user works with, most relevant first.
+  /// Suggested before the common ones when creating cards.
+  final List<String> currencies;
 
   /// First name for greetings; falls back to the e-mail local part.
   String? get firstName {
@@ -17,16 +30,36 @@ class AppUser extends Equatable {
     return null;
   }
 
-  Map<String, dynamic> toJson() => {'id': id, 'email': email, 'name': name};
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'email': email,
+    'name': name,
+    'primaryCurrency': primaryCurrency,
+    'currencies': currencies,
+  };
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
     id: json['id'] as String,
     email: json['email'] as String?,
     name: json['name'] as String?,
+    primaryCurrency: json['primaryCurrency'] as String?,
+    currencies: _currencyCodes(json['currencies']),
   );
 
+  /// Accepts `[{code: 'USD', ...}]` (API) or `['USD']` (local cache).
+  static List<String> _currencyCodes(Object? raw) {
+    if (raw is! List) return const [];
+    return [
+      for (final e in raw)
+        if (e is String)
+          e
+        else if (e is Map && e['code'] is String)
+          e['code'] as String,
+    ];
+  }
+
   @override
-  List<Object?> get props => [id, email, name];
+  List<Object?> get props => [id, email, name, primaryCurrency, currencies];
 }
 
 /// Credential obtained from Apple on the device.

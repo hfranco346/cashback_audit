@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/l10n/strings.dart';
+import '../../../../core/l10n/l10n_context.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/ui.dart';
 import '../../../categories/domain/catalog_entities.dart';
 import '../card_form_controller.dart';
 
-/// Pure presentational editor for the per-category reward rules of a card.
+/// Pure presentational editor for the per-category reward rules of a card:
+/// one bordered panel, a row per rule (category, % pill, remove) and a
+/// "+ add category" action. The optional monthly cap opens under its row.
 class RuleEditor extends StatelessWidget {
   const RuleEditor({
     super.key,
@@ -30,7 +34,9 @@ class RuleEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     Set<String> usedByOthers(int i) => {
       for (var j = 0; j < rules.length; j++)
         if (j != i && rules[j].categoryId != null) rules[j].categoryId!,
@@ -39,53 +45,59 @@ class RuleEditor extends StatelessWidget {
         categories.isNotEmpty &&
         rules.length < categories.length &&
         rules.length < 50;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(S.rulesTitle, style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
-        Text(
-          S.rulesHelper,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+    return AppField(
+      label: l10n.cardRulesTitle,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: scheme.outlineVariant),
         ),
-        const SizedBox(height: 12),
-        if (categories.isEmpty)
-          Text(
-            S.ruleNeedsCategories,
-            key: const Key('rules-need-categories'),
-            style: theme.textTheme.bodyMedium,
-          ),
-        for (var i = 0; i < rules.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _RuleRow(
-              key: ObjectKey(rules[i]),
-              index: i,
-              draft: rules[i],
-              categories: [
-                for (final c in categories)
-                  if (!usedByOthers(i).contains(c.id)) c,
-              ],
-              capSuffix: capSuffix,
-              error: errors[i],
-              onRemove: () => onRemove(i),
-              onCategoryChanged: (id) => onCategoryChanged(i, id),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (categories.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Text(
+                  l10n.ruleNeedsCategories,
+                  key: const Key('rules-need-categories'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            for (var i = 0; i < rules.length; i++)
+              _RuleRow(
+                key: ObjectKey(rules[i]),
+                index: i,
+                draft: rules[i],
+                categories: [
+                  for (final c in categories)
+                    if (!usedByOthers(i).contains(c.id)) c,
+                ],
+                capSuffix: capSuffix,
+                error: errors[i],
+                onRemove: () => onRemove(i),
+                onCategoryChanged: (id) => onCategoryChanged(i, id),
+              ),
+            TextButton(
+              key: const Key('add-rule'),
+              onPressed: canAdd ? onAdd : null,
+              style: TextButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                shape: const RoundedRectangleBorder(),
+              ),
+              child: Text(l10n.cardAddRule),
             ),
-          ),
-        OutlinedButton.icon(
-          key: const Key('add-rule'),
-          onPressed: canAdd ? onAdd : null,
-          icon: const Icon(Icons.add_rounded),
-          label: Text(S.addRule),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
 
-class _RuleRow extends StatelessWidget {
+class _RuleRow extends StatefulWidget {
   const _RuleRow({
     super.key,
     required this.index,
@@ -105,22 +117,31 @@ class _RuleRow extends StatelessWidget {
   final VoidCallback onRemove;
   final ValueChanged<String?> onCategoryChanged;
 
-  static final _decimalFormatter = FilteringTextInputFormatter.allow(
-    RegExp(r'[0-9.,]'),
-  );
+  @override
+  State<_RuleRow> createState() => _RuleRowState();
+}
+
+class _RuleRowState extends State<_RuleRow> {
+  static final _decimal = FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'));
+
+  late bool _showCap = widget.draft.cap.text.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final i = widget.index;
+    final hasError = widget.error != null;
+    final borderColor = hasError ? scheme.error : scheme.outlineVariant;
+    OutlineInputBorder outline(Color c) => OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: BorderSide(color: c),
+    );
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: error == null
-              ? theme.colorScheme.outlineVariant
-              : theme.colorScheme.error,
-        ),
+        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,70 +149,121 @@ class _RuleRow extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: DropdownButtonFormField<String>(
-                  key: Key('rule-category-$index'),
-                  initialValue: draft.categoryId,
-                  isExpanded: true,
-                  decoration: InputDecoration(labelText: S.ruleCategory),
-                  items: [
-                    for (final c in categories)
-                      DropdownMenuItem(value: c.id, child: Text(c.name)),
-                  ],
-                  onChanged: onCategoryChanged,
-                ),
-              ),
-              IconButton(
-                key: Key('remove-rule-$index'),
-                tooltip: S.removeRule,
-                onPressed: onRemove,
-                icon: const Icon(Icons.delete_outline_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  key: Key('rule-rate-$index'),
-                  controller: draft.rate,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [_decimalFormatter],
-                  decoration: InputDecoration(
-                    labelText: S.ruleRate,
-                    suffixText: '%',
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    key: Key('rule-category-$i'),
+                    value:
+                        widget.categories.any(
+                          (c) => c.id == widget.draft.categoryId,
+                        )
+                        ? widget.draft.categoryId
+                        : null,
+                    isExpanded: true,
+                    hint: Text(l10n.ruleCategory),
+                    borderRadius: BorderRadius.circular(AppRadii.field),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurface,
+                    ),
+                    items: [
+                      for (final c in widget.categories)
+                        DropdownMenuItem(value: c.id, child: Text(c.name)),
+                    ],
+                    onChanged: widget.onCategoryChanged,
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              Expanded(
+              SizedBox(
+                width: 78,
                 child: TextField(
-                  key: Key('rule-cap-$index'),
-                  controller: draft.cap,
+                  key: Key('rule-rate-$i'),
+                  controller: widget.draft.rate,
+                  textAlign: TextAlign.center,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  inputFormatters: [_decimalFormatter],
+                  inputFormatters: [_decimal],
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
                   decoration: InputDecoration(
-                    labelText: S.ruleCap,
-                    helperText: S.ruleCapHelper,
-                    suffixText: capSuffix,
+                    isDense: true,
+                    suffixText: '%',
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 10,
+                    ),
+                    constraints: const BoxConstraints(minHeight: 40),
+                    fillColor: scheme.surface,
+                    border: outline(borderColor),
+                    enabledBorder: outline(borderColor),
                   ),
                 ),
               ),
+              IconButton(
+                key: Key('remove-rule-$i'),
+                tooltip: l10n.removeRule,
+                onPressed: widget.onRemove,
+                icon: const Icon(Icons.remove_rounded, size: 18),
+              ),
             ],
           ),
-          if (error != null)
+          if (_showCap)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                error!,
-                key: Key('rule-error-$index'),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.error,
+              padding: const EdgeInsets.only(top: 6, right: 8, bottom: 4),
+              child: TextField(
+                key: Key('rule-cap-$i'),
+                controller: widget.draft.cap,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
                 ),
+                inputFormatters: [_decimal],
+                decoration: InputDecoration(
+                  isDense: true,
+                  labelText: '${l10n.ruleCap} · ${l10n.ruleCapHelper}',
+                  suffixText: widget.capSuffix,
+                  constraints: const BoxConstraints(minHeight: 44),
+                ),
+              ),
+            )
+          else
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                key: Key('add-cap-$i'),
+                onPressed: () => setState(() => _showCap = true),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 40),
+                  padding: EdgeInsets.zero,
+                  textStyle: theme.textTheme.labelMedium,
+                ),
+                child: Text(l10n.cardAddCap),
+              ),
+            ),
+          if (hasError)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4, right: 8),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    size: 16,
+                    color: scheme.error,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      widget.error!,
+                      key: Key('rule-error-$i'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
         ],

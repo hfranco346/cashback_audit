@@ -1,7 +1,7 @@
 import 'package:cashback_audit/core/l10n/strings.dart';
 import 'package:cashback_audit/core/theme/app_theme.dart';
+import 'package:cashback_audit/core/ui/molecules/credit_card_view.dart';
 import 'package:cashback_audit/features/cards/domain/card_entities.dart';
-import 'package:cashback_audit/features/cards/presentation/widgets/card_tile.dart';
 import 'package:cashback_audit/features/settings/data/theme_preference_repository_impl.dart';
 import 'package:cashback_audit/features/settings/domain/theme_preference.dart';
 import 'package:cashback_audit/features/settings/presentation/theme_controller.dart';
@@ -11,7 +11,6 @@ import 'package:cashback_audit/features/verifications/domain/verification_entiti
 import 'package:cashback_audit/features/verifications/presentation/widgets/transaction_tile.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/verdict_card.dart';
 import 'package:cashback_audit/shared/widgets/molecules/inline_message.dart';
-import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -115,18 +114,10 @@ void main() {
                   message: 'Aviso',
                   tone: InlineMessageTone.warning,
                 ),
-                CardTile(
-                  card: CreditCard(
-                    id: 'c1',
-                    alias: 'Mi tarjeta',
-                    bank: 'Banco',
-                    last4: '1234',
-                    rewardUnit: RewardUnit.cashbackCurrency,
-                    pointsPerCurrencyUnit: Decimal.one,
-                    baseRatePercent: Decimal.one,
-                    currency: 'MXN',
-                  ),
-                  onTap: () {},
+                const CreditCardView(
+                  alias: 'Mi tarjeta',
+                  last4: '1234',
+                  currency: 'MXN',
                 ),
               ],
             ),

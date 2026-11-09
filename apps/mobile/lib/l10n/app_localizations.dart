@@ -3175,6 +3175,228 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Navegación principal'**
   String get navAria;
+
+  /// No description provided for @cardBasicCaption.
+  ///
+  /// In es, this message translates to:
+  /// **'Básico'**
+  String get cardBasicCaption;
+
+  /// No description provided for @cardNameLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre de la tarjeta'**
+  String get cardNameLabel;
+
+  /// No description provided for @cardLast4Short.
+  ///
+  /// In es, this message translates to:
+  /// **'Últimos 4'**
+  String get cardLast4Short;
+
+  /// No description provided for @cardRewardKindQuestion.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Qué te da?'**
+  String get cardRewardKindQuestion;
+
+  /// No description provided for @cardUnitCashback.
+  ///
+  /// In es, this message translates to:
+  /// **'Cashback en dinero'**
+  String get cardUnitCashback;
+
+  /// No description provided for @cardUnitPoints.
+  ///
+  /// In es, this message translates to:
+  /// **'Puntos o millas'**
+  String get cardUnitPoints;
+
+  /// No description provided for @cardBaseRateLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Tasa base'**
+  String get cardBaseRateLabel;
+
+  /// No description provided for @cardBaseRateHelp.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo que gana cualquier compra que no está en un rubro especial.'**
+  String get cardBaseRateHelp;
+
+  /// No description provided for @cardRulesTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Rubros con % especial'**
+  String get cardRulesTitle;
+
+  /// No description provided for @cardAddRule.
+  ///
+  /// In es, this message translates to:
+  /// **'+ Agregar rubro'**
+  String get cardAddRule;
+
+  /// No description provided for @cardAddCap.
+  ///
+  /// In es, this message translates to:
+  /// **'+ Tope mensual'**
+  String get cardAddCap;
+
+  /// No description provided for @cardAdvancedTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Opciones avanzadas'**
+  String get cardAdvancedTitle;
+
+  /// No description provided for @cardAdvancedSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Red, moneda, programa a auditar…'**
+  String get cardAdvancedSubtitle;
+
+  /// No description provided for @cardNetworkLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Red'**
+  String get cardNetworkLabel;
+
+  /// No description provided for @cardOptionalTag.
+  ///
+  /// In es, this message translates to:
+  /// **'(opcional)'**
+  String get cardOptionalTag;
+
+  /// No description provided for @cardNetworkOther.
+  ///
+  /// In es, this message translates to:
+  /// **'Otra'**
+  String get cardNetworkOther;
+
+  /// No description provided for @cardNetworkOtherHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre de la red'**
+  String get cardNetworkOtherHint;
+
+  /// No description provided for @cardMainCurrency.
+  ///
+  /// In es, this message translates to:
+  /// **'Moneda principal de la tarjeta'**
+  String get cardMainCurrency;
+
+  /// No description provided for @cardProgramLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Programa a auditar'**
+  String get cardProgramLabel;
+
+  /// No description provided for @cardProgramHelp.
+  ///
+  /// In es, this message translates to:
+  /// **'Si tu estado de cuenta trae varios programas (cash, puntos, millas), elige cuál revisamos.'**
+  String get cardProgramHelp;
+
+  /// No description provided for @cardRewardCurrencyQuestion.
+  ///
+  /// In es, this message translates to:
+  /// **'Moneda en que recibes el cashback'**
+  String get cardRewardCurrencyQuestion;
+
+  /// No description provided for @cardRewardDetect.
+  ///
+  /// In es, this message translates to:
+  /// **'Detectar sola'**
+  String get cardRewardDetect;
+
+  /// No description provided for @cardRewardCurrencyNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Si es distinta a la de tus compras, te pediremos el tipo de cambio al verificar.'**
+  String get cardRewardCurrencyNote;
+
+  /// No description provided for @cardCurrencyOtherHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Otro código (3 letras)'**
+  String get cardCurrencyOtherHint;
+
+  /// No description provided for @cardDeleteAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar tarjeta'**
+  String get cardDeleteAction;
+
+  /// No description provided for @cardDeleteNote.
+  ///
+  /// In es, this message translates to:
+  /// **'También se elimina su historial de verificaciones.'**
+  String get cardDeleteNote;
+
+  /// No description provided for @cardClose.
+  ///
+  /// In es, this message translates to:
+  /// **'Cerrar'**
+  String get cardClose;
+
+  /// No description provided for @catalogNewCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'+ Nuevo rubro'**
+  String get catalogNewCategory;
+
+  /// No description provided for @catalogIntroTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Los rubros son los tipos de compra que tu banco premia más'**
+  String get catalogIntroTitle;
+
+  /// No description provided for @catalogIntroBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Por ejemplo, 7% en supermercados. Créalos una vez y los usamos en todas tus tarjetas. No necesitas registrar comercios: la IA reconoce que «Farmacia Kielsa 61» es una farmacia.'**
+  String get catalogIntroBody;
+
+  /// No description provided for @catalogQuickAdd.
+  ///
+  /// In es, this message translates to:
+  /// **'Agrega con un toque'**
+  String get catalogQuickAdd;
+
+  /// No description provided for @catalogCreateOther.
+  ///
+  /// In es, this message translates to:
+  /// **'Crear otro rubro'**
+  String get catalogCreateOther;
+
+  /// No description provided for @catalogOptionalNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar comercios es opcional; sirve para que una compra siempre caiga en el rubro correcto.'**
+  String get catalogOptionalNote;
+
+  /// No description provided for @catalogByAi.
+  ///
+  /// In es, this message translates to:
+  /// **'Por IA'**
+  String get catalogByAi;
+
+  /// No description provided for @catalogAddMerchant.
+  ///
+  /// In es, this message translates to:
+  /// **'+ Agregar comercio'**
+  String get catalogAddMerchant;
+
+  /// No description provided for @catalogMore.
+  ///
+  /// In es, this message translates to:
+  /// **'Más acciones'**
+  String get catalogMore;
+
+  /// No description provided for @catalogRuleTag.
+  ///
+  /// In es, this message translates to:
+  /// **'{card} {rate}%'**
+  String catalogRuleTag(String card, String rate);
 }
 
 class _AppLocalizationsDelegate

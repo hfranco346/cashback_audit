@@ -161,6 +161,11 @@ abstract final class AppPages {
             editing: Get.arguments is CreditCard
                 ? Get.arguments as CreditCard
                 : null,
+            userCurrencies:
+                Get.find<SessionController>().user.value?.currencies ??
+                const [],
+            defaultCurrency:
+                Get.find<SessionController>().user.value?.primaryCurrency,
           ),
         );
       }),

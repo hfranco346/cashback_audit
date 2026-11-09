@@ -33,6 +33,8 @@ class CardFormController extends GetxController {
     required this._cards,
     required this._catalog,
     this.editing,
+    this.userCurrencies = const [],
+    this.defaultCurrency,
   });
 
   final CardRepository _repository;
@@ -41,6 +43,15 @@ class CardFormController extends GetxController {
 
   /// Null when creating.
   final CreditCard? editing;
+
+  /// The user's own currencies (`GET /me`), suggested before common ones.
+  final List<String> userCurrencies;
+
+  /// Preselected card currency when creating (the user's primary currency).
+  final String? defaultCurrency;
+
+  /// Networks offered as chips; anything else is "other" (free text).
+  static const knownNetworks = ['Visa', 'Mastercard', 'Amex'];
 
   bool get isEditing => editing != null;
 
@@ -58,6 +69,13 @@ class CardFormController extends GetxController {
   final rewardUnit = RewardUnit.cashbackCurrency.obs;
   final rules = <RuleDraft>[].obs;
   final submitting = false.obs;
+  final deleting = false.obs;
+
+  /// Whether the "advanced options" section is expanded.
+  final advancedOpen = false.obs;
+
+  /// The selected network chip: a known network, `other`, or null.
+  final selectedNetwork = RxnString();
   final errorMessage = RxnString();
 
   /// Per-row rule errors keyed by row index (shown under the rule editor).
@@ -80,6 +98,7 @@ class CardFormController extends GetxController {
       pointsFactor.text = decimalToApi(c.pointsPerCurrencyUnit);
       baseRate.text = decimalToApi(c.baseRatePercent);
       rewardUnit.value = c.rewardUnit;
+      selectedNetwork.value = _networkChipFor(network.text);
       rules.assignAll([
         for (final r in c.rules)
           RuleDraft(
@@ -88,8 +107,34 @@ class CardFormController extends GetxController {
             cap: r.monthlyCap == null ? '' : decimalToApi(r.monthlyCap!),
           ),
       ]);
+    } else if (defaultCurrency != null) {
+      currency.text = defaultCurrency!;
     }
   }
+
+  static String? _networkChipFor(String value) {
+    final t = value.trim().toLowerCase();
+    if (t.isEmpty) return null;
+    for (final n in knownNetworks) {
+      if (n.toLowerCase() == t) return n;
+    }
+    return 'other';
+  }
+
+  /// Picks a known network; tapping the selected one clears it (optional).
+  void pickNetwork(String name) {
+    final clear = selectedNetwork.value == name;
+    network.text = clear ? '' : name;
+    selectedNetwork.value = clear ? null : name;
+  }
+
+  /// Switches to the free-text "other" network (or back to none).
+  void pickOtherNetwork() {
+    network.text = '';
+    selectedNetwork.value = selectedNetwork.value == 'other' ? null : 'other';
+  }
+
+  void toggleAdvanced() => advancedOpen.toggle();
 
   @override
   void onReady() {
@@ -142,9 +187,18 @@ class CardFormController extends GetxController {
     return errors.isEmpty;
   }
 
+  /// True when a field inside the collapsed advanced section is invalid, so
+  /// the section can open and show its error.
+  bool _advancedInvalid() =>
+      CardValidator.currency(currency.text) != null ||
+      CardValidator.optionalCurrency(rewardCurrency.text) != null ||
+      network.text.trim().length > 30 ||
+      rewardProgram.text.trim().length > 80;
+
   CardDraft? buildDraft() {
     final formOk = formKey.currentState?.validate() ?? false;
     final rulesOk = _validateRules();
+    if (!formOk && _advancedInvalid()) advancedOpen.value = true;
     if (!formOk || !rulesOk) return null;
     final isPoints = rewardUnit.value == RewardUnit.points;
     return CardDraft(
@@ -195,6 +249,25 @@ class CardFormController extends GetxController {
       return false;
     } finally {
       submitting.value = false;
+    }
+  }
+
+  /// Deletes the card being edited. Returns true on success; on failure
+  /// [errorMessage] explains why.
+  Future<bool> delete() async {
+    final card = editing;
+    if (card == null || deleting.value) return false;
+    deleting.value = true;
+    errorMessage.value = null;
+    try {
+      final message = await _cards.delete(card);
+      if (message != null) {
+        errorMessage.value = message;
+        return false;
+      }
+      return true;
+    } finally {
+      deleting.value = false;
     }
   }
 
