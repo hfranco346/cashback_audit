@@ -1,0 +1,3 @@
+{
+  "DEV_ACCESS_TOKEN": "<30-day HS256 access JWT for the seeded dev user>"
+}

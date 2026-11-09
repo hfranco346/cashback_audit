@@ -1,0 +1,59 @@
+{
+  // Local API: in apps/api run `CREDITS_GATE_ENABLED=false PORT=3200 node --env-file=.env dist/main`.
+  // Dev sign-in token lives in apps/mobile/.env.dev.json (gitignored; copy dart-defines.example.json).
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "iOS Simulator (debug)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "apps/mobile",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "deviceId": "iPhone 17",
+      "toolArgs": [
+        "--dart-define=API_BASE_URL=http://localhost:3200/api/v1",
+        "--dart-define-from-file=.env.dev.json"
+      ]
+    },
+    {
+      "name": "iPhone wireless (debug)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "apps/mobile",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "deviceId": "00008110-000E39DE0A09801E",
+      "toolArgs": [
+        "--dart-define=API_BASE_URL=http://MacBook-Pro-de-Henderson.local:3200/api/v1",
+        "--dart-define-from-file=.env.dev.json"
+      ]
+    },
+    {
+      "name": "iPhone wireless (profile, runs without the Mac)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "apps/mobile",
+      "program": "lib/main.dart",
+      "flutterMode": "profile",
+      "deviceId": "00008110-000E39DE0A09801E",
+      "toolArgs": [
+        "--dart-define=API_BASE_URL=http://MacBook-Pro-de-Henderson.local:3200/api/v1",
+        "--dart-define-from-file=.env.dev.json"
+      ]
+    },
+    {
+      "name": "Android device (debug)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "apps/mobile",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "deviceId": "AUWDBB5B26110210",
+      "toolArgs": [
+        "--dart-define=API_BASE_URL=http://192.168.1.195:3200/api/v1",
+        "--dart-define-from-file=.env.dev.json"
+      ]
+    }
+  ]
+}
