@@ -39,6 +39,7 @@ class CreditsRepositoryImpl implements CreditsRepository {
     delta: (j['delta'] as num).toInt(),
     bucket: CreditBucket.fromApi(j['bucket'] as String?),
     reason: CreditReason.fromApi(j['reason'] as String?),
+    source: CreditSource.fromApi(j['source'] as String?),
     verificationId: j['verificationId'] as String?,
     periodEnd: j['periodEnd'] is String
         ? DateTime.tryParse(j['periodEnd'] as String)

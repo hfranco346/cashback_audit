@@ -2363,4 +2363,193 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get paywallOptions => 'Opciones de compra';
+
+  @override
+  String get profileChecksAvailable => 'Verificaciones disponibles';
+
+  @override
+  String get profileBagFree => 'Gratis';
+
+  @override
+  String get profileBagPlan => 'Del plan';
+
+  @override
+  String get profileBagPurchased => 'Compradas';
+
+  @override
+  String get profileGetMore => 'Conseguir más verificaciones';
+
+  @override
+  String get profileCreditHistory => 'Historial de créditos';
+
+  @override
+  String get profileSubscription => 'Suscripción';
+
+  @override
+  String get profileNoPlan => 'Sin plan activo';
+
+  @override
+  String get profileLanguage => 'Idioma';
+
+  @override
+  String get profileCurrencies => 'Monedas';
+
+  @override
+  String profileProviderLine(String email, String provider) {
+    return '$email · $provider';
+  }
+
+  @override
+  String profileLanguageValue(String mode, String language) {
+    return '$mode · $language';
+  }
+
+  @override
+  String get profileBack => 'Atrás';
+
+  @override
+  String get creditsHistoryHeading => 'Historial de créditos';
+
+  @override
+  String get creditsHistoryIntro =>
+      'Cada cambio en tu saldo. Si una lectura falla, la verificación se devuelve sola.';
+
+  @override
+  String creditsBalanceNow(int n) {
+    return 'Saldo actual: $n';
+  }
+
+  @override
+  String get creditTitleGrantFree => 'Otorgada';
+
+  @override
+  String get creditDetailGrantFree => 'Al crear tu cuenta';
+
+  @override
+  String get creditTitleGrantPlan => 'Del plan';
+
+  @override
+  String get creditDetailGrantPlan => 'Verificaciones de tu plan mensual';
+
+  @override
+  String get creditTitleGrantPack => 'Comprada';
+
+  @override
+  String get creditDetailGrantPack => 'Paquete de verificaciones';
+
+  @override
+  String get creditTitleConsume => 'Usada';
+
+  @override
+  String get creditDetailConsume => 'Intento de verificación';
+
+  @override
+  String get creditTitleRefund => 'Devuelta';
+
+  @override
+  String get creditDetailRefund => 'La lectura del PDF no salió bien';
+
+  @override
+  String get creditTitleExpirePlan => 'Vencida';
+
+  @override
+  String get creditDetailExpirePlan => 'Saldo del plan sin usar al renovar';
+
+  @override
+  String get creditTitleOther => 'Ajuste';
+
+  @override
+  String get creditDetailOther => 'Cambio en tu saldo';
+
+  @override
+  String get creditSourceSystem => 'sistema';
+
+  @override
+  String get creditSourceApple => 'App Store';
+
+  @override
+  String get creditSourceGoogle => 'Google Play';
+
+  @override
+  String get langScreenTitle => 'Idioma y monedas';
+
+  @override
+  String get langAppLanguage => 'Idioma de la app';
+
+  @override
+  String langAutoSubtitle(String language) {
+    return 'Igual que tu teléfono · ahora $language';
+  }
+
+  @override
+  String get langAutoNote =>
+      'Si tu teléfono está en inglés, la app abre en inglés. Cualquier otro idioma usa español.';
+
+  @override
+  String get langSyncFailed =>
+      'Se aplicó en este teléfono, pero no pudimos guardarlo en tu cuenta.';
+
+  @override
+  String get curMain => 'Moneda principal';
+
+  @override
+  String get curMainNote =>
+      'Se usa para equivalencias como «Equivale a HNL 589.61». Cada tarjeta conserva su moneda. Al cambiarla se borran los tipos de cambio guardados.';
+
+  @override
+  String get curOther => '+ Otra';
+
+  @override
+  String get curUse => 'Monedas que usas';
+
+  @override
+  String get curMainTag => 'Principal';
+
+  @override
+  String curLastRate(String code, String rate, String primary) {
+    return 'Último tipo de cambio: 1 $code = $rate $primary';
+  }
+
+  @override
+  String get curNoRate => 'Sin tipo de cambio guardado';
+
+  @override
+  String curRemove(String code) {
+    return 'Quitar $code';
+  }
+
+  @override
+  String get curAdd => '+ Agregar moneda';
+
+  @override
+  String get curUseNote =>
+      'Salen primero al crear tarjetas y al poner tipos de cambio. Los montos siempre llevan su código.';
+
+  @override
+  String get curEditRate => 'Editar tipo de cambio';
+
+  @override
+  String curRateQuestion(String code, String primary) {
+    return '1 $code = ¿cuántos $primary?';
+  }
+
+  @override
+  String get curRateInvalid =>
+      'Escribe un número mayor que 0 (hasta 6 decimales).';
+
+  @override
+  String get curRateClear => 'Borrar tipo de cambio';
+
+  @override
+  String get curAddTitle => 'Agregar moneda';
+
+  @override
+  String get curCodeLabel => 'Código de la moneda';
+
+  @override
+  String get curSetPrimaryTitle => 'Moneda principal';
+
+  @override
+  String get errInvalidCurrencies =>
+      'Esa lista de monedas no es válida: no repitas ni incluyas la moneda principal.';
 }

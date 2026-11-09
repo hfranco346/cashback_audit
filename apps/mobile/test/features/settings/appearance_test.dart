@@ -5,7 +5,6 @@ import 'package:cashback_audit/l10n/app_localizations.dart';
 import 'package:cashback_audit/features/settings/data/theme_preference_repository_impl.dart';
 import 'package:cashback_audit/features/settings/domain/theme_preference.dart';
 import 'package:cashback_audit/features/settings/presentation/theme_controller.dart';
-import 'package:cashback_audit/features/settings/presentation/widgets/appearance_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -31,9 +30,23 @@ void main() {
           themeMode: controller.themeMode,
           home: Scaffold(
             body: Obx(
-              () => AppearanceSection(
+              () => AppSegmented<ThemePreference>(
                 selected: controller.preference.value,
                 onChanged: controller.select,
+                options: [
+                  SegmentOption(
+                    value: ThemePreference.system,
+                    label: S.themeSystem,
+                  ),
+                  SegmentOption(
+                    value: ThemePreference.light,
+                    label: S.themeLight,
+                  ),
+                  SegmentOption(
+                    value: ThemePreference.dark,
+                    label: S.themeDark,
+                  ),
+                ],
               ),
             ),
           ),
@@ -43,16 +56,16 @@ void main() {
     ThemeMode mode() =>
         tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode!;
     expect(mode(), ThemeMode.system);
-    SegmentedButton<ThemePreference> button() =>
-        tester.widget<SegmentedButton<ThemePreference>>(
-          find.byType(SegmentedButton<ThemePreference>),
+    AppSegmented<ThemePreference> button() =>
+        tester.widget<AppSegmented<ThemePreference>>(
+          find.byType(AppSegmented<ThemePreference>),
         );
-    expect(button().selected, {ThemePreference.system});
+    expect(button().selected, ThemePreference.system);
 
     await tester.tap(find.text(S.themeDark));
     await tester.pumpAndSettle();
     expect(mode(), ThemeMode.dark);
-    expect(button().selected, {ThemePreference.dark});
+    expect(button().selected, ThemePreference.dark);
 
     await tester.tap(find.text(S.themeLight));
     await tester.pumpAndSettle();

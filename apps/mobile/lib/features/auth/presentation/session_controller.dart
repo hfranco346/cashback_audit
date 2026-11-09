@@ -48,6 +48,9 @@ class SessionController extends GetxController {
     await _runHooks(signedIn);
   }
 
+  /// Replaces the signed-in user in memory (e.g. after a preferences PATCH).
+  void updateUser(AppUser updated) => user.value = updated;
+
   /// Restores the user at start-up (home calls this). Offline-safe.
   Future<void> restore() async {
     try {

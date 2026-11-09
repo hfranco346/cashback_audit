@@ -26,6 +26,11 @@ import '../../features/subscription/data/revenuecat_billing_service.dart';
 import '../../features/subscription/data/subscription_repository_impl.dart';
 import '../../features/subscription/domain/subscription_repository.dart';
 import '../../features/subscription/presentation/subscription_controller.dart';
+import '../../features/settings/data/user_preferences_repository_impl.dart';
+import '../../features/settings/domain/locale_preference.dart';
+import '../../features/settings/domain/user_preferences.dart';
+import '../../features/settings/presentation/locale_controller.dart';
+import '../../features/settings/presentation/preferences_controller.dart';
 import '../../features/onboarding/data/onboarding_repository_impl.dart';
 import '../../features/onboarding/data/onboarding_draft_repository_impl.dart';
 import '../../features/onboarding/domain/onboarding_draft.dart';
@@ -129,10 +134,24 @@ class InitialBinding extends Bindings {
       CreditsController(repository: Get.find<CreditsRepository>()),
       permanent: true,
     );
+    Get.put<UserPreferencesRepository>(
+      UserPreferencesRepositoryImpl(dio),
+      permanent: true,
+    );
+    Get.put<PreferencesController>(
+      PreferencesController(
+        repository: Get.find<UserPreferencesRepository>(),
+        session: Get.find<SessionController>(),
+        locale: Get.find<LocaleController>(),
+        localeStore: Get.find<LocalePreferenceRepository>(),
+      ),
+      permanent: true,
+    );
     // RevenueCat customer must carry our user id before any purchase.
     final session = Get.find<SessionController>();
     session
       ..addSignedInHook((user) => Get.find<BillingService>().logIn(user.id))
+      ..addSignedInHook(Get.find<PreferencesController>().syncLocale)
       ..addSignedInHook((_) async {
         await Get.find<SubscriptionController>().fetchStatus();
         await Get.find<CreditsController>().fetch();

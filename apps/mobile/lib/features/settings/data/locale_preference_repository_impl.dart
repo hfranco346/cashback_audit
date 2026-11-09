@@ -18,6 +18,12 @@ class LocalePreferenceRepositoryImpl implements LocalePreferenceRepository {
   }
 
   @override
+  Future<bool> isSet() async {
+    final stored = await _prefs.getString(_key);
+    return LocalePreference.values.any((p) => p.name == stored);
+  }
+
+  @override
   Future<void> save(LocalePreference preference) =>
       _prefs.setString(_key, preference.name);
 }

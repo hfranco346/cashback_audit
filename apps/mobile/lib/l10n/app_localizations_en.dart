@@ -2355,4 +2355,193 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paywallOptions => 'Purchase options';
+
+  @override
+  String get profileChecksAvailable => 'Checks available';
+
+  @override
+  String get profileBagFree => 'Free';
+
+  @override
+  String get profileBagPlan => 'From plan';
+
+  @override
+  String get profileBagPurchased => 'Purchased';
+
+  @override
+  String get profileGetMore => 'Get more checks';
+
+  @override
+  String get profileCreditHistory => 'Credit history';
+
+  @override
+  String get profileSubscription => 'Subscription';
+
+  @override
+  String get profileNoPlan => 'No active plan';
+
+  @override
+  String get profileLanguage => 'Language';
+
+  @override
+  String get profileCurrencies => 'Currencies';
+
+  @override
+  String profileProviderLine(String email, String provider) {
+    return '$email · $provider';
+  }
+
+  @override
+  String profileLanguageValue(String mode, String language) {
+    return '$mode · $language';
+  }
+
+  @override
+  String get profileBack => 'Back';
+
+  @override
+  String get creditsHistoryHeading => 'Credit history';
+
+  @override
+  String get creditsHistoryIntro =>
+      'Every change to your balance. If a read fails, the check is returned automatically.';
+
+  @override
+  String creditsBalanceNow(int n) {
+    return 'Current balance: $n';
+  }
+
+  @override
+  String get creditTitleGrantFree => 'Granted';
+
+  @override
+  String get creditDetailGrantFree => 'When you created your account';
+
+  @override
+  String get creditTitleGrantPlan => 'From your plan';
+
+  @override
+  String get creditDetailGrantPlan => 'Checks from your monthly plan';
+
+  @override
+  String get creditTitleGrantPack => 'Purchased';
+
+  @override
+  String get creditDetailGrantPack => 'Check pack';
+
+  @override
+  String get creditTitleConsume => 'Used';
+
+  @override
+  String get creditDetailConsume => 'Check attempt';
+
+  @override
+  String get creditTitleRefund => 'Returned';
+
+  @override
+  String get creditDetailRefund => 'The PDF read did not succeed';
+
+  @override
+  String get creditTitleExpirePlan => 'Expired';
+
+  @override
+  String get creditDetailExpirePlan => 'Unused plan balance at renewal';
+
+  @override
+  String get creditTitleOther => 'Adjustment';
+
+  @override
+  String get creditDetailOther => 'Balance change';
+
+  @override
+  String get creditSourceSystem => 'system';
+
+  @override
+  String get creditSourceApple => 'App Store';
+
+  @override
+  String get creditSourceGoogle => 'Google Play';
+
+  @override
+  String get langScreenTitle => 'Language & currencies';
+
+  @override
+  String get langAppLanguage => 'App language';
+
+  @override
+  String langAutoSubtitle(String language) {
+    return 'Same as your phone · now $language';
+  }
+
+  @override
+  String get langAutoNote =>
+      'If your phone is in English, the app opens in English. Any other language uses Spanish.';
+
+  @override
+  String get langSyncFailed =>
+      'Applied on this phone, but we couldn\'t save it to your account.';
+
+  @override
+  String get curMain => 'Main currency';
+
+  @override
+  String get curMainNote =>
+      'Used for equivalents such as «Equals HNL 589.61». Each card keeps its own currency. Changing it clears the saved exchange rates.';
+
+  @override
+  String get curOther => '+ Other';
+
+  @override
+  String get curUse => 'Currencies you use';
+
+  @override
+  String get curMainTag => 'Main';
+
+  @override
+  String curLastRate(String code, String rate, String primary) {
+    return 'Last exchange rate: 1 $code = $rate $primary';
+  }
+
+  @override
+  String get curNoRate => 'No saved exchange rate';
+
+  @override
+  String curRemove(String code) {
+    return 'Remove $code';
+  }
+
+  @override
+  String get curAdd => '+ Add currency';
+
+  @override
+  String get curUseNote =>
+      'They show up first when you create cards and enter exchange rates. Amounts always carry their code.';
+
+  @override
+  String get curEditRate => 'Edit exchange rate';
+
+  @override
+  String curRateQuestion(String code, String primary) {
+    return '1 $code = how many $primary?';
+  }
+
+  @override
+  String get curRateInvalid =>
+      'Enter a number greater than 0 (up to 6 decimals).';
+
+  @override
+  String get curRateClear => 'Clear exchange rate';
+
+  @override
+  String get curAddTitle => 'Add currency';
+
+  @override
+  String get curCodeLabel => 'Currency code';
+
+  @override
+  String get curSetPrimaryTitle => 'Main currency';
+
+  @override
+  String get errInvalidCurrencies =>
+      'That currency list isn\'t valid: no repeats, and it can\'t include the main currency.';
 }

@@ -89,3 +89,12 @@ String formatRate(Decimal value) {
     ..minimumFractionDigits = 0;
   return '${DecimalFormatter(fmt).format(value)}%';
 }
+
+/// Formats an exchange rate with at least 2 and at most 6 decimals,
+/// e.g. `26.00` or `24.6543`.
+String formatExchangeRate(Decimal value) {
+  final fmt = NumberFormat.decimalPattern(_locale)
+    ..maximumFractionDigits = 6
+    ..minimumFractionDigits = 2;
+  return DecimalFormatter(fmt).format(value);
+}

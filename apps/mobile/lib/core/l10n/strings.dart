@@ -58,6 +58,7 @@ abstract final class S {
   static String get errUnreadable => _l.errUnreadable;
   static String get errRewardRateRequired => _l.errRewardRateRequired;
   static String get errInvalidExchangeRate => _l.errInvalidExchangeRate;
+  static String get errInvalidCurrencies => _l.errInvalidCurrencies;
   static String get errRewardNotFound => _l.errRewardNotFound;
   static String get errExtractionFailed => _l.errExtractionFailed;
   static String get errExtractionUnavailable => _l.errExtractionUnavailable;

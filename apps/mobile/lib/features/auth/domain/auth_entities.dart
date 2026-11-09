@@ -6,6 +6,8 @@ class AppUser extends Equatable {
     required this.id,
     this.email,
     this.name,
+    this.provider,
+    this.locale,
     this.primaryCurrency,
     this.currencies = const [],
     this.currencyRates = const {},
@@ -15,6 +17,12 @@ class AppUser extends Equatable {
   final String id;
   final String? email;
   final String? name;
+
+  /// Sign-in provider (`GOOGLE` | `APPLE`).
+  final String? provider;
+
+  /// Language preference stored in the account (`auto` | `es` | `en`).
+  final String? locale;
 
   /// ISO code the user compares amounts in (`GET /me`), when set.
   final String? primaryCurrency;
@@ -26,6 +34,23 @@ class AppUser extends Equatable {
   /// Last exchange rate used per currency code: primary-currency units per
   /// 1 unit of the code (`lastRateToPrimary`). Only codes with a known rate.
   final Map<String, Decimal> currencyRates;
+
+  /// The same user with new preferences (the server answer to a PATCH).
+  AppUser withPreferences({
+    String? locale,
+    required String? primaryCurrency,
+    required List<String> currencies,
+    required Map<String, Decimal> currencyRates,
+  }) => AppUser(
+    id: id,
+    email: email,
+    name: name,
+    provider: provider,
+    locale: locale ?? this.locale,
+    primaryCurrency: primaryCurrency,
+    currencies: currencies,
+    currencyRates: currencyRates,
+  );
 
   /// First name for greetings; falls back to the e-mail local part.
   String? get firstName {
@@ -40,6 +65,8 @@ class AppUser extends Equatable {
     'id': id,
     'email': email,
     'name': name,
+    'provider': provider,
+    'locale': locale,
     'primaryCurrency': primaryCurrency,
     'currencies': [
       for (final c in currencies)
@@ -55,6 +82,8 @@ class AppUser extends Equatable {
     id: json['id'] as String,
     email: json['email'] as String?,
     name: json['name'] as String?,
+    provider: json['provider'] as String?,
+    locale: json['locale'] as String?,
     primaryCurrency: json['primaryCurrency'] as String?,
     currencies: _currencyCodes(json['currencies']),
     currencyRates: _currencyRates(json['currencies']),
@@ -90,6 +119,8 @@ class AppUser extends Equatable {
     id,
     email,
     name,
+    provider,
+    locale,
     primaryCurrency,
     currencies,
     currencyRates,

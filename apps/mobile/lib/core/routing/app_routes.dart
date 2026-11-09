@@ -13,4 +13,5 @@ abstract final class Routes {
   static const paywall = '/paywall';
   static const creditHistory = '/credits/history';
   static const settings = '/settings';
+  static const languageCurrencies = '/settings/language-currencies';
 }

@@ -86,6 +86,21 @@ enum CreditReason {
   };
 }
 
+/// Where a ledger entry comes from.
+enum CreditSource {
+  apple,
+  google,
+  web,
+  system;
+
+  static CreditSource fromApi(String? v) => switch (v) {
+    'APPLE' => CreditSource.apple,
+    'GOOGLE' => CreditSource.google,
+    'WEB' => CreditSource.web,
+    _ => CreditSource.system,
+  };
+}
+
 /// One line of the append-only credit ledger.
 class CreditHistoryEntry extends Equatable {
   const CreditHistoryEntry({
@@ -94,12 +109,14 @@ class CreditHistoryEntry extends Equatable {
     required this.bucket,
     required this.reason,
     required this.createdAt,
+    this.source = CreditSource.system,
     this.verificationId,
     this.periodEnd,
   });
 
   final String id;
   final int delta;
+  final CreditSource source;
   final CreditBucket bucket;
   final CreditReason reason;
   final String? verificationId;
@@ -112,6 +129,7 @@ class CreditHistoryEntry extends Equatable {
     delta,
     bucket,
     reason,
+    source,
     verificationId,
     periodEnd,
     createdAt,

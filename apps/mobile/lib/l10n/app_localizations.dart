@@ -3973,6 +3973,342 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Opciones de compra'**
   String get paywallOptions;
+
+  /// No description provided for @profileChecksAvailable.
+  ///
+  /// In es, this message translates to:
+  /// **'Verificaciones disponibles'**
+  String get profileChecksAvailable;
+
+  /// No description provided for @profileBagFree.
+  ///
+  /// In es, this message translates to:
+  /// **'Gratis'**
+  String get profileBagFree;
+
+  /// No description provided for @profileBagPlan.
+  ///
+  /// In es, this message translates to:
+  /// **'Del plan'**
+  String get profileBagPlan;
+
+  /// No description provided for @profileBagPurchased.
+  ///
+  /// In es, this message translates to:
+  /// **'Compradas'**
+  String get profileBagPurchased;
+
+  /// No description provided for @profileGetMore.
+  ///
+  /// In es, this message translates to:
+  /// **'Conseguir más verificaciones'**
+  String get profileGetMore;
+
+  /// No description provided for @profileCreditHistory.
+  ///
+  /// In es, this message translates to:
+  /// **'Historial de créditos'**
+  String get profileCreditHistory;
+
+  /// No description provided for @profileSubscription.
+  ///
+  /// In es, this message translates to:
+  /// **'Suscripción'**
+  String get profileSubscription;
+
+  /// No description provided for @profileNoPlan.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin plan activo'**
+  String get profileNoPlan;
+
+  /// No description provided for @profileLanguage.
+  ///
+  /// In es, this message translates to:
+  /// **'Idioma'**
+  String get profileLanguage;
+
+  /// No description provided for @profileCurrencies.
+  ///
+  /// In es, this message translates to:
+  /// **'Monedas'**
+  String get profileCurrencies;
+
+  /// No description provided for @profileProviderLine.
+  ///
+  /// In es, this message translates to:
+  /// **'{email} · {provider}'**
+  String profileProviderLine(String email, String provider);
+
+  /// No description provided for @profileLanguageValue.
+  ///
+  /// In es, this message translates to:
+  /// **'{mode} · {language}'**
+  String profileLanguageValue(String mode, String language);
+
+  /// No description provided for @profileBack.
+  ///
+  /// In es, this message translates to:
+  /// **'Atrás'**
+  String get profileBack;
+
+  /// No description provided for @creditsHistoryHeading.
+  ///
+  /// In es, this message translates to:
+  /// **'Historial de créditos'**
+  String get creditsHistoryHeading;
+
+  /// No description provided for @creditsHistoryIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'Cada cambio en tu saldo. Si una lectura falla, la verificación se devuelve sola.'**
+  String get creditsHistoryIntro;
+
+  /// No description provided for @creditsBalanceNow.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo actual: {n}'**
+  String creditsBalanceNow(int n);
+
+  /// No description provided for @creditTitleGrantFree.
+  ///
+  /// In es, this message translates to:
+  /// **'Otorgada'**
+  String get creditTitleGrantFree;
+
+  /// No description provided for @creditDetailGrantFree.
+  ///
+  /// In es, this message translates to:
+  /// **'Al crear tu cuenta'**
+  String get creditDetailGrantFree;
+
+  /// No description provided for @creditTitleGrantPlan.
+  ///
+  /// In es, this message translates to:
+  /// **'Del plan'**
+  String get creditTitleGrantPlan;
+
+  /// No description provided for @creditDetailGrantPlan.
+  ///
+  /// In es, this message translates to:
+  /// **'Verificaciones de tu plan mensual'**
+  String get creditDetailGrantPlan;
+
+  /// No description provided for @creditTitleGrantPack.
+  ///
+  /// In es, this message translates to:
+  /// **'Comprada'**
+  String get creditTitleGrantPack;
+
+  /// No description provided for @creditDetailGrantPack.
+  ///
+  /// In es, this message translates to:
+  /// **'Paquete de verificaciones'**
+  String get creditDetailGrantPack;
+
+  /// No description provided for @creditTitleConsume.
+  ///
+  /// In es, this message translates to:
+  /// **'Usada'**
+  String get creditTitleConsume;
+
+  /// No description provided for @creditDetailConsume.
+  ///
+  /// In es, this message translates to:
+  /// **'Intento de verificación'**
+  String get creditDetailConsume;
+
+  /// No description provided for @creditTitleRefund.
+  ///
+  /// In es, this message translates to:
+  /// **'Devuelta'**
+  String get creditTitleRefund;
+
+  /// No description provided for @creditDetailRefund.
+  ///
+  /// In es, this message translates to:
+  /// **'La lectura del PDF no salió bien'**
+  String get creditDetailRefund;
+
+  /// No description provided for @creditTitleExpirePlan.
+  ///
+  /// In es, this message translates to:
+  /// **'Vencida'**
+  String get creditTitleExpirePlan;
+
+  /// No description provided for @creditDetailExpirePlan.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo del plan sin usar al renovar'**
+  String get creditDetailExpirePlan;
+
+  /// No description provided for @creditTitleOther.
+  ///
+  /// In es, this message translates to:
+  /// **'Ajuste'**
+  String get creditTitleOther;
+
+  /// No description provided for @creditDetailOther.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambio en tu saldo'**
+  String get creditDetailOther;
+
+  /// No description provided for @creditSourceSystem.
+  ///
+  /// In es, this message translates to:
+  /// **'sistema'**
+  String get creditSourceSystem;
+
+  /// No description provided for @creditSourceApple.
+  ///
+  /// In es, this message translates to:
+  /// **'App Store'**
+  String get creditSourceApple;
+
+  /// No description provided for @creditSourceGoogle.
+  ///
+  /// In es, this message translates to:
+  /// **'Google Play'**
+  String get creditSourceGoogle;
+
+  /// No description provided for @langScreenTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Idioma y monedas'**
+  String get langScreenTitle;
+
+  /// No description provided for @langAppLanguage.
+  ///
+  /// In es, this message translates to:
+  /// **'Idioma de la app'**
+  String get langAppLanguage;
+
+  /// No description provided for @langAutoSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Igual que tu teléfono · ahora {language}'**
+  String langAutoSubtitle(String language);
+
+  /// No description provided for @langAutoNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Si tu teléfono está en inglés, la app abre en inglés. Cualquier otro idioma usa español.'**
+  String get langAutoNote;
+
+  /// No description provided for @langSyncFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'Se aplicó en este teléfono, pero no pudimos guardarlo en tu cuenta.'**
+  String get langSyncFailed;
+
+  /// No description provided for @curMain.
+  ///
+  /// In es, this message translates to:
+  /// **'Moneda principal'**
+  String get curMain;
+
+  /// No description provided for @curMainNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Se usa para equivalencias como «Equivale a HNL 589.61». Cada tarjeta conserva su moneda. Al cambiarla se borran los tipos de cambio guardados.'**
+  String get curMainNote;
+
+  /// No description provided for @curOther.
+  ///
+  /// In es, this message translates to:
+  /// **'+ Otra'**
+  String get curOther;
+
+  /// No description provided for @curUse.
+  ///
+  /// In es, this message translates to:
+  /// **'Monedas que usas'**
+  String get curUse;
+
+  /// No description provided for @curMainTag.
+  ///
+  /// In es, this message translates to:
+  /// **'Principal'**
+  String get curMainTag;
+
+  /// No description provided for @curLastRate.
+  ///
+  /// In es, this message translates to:
+  /// **'Último tipo de cambio: 1 {code} = {rate} {primary}'**
+  String curLastRate(String code, String rate, String primary);
+
+  /// No description provided for @curNoRate.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin tipo de cambio guardado'**
+  String get curNoRate;
+
+  /// No description provided for @curRemove.
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar {code}'**
+  String curRemove(String code);
+
+  /// No description provided for @curAdd.
+  ///
+  /// In es, this message translates to:
+  /// **'+ Agregar moneda'**
+  String get curAdd;
+
+  /// No description provided for @curUseNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Salen primero al crear tarjetas y al poner tipos de cambio. Los montos siempre llevan su código.'**
+  String get curUseNote;
+
+  /// No description provided for @curEditRate.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar tipo de cambio'**
+  String get curEditRate;
+
+  /// No description provided for @curRateQuestion.
+  ///
+  /// In es, this message translates to:
+  /// **'1 {code} = ¿cuántos {primary}?'**
+  String curRateQuestion(String code, String primary);
+
+  /// No description provided for @curRateInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe un número mayor que 0 (hasta 6 decimales).'**
+  String get curRateInvalid;
+
+  /// No description provided for @curRateClear.
+  ///
+  /// In es, this message translates to:
+  /// **'Borrar tipo de cambio'**
+  String get curRateClear;
+
+  /// No description provided for @curAddTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar moneda'**
+  String get curAddTitle;
+
+  /// No description provided for @curCodeLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Código de la moneda'**
+  String get curCodeLabel;
+
+  /// No description provided for @curSetPrimaryTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Moneda principal'**
+  String get curSetPrimaryTitle;
+
+  /// No description provided for @errInvalidCurrencies.
+  ///
+  /// In es, this message translates to:
+  /// **'Esa lista de monedas no es válida: no repitas ni incluyas la moneda principal.'**
+  String get errInvalidCurrencies;
 }
 
 class _AppLocalizationsDelegate

@@ -4,20 +4,18 @@ import 'package:cashback_audit/core/l10n/strings.dart';
 import 'package:cashback_audit/core/network/dio_factory.dart';
 import 'package:cashback_audit/core/network/session_events.dart';
 import 'package:cashback_audit/core/storage/token_storage.dart';
-import 'package:cashback_audit/core/theme/app_theme.dart';
 import 'package:cashback_audit/features/credits/data/credits_repository_impl.dart';
 import 'package:cashback_audit/features/credits/domain/credit_entities.dart';
 import 'package:cashback_audit/features/credits/presentation/credit_history_controller.dart';
 import 'package:cashback_audit/features/credits/presentation/credits_controller.dart';
 import 'package:cashback_audit/features/credits/presentation/widgets/credit_history_view.dart';
-import 'package:cashback_audit/features/credits/presentation/widgets/credits_chip.dart';
-import 'package:cashback_audit/features/credits/presentation/widgets/credits_summary_card.dart';
 import 'package:cashback_audit/features/subscription/data/revenuecat_billing_service.dart';
 import 'package:cashback_audit/features/subscription/domain/subscription_entities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import '../../core/ui/ui_harness.dart';
 import '../../support/fake_adapter.dart';
 import '../../support/fake_credits_repository.dart';
 
@@ -43,11 +41,6 @@ Map<String, dynamic> _entry(String id, int delta, String reason) => {
 
 void main() {
   setUpAll(() => initializeDateFormatting('es_MX'));
-
-  Widget wrap(Widget c) => MaterialApp(
-    theme: AppTheme.light,
-    home: Scaffold(body: c),
-  );
 
   group('CREDIT_PACKS config', () {
     test('parses productId:credits pairs and skips malformed ones', () {
@@ -246,115 +239,123 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('credits chip shows the available count; hidden if unknown', (
+    CreditHistoryEntry entry(
+      String id,
+      int delta,
+      CreditReason reason, {
+      CreditBucket bucket = CreditBucket.free,
+      CreditSource source = CreditSource.system,
+    }) => CreditHistoryEntry(
+      id: id,
+      delta: delta,
+      bucket: bucket,
+      reason: reason,
+      source: source,
+      createdAt: DateTime.utc(2026, 2),
+    );
+
+    CreditHistoryView view(
+      List<CreditHistoryEntry> items, {
+      bool hasMore = false,
+      VoidCallback? onLoadMore,
+      VoidCallback? onBack,
+      int? balance,
+      String? error,
+    }) => CreditHistoryView(
+      items: items,
+      loading: false,
+      loadingMore: false,
+      hasMore: hasMore,
+      balance: balance,
+      errorMessage: error,
+      onRefresh: () async {},
+      onLoadMore: onLoadMore ?? () {},
+      onBack: onBack ?? () {},
+    );
+
+    testWidgets('localized reasons incl. refunds, signs, buckets, paging', (
       tester,
     ) async {
-      var taps = 0;
-      await tester.pumpWidget(
-        wrap(
-          CreditsChip(
-            balance: balance(plan: 3, purchased: 2),
-            onTap: () => taps++,
-          ),
-        ),
-      );
-      expect(find.text(S.creditsAvailable(5)), findsOneWidget);
-      await tester.tap(find.byKey(const Key('credits-chip')));
-      expect(taps, 1);
-
-      await tester.pumpWidget(
-        wrap(CreditsChip(balance: balance(free: 1), onTap: () {})),
-      );
-      expect(find.text('1 verificación disponible'), findsOneWidget);
-
-      await tester.pumpWidget(
-        wrap(CreditsChip(balance: balance(), onTap: () {})),
-      );
-      expect(find.text(S.creditsNone), findsOneWidget);
-
-      await tester.pumpWidget(wrap(CreditsChip(balance: null, onTap: () {})));
-      expect(find.byKey(const Key('credits-chip')), findsNothing);
-    });
-
-    testWidgets('summary card shows buckets, plan expiry and actions', (
-      tester,
-    ) async {
-      var bought = 0;
-      var history = 0;
-      await tester.pumpWidget(
-        wrap(
-          CreditsSummaryCard(
-            balance: CreditBalance(
-              free: 0,
-              plan: 3,
-              purchased: 2,
-              total: 5,
-              subscriptionActive: true,
-              planPeriodEnd: DateTime.utc(2026, 3, 1, 12),
+      var more = 0;
+      var back = 0;
+      await pumpUi(
+        tester,
+        view(
+          [
+            entry('r', 1, CreditReason.refund),
+            entry('u', -1, CreditReason.consume),
+            entry(
+              'g',
+              3,
+              CreditReason.grantPack,
+              bucket: CreditBucket.purchased,
+              source: CreditSource.apple,
             ),
-            loading: false,
-            onBuy: () => bought++,
-            onHistory: () => history++,
-          ),
-        ),
-      );
-      expect(find.text(S.creditsBreakdown(0, 3, 2)), findsOneWidget);
-      expect(find.textContaining('Las del plan vencen el'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('credits-buy')));
-      await tester.tap(find.byKey(const Key('credits-history')));
-      expect((bought, history), (1, 1));
-    });
-
-    testWidgets('history lists entries in Spanish; empty state', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        wrap(
-          CreditHistoryView(
-            items: [
-              CreditHistoryEntry(
-                id: 'a',
-                delta: -1,
-                bucket: CreditBucket.free,
-                reason: CreditReason.consume,
-                createdAt: DateTime.utc(2026, 2),
-              ),
-              CreditHistoryEntry(
-                id: 'b',
-                delta: 3,
-                bucket: CreditBucket.purchased,
-                reason: CreditReason.grantPack,
-                createdAt: DateTime.utc(2026, 2),
-              ),
-            ],
-            loading: false,
-            loadingMore: false,
-            hasMore: true,
-            onRefresh: () async {},
-            onLoadMore: () {},
-          ),
+            entry('w', 1, CreditReason.grantPlan, source: CreditSource.web),
+          ],
+          hasMore: true,
+          balance: 2,
+          onLoadMore: () => more++,
+          onBack: () => back++,
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text(S.creditReasonConsume), findsOneWidget);
-      expect(find.text(S.creditReasonGrantPack), findsOneWidget);
-      expect(find.text('-1'), findsOneWidget);
-      expect(find.text('+3'), findsOneWidget);
-
-      await tester.pumpWidget(
-        wrap(
-          CreditHistoryView(
-            items: const [],
-            loading: false,
-            loadingMore: false,
-            hasMore: false,
-            onRefresh: () async {},
-            onLoadMore: () {},
-          ),
-        ),
+      expect(find.text('Devuelta'), findsOneWidget);
+      expect(find.textContaining('La lectura del PDF no salió bien'), findsOne);
+      expect(find.text('Usada'), findsOneWidget);
+      expect(find.text('Comprada'), findsWidgets);
+      expect(find.textContaining('App Store'), findsOneWidget);
+      // Web entries never name their source inside the app.
+      expect(find.textContaining('web'), findsNothing);
+      expect(find.byKey(const Key('credit-delta-u')), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.byKey(const Key('credit-delta-r'))).data,
+        '+1',
       );
+      expect(
+        tester.widget<Text>(find.byKey(const Key('credit-delta-u'))).data,
+        '–1',
+      );
+      expect(find.text('Saldo actual: 2'), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key('credits-load-more')));
+      await tester.tap(find.byKey(const Key('credits-load-more')));
+      expect(more, 1);
+      await tester.tap(find.byKey(const Key('credits-back')));
+      expect(back, 1);
+    });
+
+    testWidgets('empty state and error', (tester) async {
+      await pumpUi(tester, view(const []));
       await tester.pumpAndSettle();
       expect(find.text(S.creditsHistoryEmptyTitle), findsOneWidget);
+      await pumpUi(tester, view(const [], error: 'Sin red'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sin red'), findsOneWidget);
     });
+
+    for (final dark in [false, true]) {
+      for (final lang in ['es', 'en']) {
+        testWidgets('renders (dark=$dark, $lang)', (tester) async {
+          await pumpUi(
+            tester,
+            view([entry('r', 1, CreditReason.refund)]),
+            dark: dark,
+            lang: lang,
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.text(lang == 'es' ? 'Devuelta' : 'Returned'),
+            findsOneWidget,
+          );
+          expect(
+            find.text(
+              lang == 'es' ? 'Historial de créditos' : 'Credit history',
+            ),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
   });
 }

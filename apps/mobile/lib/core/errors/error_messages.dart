@@ -44,6 +44,8 @@ String userMessageFor(Object error) {
       return S.errVerificationNotReady;
     case 'VERIFICATION_NOT_FOUND':
       return S.errVerificationNotFound;
+    case 'INVALID_CURRENCIES':
+      return S.errInvalidCurrencies;
     case 'DUPLICATE_RULE_CATEGORY':
       return S.errValidation;
   }

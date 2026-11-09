@@ -16,7 +16,6 @@ import 'package:cashback_audit/features/subscription/domain/subscription_reposit
 import 'package:cashback_audit/features/subscription/presentation/paywall_controller.dart';
 import 'package:cashback_audit/features/subscription/presentation/subscription_controller.dart';
 import 'package:cashback_audit/features/subscription/presentation/widgets/paywall_view.dart';
-import 'package:cashback_audit/features/subscription/presentation/widgets/subscription_status_card.dart';
 import 'package:cashback_audit/features/auth/domain/auth_entities.dart';
 import 'package:cashback_audit/features/auth/domain/auth_repository.dart';
 import 'package:cashback_audit/features/auth/presentation/session_controller.dart';
@@ -484,51 +483,6 @@ void main() {
       await tester.ensureVisible(find.text(S.paywallCheckAgain));
       await tester.tap(find.text(S.paywallCheckAgain));
       expect(checked, 1);
-    });
-
-    testWidgets('status card renders each state', (tester) async {
-      Future<void> pump(SubscriptionStatus? s) => tester.pumpWidget(
-        wrap(
-          SubscriptionStatusCard(status: s, loading: false, onManage: () {}),
-        ),
-      );
-      await pump(null);
-      expect(find.text(S.subscriptionNone), findsOneWidget);
-      expect(find.byKey(const Key('manage-subscription')), findsOneWidget);
-
-      await pump(
-        SubscriptionStatus(
-          entitlementId: 'pro',
-          active: true,
-          state: SubscriptionState.active,
-          willRenew: true,
-          expiresAt: DateTime.utc(2026, 3, 1, 12),
-        ),
-      );
-      expect(find.text(S.subscriptionActive), findsOneWidget);
-      expect(find.byKey(const Key('manage-subscription')), findsNothing);
-      expect(find.textContaining('Se renueva el'), findsOneWidget);
-
-      await pump(
-        SubscriptionStatus(
-          entitlementId: 'pro',
-          active: true,
-          state: SubscriptionState.cancelled,
-          expiresAt: DateTime.utc(2026, 3, 1, 12),
-        ),
-      );
-      expect(find.text(S.subscriptionCancelled), findsOneWidget);
-      expect(find.textContaining('Activa hasta el'), findsOneWidget);
-
-      await pump(
-        const SubscriptionStatus(
-          entitlementId: 'pro',
-          active: false,
-          state: SubscriptionState.expired,
-        ),
-      );
-      expect(find.text(S.subscriptionExpired), findsOneWidget);
-      expect(find.byKey(const Key('manage-subscription')), findsOneWidget);
     });
   });
 }

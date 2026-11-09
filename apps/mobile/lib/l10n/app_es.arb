@@ -1358,5 +1358,125 @@
   "paywallPerMonth": "al mes",
   "paywallUseFree": "Usar mi verificación gratis",
   "paywallClose": "Cerrar",
-  "paywallOptions": "Opciones de compra"
+  "paywallOptions": "Opciones de compra",
+  "profileChecksAvailable": "Verificaciones disponibles",
+  "profileBagFree": "Gratis",
+  "profileBagPlan": "Del plan",
+  "profileBagPurchased": "Compradas",
+  "profileGetMore": "Conseguir más verificaciones",
+  "profileCreditHistory": "Historial de créditos",
+  "profileSubscription": "Suscripción",
+  "profileNoPlan": "Sin plan activo",
+  "profileLanguage": "Idioma",
+  "profileCurrencies": "Monedas",
+  "profileProviderLine": "{email} · {provider}",
+  "@profileProviderLine": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "profileLanguageValue": "{mode} · {language}",
+  "@profileLanguageValue": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      },
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "profileBack": "Atrás",
+  "creditsHistoryHeading": "Historial de créditos",
+  "creditsHistoryIntro": "Cada cambio en tu saldo. Si una lectura falla, la verificación se devuelve sola.",
+  "creditsBalanceNow": "Saldo actual: {n}",
+  "@creditsBalanceNow": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "creditTitleGrantFree": "Otorgada",
+  "creditDetailGrantFree": "Al crear tu cuenta",
+  "creditTitleGrantPlan": "Del plan",
+  "creditDetailGrantPlan": "Verificaciones de tu plan mensual",
+  "creditTitleGrantPack": "Comprada",
+  "creditDetailGrantPack": "Paquete de verificaciones",
+  "creditTitleConsume": "Usada",
+  "creditDetailConsume": "Intento de verificación",
+  "creditTitleRefund": "Devuelta",
+  "creditDetailRefund": "La lectura del PDF no salió bien",
+  "creditTitleExpirePlan": "Vencida",
+  "creditDetailExpirePlan": "Saldo del plan sin usar al renovar",
+  "creditTitleOther": "Ajuste",
+  "creditDetailOther": "Cambio en tu saldo",
+  "creditSourceSystem": "sistema",
+  "creditSourceApple": "App Store",
+  "creditSourceGoogle": "Google Play",
+  "langScreenTitle": "Idioma y monedas",
+  "langAppLanguage": "Idioma de la app",
+  "langAutoSubtitle": "Igual que tu teléfono · ahora {language}",
+  "@langAutoSubtitle": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "langAutoNote": "Si tu teléfono está en inglés, la app abre en inglés. Cualquier otro idioma usa español.",
+  "langSyncFailed": "Se aplicó en este teléfono, pero no pudimos guardarlo en tu cuenta.",
+  "curMain": "Moneda principal",
+  "curMainNote": "Se usa para equivalencias como «Equivale a HNL 589.61». Cada tarjeta conserva su moneda. Al cambiarla se borran los tipos de cambio guardados.",
+  "curOther": "+ Otra",
+  "curUse": "Monedas que usas",
+  "curMainTag": "Principal",
+  "curLastRate": "Último tipo de cambio: 1 {code} = {rate} {primary}",
+  "@curLastRate": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      },
+      "primary": {
+        "type": "String"
+      }
+    }
+  },
+  "curNoRate": "Sin tipo de cambio guardado",
+  "curRemove": "Quitar {code}",
+  "@curRemove": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "curAdd": "+ Agregar moneda",
+  "curUseNote": "Salen primero al crear tarjetas y al poner tipos de cambio. Los montos siempre llevan su código.",
+  "curEditRate": "Editar tipo de cambio",
+  "curRateQuestion": "1 {code} = ¿cuántos {primary}?",
+  "@curRateQuestion": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "primary": {
+        "type": "String"
+      }
+    }
+  },
+  "curRateInvalid": "Escribe un número mayor que 0 (hasta 6 decimales).",
+  "curRateClear": "Borrar tipo de cambio",
+  "curAddTitle": "Agregar moneda",
+  "curCodeLabel": "Código de la moneda",
+  "curSetPrimaryTitle": "Moneda principal",
+  "errInvalidCurrencies": "Esa lista de monedas no es válida: no repitas ni incluyas la moneda principal."
 }
