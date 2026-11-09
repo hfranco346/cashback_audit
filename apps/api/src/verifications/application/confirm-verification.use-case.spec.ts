@@ -26,9 +26,8 @@ import type {
   VerificationUpdate,
 } from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
-import type { CreditsService } from '../../credits/application/credits.service.js';
 import { ConfirmVerificationUseCase } from './confirm-verification.use-case.js';
-import { CreateVerificationUseCase } from './create-verification.use-case.js';
+import { ProcessVerificationUseCase } from './process-verification.use-case.js';
 import { RateProposalService } from './rate-proposal.service.js';
 
 const USER = 'user-1';
@@ -100,8 +99,7 @@ function world(
       })),
   } as unknown as CategoryRepository;
   let extractions = 0;
-  const create = new CreateVerificationUseCase(
-    cardsRepo,
+  const process = new ProcessVerificationUseCase(
     categoriesRepo,
     {
       list: async () => [
@@ -143,10 +141,6 @@ function world(
     } as unknown as LineClassifier,
     repo,
     0.7,
-    {
-      reserve: async () => null,
-      refund: async () => undefined,
-    } as unknown as CreditsService,
   );
   const confirm = new ConfirmVerificationUseCase(
     repo,
@@ -159,9 +153,26 @@ function world(
     card,
     stored,
     extractions: () => extractions,
-    start: (
+    /** Processes the upload as the background processor would. */
+    start: async (
       extra: { exchangeRate?: string; rewardProgramName?: string } = {},
-    ) => create.execute({ userId: USER, cardId: 'card-1', pdf, ...extra }),
+    ) => {
+      stored.set('v-1', {
+        id: 'v-1',
+        userId: USER,
+        cardId: 'card-1',
+        status: 'PROCESSING',
+        createdAt: new Date(),
+      } as Verification);
+      await process.execute({
+        verificationId: 'v-1',
+        userId: USER,
+        card,
+        pdf,
+        ...extra,
+      });
+      return stored.get('v-1')!;
+    },
     confirm: (
       over: Partial<Parameters<ConfirmVerificationUseCase['execute']>[0]> = {},
     ) =>

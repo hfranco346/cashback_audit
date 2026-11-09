@@ -1,6 +1,10 @@
 import request from 'supertest';
 import { CleanupAwaitingRatesService } from '../src/verifications/application/cleanup-awaiting-rates.service.js';
-import { ExtractionUnavailableError } from '../src/verifications/domain/verification-errors.js';
+import { VerificationProcessingService } from '../src/verifications/application/verification-processing.service.js';
+import {
+  ExtractionUnavailableError,
+  UnreadableStatementError,
+} from '../src/verifications/domain/verification-errors.js';
 import {
   LineClassifier,
   ResultExplainer,
@@ -33,6 +37,8 @@ describe('Verifications (e2e)', () => {
   let extraction: {
     statement?: ExtractedStatement;
     error?: Error;
+    /** While set, extraction waits for it (keeps a verification PROCESSING). */
+    gate?: Promise<void>;
     calls: number;
     contexts: unknown[];
   };
@@ -61,6 +67,7 @@ describe('Verifications (e2e)', () => {
     extract: async (_pdf: Buffer, context: unknown) => {
       extraction.calls++;
       extraction.contexts.push(context);
+      if (extraction.gate) await extraction.gate;
       if (extraction.error) throw extraction.error;
       return {
         statement: extraction.statement ?? mxn(),
@@ -168,6 +175,38 @@ describe('Verifications (e2e)', () => {
       });
     return req;
   };
+  const processing = () => ctx.app.get(VerificationProcessingService);
+  /**
+   * Uploads (expects 202 + PROCESSING), waits for the background processor and
+   * returns the finished verification as GET /verifications/:id shows it.
+   */
+  const start = async (user: TestUser, fields: Record<string, string> = {}) => {
+    const accepted = await upload(user, fields).expect(202);
+    expect(accepted.body.status).toBe('PROCESSING');
+    await processing().idle();
+    return http()
+      .get(`/api/v1/verifications/${accepted.body.id}`)
+      .set(user.auth)
+      .expect(200);
+  };
+  let releaseGate: (() => void) | undefined;
+  /** Keeps extraction pending (verifications stay PROCESSING) until released. */
+  const holdExtraction = () => {
+    extraction.gate = new Promise<void>((resolve) => (releaseGate = resolve));
+    return () => releaseGate?.();
+  };
+  afterEach(async () => {
+    releaseGate?.();
+    releaseGate = undefined;
+    await processing().idle();
+  });
+  const attention = async (user: TestUser) =>
+    (
+      await http()
+        .get('/api/v1/verifications/attention')
+        .set(user.auth)
+        .expect(200)
+    ).body.items as { id: string; status: string }[];
   const confirm = (
     user: TestUser,
     id: string,
@@ -194,7 +233,7 @@ describe('Verifications (e2e)', () => {
 
   describe('step 1: upload', () => {
     it('extracts and classifies but computes nothing (AWAITING_RATES)', async () => {
-      const res = await upload(alice).expect(201);
+      const res = await start(alice);
       expect(res.body).toMatchObject({
         cardId,
         status: 'AWAITING_RATES',
@@ -262,7 +301,7 @@ describe('Verifications (e2e)', () => {
           line('FARMACIA SIMAN', 100),
         ],
       });
-      const res = await upload(alice).expect(201);
+      const res = await start(alice);
       expect(res.body.rateProposal).toEqual([
         {
           categoryId: null,
@@ -297,7 +336,7 @@ describe('Verifications (e2e)', () => {
       ]);
 
       extraction.statement = mxn();
-      const stated = await upload(alice).expect(201);
+      const stated = await start(alice);
       const superEntry = stated.body.rateProposal.find(
         (e: any) => e.categoryId === superCategoryId,
       );
@@ -316,7 +355,7 @@ describe('Verifications (e2e)', () => {
         .set(alice.auth)
         .send({ currency: 'HNL' })
         .expect(200);
-      const res = await upload(alice).expect(201);
+      const res = await start(alice);
       expect(res.body.loyalty.selectedProgram).toBeNull();
       expect(res.body.loyalty.programs.map((p: any) => p.name)).toEqual([
         'PUNTOS BAC CREDOMATIC',
@@ -330,11 +369,11 @@ describe('Verifications (e2e)', () => {
       await upload(alice, { exchangeRate: 'abc' }).expect(400);
       await upload(alice, { rewardProgramName: 'x'.repeat(81) }).expect(400);
       await upload(alice, { reportedRewardOverride: '5' }).expect(400);
-      await upload(alice, { rewardProgramName: '' }).expect(201);
+      await start(alice, { rewardProgramName: '' });
     });
 
     it('never persists the PDF: only extracted data is stored', async () => {
-      const res = await upload(alice).expect(201);
+      const res = await start(alice);
       const row = await ctx.prisma.verification.findUniqueOrThrow({
         where: { id: res.body.id },
       });
@@ -344,7 +383,7 @@ describe('Verifications (e2e)', () => {
 
     it('warns when the statement belongs to another card', async () => {
       extraction.statement = mxn({ cardLast4: '9999' });
-      const res = await upload(alice).expect(201);
+      const res = await start(alice);
       expect(res.body.warnings.map((w: any) => w.code)).toContain(
         'CARD_LAST4_MISMATCH',
       );
@@ -353,7 +392,7 @@ describe('Verifications (e2e)', () => {
 
   describe('step 2: confirm', () => {
     it('audits with the confirmed rates, stores appliedRates and completes', async () => {
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       const res = await confirm(alice, started.id).expect(200);
 
       // super: 1000 + 200 - 100 = 1100 * 5% = 55 ; base: 300 * 1% = 3
@@ -433,7 +472,7 @@ describe('Verifications (e2e)', () => {
       extraction.statement = mxn({
         transactions: [line('FARMACIA SIMAN', 100), line('WAL MART X', 100)],
       });
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       const res = await confirm(alice, started.id).expect(422);
       expect(res.body).toMatchObject({
         code: 'RATES_REQUIRED',
@@ -459,7 +498,7 @@ describe('Verifications (e2e)', () => {
     });
 
     it('recalculates a COMPLETED verification with other rates and no new Claude call', async () => {
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       const first = (await confirm(alice, started.id).expect(200)).body;
       const second = (
         await confirm(alice, started.id, {
@@ -479,7 +518,7 @@ describe('Verifications (e2e)', () => {
     });
 
     it('saveToCard persists the rates as the card rates', async () => {
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       const res = await confirm(alice, started.id, {
         baseRatePercent: '2',
         saveToCard: true,
@@ -498,7 +537,7 @@ describe('Verifications (e2e)', () => {
     });
 
     it('validates the body and ownership', async () => {
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       await confirm(alice, started.id, { baseRatePercent: '101' }).expect(400);
       await confirm(alice, started.id, { baseRatePercent: '-1' }).expect(400);
       await confirm(alice, started.id, { baseRatePercent: undefined }).expect(
@@ -527,7 +566,7 @@ describe('Verifications (e2e)', () => {
 
     it('flags an underpaid statement and accepts reportedRewardOverride', async () => {
       extraction.statement = mxn({ loyaltyPrograms: [program('x', '30')] });
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       const under = await confirm(alice, started.id).expect(200);
       expect(under.body).toMatchObject({
         verdict: 'UNDERPAID',
@@ -535,7 +574,7 @@ describe('Verifications (e2e)', () => {
       });
 
       extraction.statement = mxn({ loyaltyPrograms: [] });
-      const none = (await upload(alice).expect(201)).body;
+      const none = (await start(alice)).body;
       await confirm(alice, none.id)
         .expect(422)
         .expect((r) => expect(r.body.code).toBe('REPORTED_REWARD_NOT_FOUND'));
@@ -555,7 +594,7 @@ describe('Verifications (e2e)', () => {
 
   describe('explanation', () => {
     it('is generated from the computed numbers and refreshed on recalculation', async () => {
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       await confirm(alice, started.id).expect(200);
       expect(explainFacts[0]).toMatchObject({
         verdict: 'MATCH',
@@ -568,7 +607,7 @@ describe('Verifications (e2e)', () => {
 
     it('degrades to a warning when it fails', async () => {
       explainFails = true;
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       const res = await confirm(alice, started.id).expect(200);
       expect(res.body.status).toBe('COMPLETED');
       expect(res.body.explanation).toBeNull();
@@ -592,7 +631,7 @@ describe('Verifications (e2e)', () => {
         .send(body as object);
 
     it('corrects a category, then a new confirm applies it (and requires its rate)', async () => {
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       const fixed = await patch(alice, started.id, 2, {
         categoryId: pharmacyCategoryId,
       }).expect(200);
@@ -623,7 +662,7 @@ describe('Verifications (e2e)', () => {
     });
 
     it('clears a category and validates input and ownership', async () => {
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       const cleared = await patch(alice, started.id, 0, {
         categoryId: null,
       }).expect(200);
@@ -645,7 +684,7 @@ describe('Verifications (e2e)', () => {
       extraction.statement = mxn({
         transactions: [line('SEGURO', 10, { kind: 'INSURANCE' })],
       });
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       const res = await patch(alice, started.id, 0, {
         categoryId: superCategoryId,
       }).expect(422);
@@ -655,9 +694,9 @@ describe('Verifications (e2e)', () => {
 
   describe('cleanup of abandoned verifications', () => {
     it('deletes AWAITING_RATES older than the TTL and keeps everything else', async () => {
-      const old = (await upload(alice).expect(201)).body;
-      const fresh = (await upload(alice).expect(201)).body;
-      const doneOld = (await upload(alice).expect(201)).body;
+      const old = (await start(alice)).body;
+      const fresh = (await start(alice)).body;
+      const doneOld = (await start(alice)).body;
       await confirm(alice, doneOld.id).expect(200);
       const longAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
       await ctx.prisma.verification.updateMany({
@@ -703,7 +742,7 @@ describe('Verifications (e2e)', () => {
 
     it('answers 422 REWARD_PROGRAM_AMBIGUOUS at confirm and resolves it by name', async () => {
       extraction.statement = hnl();
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       const amb = await confirm(alice, started.id, {
         categoryRates: [
           { categoryId: superCategoryId, ratePercent: '7' },
@@ -736,9 +775,7 @@ describe('Verifications (e2e)', () => {
 
     it('uses the program asked at upload, then USD lines need a rate', async () => {
       extraction.statement = hnl();
-      const started = (
-        await upload(alice, { rewardProgramName: 'CASH' }).expect(201)
-      ).body;
+      const started = (await start(alice, { rewardProgramName: 'CASH' })).body;
       const rates = {
         baseRatePercent: '1',
         categoryRates: [
@@ -801,8 +838,7 @@ describe('Verifications (e2e)', () => {
         .set(alice.auth)
         .send({ rewardProgramName: 'PUNTOS' })
         .expect(200);
-      const started = (await upload(alice, { exchangeRate: '20' }).expect(201))
-        .body;
+      const started = (await start(alice, { exchangeRate: '20' })).body;
       expect(started.conversion.requestedRate).toBe('20');
       const res = (
         await confirm(alice, started.id, {
@@ -830,7 +866,7 @@ describe('Verifications (e2e)', () => {
     const none = { baseRatePercent: '1', categoryRates: [] };
 
     it('exposes the conversions to collect and then audits in the reward currency', async () => {
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       expect(started.rewardConversion).toMatchObject({
         fromCurrency: 'CRC',
         toCurrency: 'USD',
@@ -897,7 +933,7 @@ describe('Verifications (e2e)', () => {
     });
 
     it('leaves out only the foreign currency without a rate', async () => {
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       const res = (
         await confirm(alice, started.id, {
           ...none,
@@ -924,7 +960,7 @@ describe('Verifications (e2e)', () => {
           { from: 'USD', to: 'CRC', rate: d(520), source: 'STATEMENT' },
         ],
       });
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       expect(started.rewardConversion).toMatchObject({
         rate: '520',
         source: 'STATEMENT',
@@ -945,12 +981,12 @@ describe('Verifications (e2e)', () => {
         .set(alice.auth)
         .send({ rewardCurrency: 'EUR' })
         .expect(200);
-      const second = (await upload(alice).expect(201)).body;
+      const second = (await start(alice)).body;
       expect(second.rewardConversion).toMatchObject({ toCurrency: 'EUR' });
     });
 
     it('validates rates and rewardCurrency', async () => {
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       for (const body of [
         { exchangeRates: { USD: '0' } },
         { exchangeRates: { CRC: '1' } },
@@ -1000,7 +1036,7 @@ describe('Verifications (e2e)', () => {
 
     it('suggests the missing category and creates it, reassigning the lines', async () => {
       extraction.statement = withHints();
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       expect(started.suggestedCategories).toEqual([
         {
           name: RESTAURANTS,
@@ -1078,7 +1114,7 @@ describe('Verifications (e2e)', () => {
 
     it('works on a completed verification, validates names and is per user', async () => {
       extraction.statement = withHints();
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       await confirm(alice, started.id).expect(200);
       await fromSuggestions(alice, started.id, [RESTAURANTS]).expect(200);
       await fromSuggestions(alice, started.id, []).expect(400);
@@ -1101,7 +1137,7 @@ describe('Verifications (e2e)', () => {
           line('BONO POR MEMBRESIA', 50, { isCredit: true, kind: 'OTHER' }),
         ],
       });
-      const started = (await upload(alice).expect(201)).body;
+      const started = (await start(alice)).body;
       expect(
         started.transactions.map((t: any) => [t.kind, t.creditType]),
       ).toEqual([
@@ -1122,9 +1158,9 @@ describe('Verifications (e2e)', () => {
 
   describe('status and history', () => {
     it('lists both statuses and filters by status', async () => {
-      const done = (await upload(alice).expect(201)).body;
+      const done = (await start(alice)).body;
       await confirm(alice, done.id).expect(200);
-      const waiting = (await upload(alice).expect(201)).body;
+      const waiting = (await start(alice)).body;
 
       const all = await http()
         .get('/api/v1/verifications')
@@ -1166,7 +1202,7 @@ describe('Verifications (e2e)', () => {
     });
 
     it('returns the proposal for an awaiting verification on GET', async () => {
-      const waiting = (await upload(alice).expect(201)).body;
+      const waiting = (await start(alice)).body;
       const got = await http()
         .get(`/api/v1/verifications/${waiting.id}`)
         .set(alice.auth)
@@ -1218,27 +1254,234 @@ describe('Verifications (e2e)', () => {
     expect(extraction.calls).toBe(0);
   });
 
-  describe('upstream failures', () => {
-    it('maps an unavailable analysis service to 503', async () => {
-      extraction.error = new ExtractionUnavailableError();
-      const res = await upload(alice).expect(503);
+  describe('async lifecycle', () => {
+    it('answers 202 PROCESSING at once and finishes in the background', async () => {
+      const release = holdExtraction();
+      const res = await upload(alice).expect(202);
       expect(res.body).toMatchObject({
-        statusCode: 503,
-        code: 'EXTRACTION_UNAVAILABLE',
+        cardId,
+        status: 'PROCESSING',
+        failureCode: null,
+        seenAt: null,
+        primaryCurrency: 'MXN',
+        transactions: [],
+        detectedRates: [],
+        verdict: null,
+      });
+      const id = res.body.id;
+      // readable while processing
+      const got = await http()
+        .get(`/api/v1/verifications/${id}`)
+        .set(alice.auth)
+        .expect(200);
+      expect(got.body.status).toBe('PROCESSING');
+      // nothing can be done with it yet
+      await confirm(alice, id).expect(409);
+      await http()
+        .patch(`/api/v1/verifications/${id}/transactions/0`)
+        .set(alice.auth)
+        .send({ categoryId: null })
+        .expect(409);
+      release();
+      await processing().idle();
+      const done = await http()
+        .get(`/api/v1/verifications/${id}`)
+        .set(alice.auth)
+        .expect(200);
+      expect(done.body.status).toBe('AWAITING_RATES');
+      expect(done.body.transactions.length).toBeGreaterThan(0);
+      expect(done.body.failureCode).toBeNull();
+    });
+
+    it('fails NOT_A_STATEMENT, refunds the credit and keeps it unseen', async () => {
+      extraction.error = new UnreadableStatementError();
+      const failed = (await start(alice)).body;
+      expect(failed).toMatchObject({
+        status: 'FAILED',
+        failureCode: 'NOT_A_STATEMENT',
+        seenAt: null,
+        transactions: [],
+      });
+      expect(await attention(alice)).toEqual([
+        expect.objectContaining({
+          id: failed.id,
+          status: 'FAILED',
+          failureCode: 'NOT_A_STATEMENT',
+        }),
+      ]);
+      await confirm(alice, failed.id).expect(409);
+    });
+
+    it('fails EXTRACTION_FAILED on any other error without leaking details', async () => {
+      extraction.error = new ExtractionUnavailableError();
+      const unavailable = (await start(alice)).body;
+      expect(unavailable).toMatchObject({
+        status: 'FAILED',
+        failureCode: 'EXTRACTION_FAILED',
+      });
+      extraction.error = new Error('sk-ant-secret exploded');
+      const crashed = (await start(alice)).body;
+      expect(crashed).toMatchObject({
+        status: 'FAILED',
+        failureCode: 'EXTRACTION_FAILED',
+      });
+      expect(JSON.stringify(crashed)).not.toContain('sk-ant');
+    });
+
+    it('boot recovery turns orphaned PROCESSING rows into FAILED/INTERRUPTED with a refund', async () => {
+      const id = '7d2f8c1e-5b1a-4c55-9d63-1a2b3c4d5e6f';
+      await ctx.prisma.verification.create({
+        data: {
+          id,
+          userId: alice.id,
+          cardId,
+          status: 'PROCESSING',
+          processingStartedAt: new Date(),
+          primaryCurrency: 'MXN',
+          reportedUnit: 'CASHBACK_CURRENCY',
+          breakdown: [],
+          transactions: [],
+          warnings: [],
+          model: '',
+        },
+      });
+      expect(await processing().recoverInterrupted()).toBe(1);
+      const got = await http()
+        .get(`/api/v1/verifications/${id}`)
+        .set(alice.auth)
+        .expect(200);
+      expect(got.body).toMatchObject({
+        status: 'FAILED',
+        failureCode: 'INTERRUPTED',
+        seenAt: null,
+      });
+      // running it again finds nothing
+      expect(await processing().recoverInterrupted()).toBe(0);
+    });
+
+    it('the AWAITING_RATES cleanup never touches PROCESSING rows', async () => {
+      const release = holdExtraction();
+      const res = await upload(alice).expect(202);
+      await ctx.prisma.verification.update({
+        where: { id: res.body.id },
+        data: { createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      });
+      expect(await ctx.app.get(CleanupAwaitingRatesService).run()).toBe(0);
+      release();
+      await processing().idle();
+    });
+  });
+
+  describe('attention and seen', () => {
+    it('lists in-flight, awaiting and unseen results, newest first, per user', async () => {
+      const completed = (await start(alice)).body;
+      await confirm(alice, completed.id).expect(200);
+      extraction.error = new UnreadableStatementError();
+      const failed = (await start(alice)).body;
+      extraction.error = undefined;
+      const awaiting = (await start(alice)).body;
+      const release = holdExtraction();
+      const inFlight = (await upload(alice).expect(202)).body;
+
+      expect((await attention(alice)).map((i) => [i.id, i.status])).toEqual([
+        [inFlight.id, 'PROCESSING'],
+        [awaiting.id, 'AWAITING_RATES'],
+        [failed.id, 'FAILED'],
+        [completed.id, 'COMPLETED'],
+      ]);
+      expect(await attention(bob)).toEqual([]);
+
+      // once seen, FAILED and COMPLETED leave; the others stay until resolved
+      await http()
+        .post(`/api/v1/verifications/${failed.id}/seen`)
+        .set(alice.auth)
+        .expect(204);
+      await http()
+        .post(`/api/v1/verifications/${completed.id}/seen`)
+        .set(alice.auth)
+        .expect(204);
+      await http()
+        .post(`/api/v1/verifications/${awaiting.id}/seen`)
+        .set(alice.auth)
+        .expect(204);
+      expect((await attention(alice)).map((i) => i.status)).toEqual([
+        'PROCESSING',
+        'AWAITING_RATES',
+      ]);
+      release();
+      await processing().idle();
+    });
+
+    it('seen is idempotent, keeps the first timestamp and shows in list/get', async () => {
+      const v = (await start(alice)).body;
+      await confirm(alice, v.id).expect(200);
+      const seen = () =>
+        http().post(`/api/v1/verifications/${v.id}/seen`).set(alice.auth);
+      await seen().expect(204);
+      const first = (
+        await http().get(`/api/v1/verifications/${v.id}`).set(alice.auth)
+      ).body.seenAt;
+      expect(first).toEqual(expect.any(String));
+      await seen().expect(204);
+      const again = (
+        await http().get(`/api/v1/verifications/${v.id}`).set(alice.auth)
+      ).body.seenAt;
+      expect(again).toBe(first);
+      const list = await http()
+        .get('/api/v1/verifications')
+        .set(alice.auth)
+        .expect(200);
+      expect(list.body.items[0]).toMatchObject({
+        id: v.id,
+        status: 'COMPLETED',
+        failureCode: null,
+        seenAt: first,
       });
     });
 
-    it('maps unexpected extractor crashes to a generic 500 without leaking details', async () => {
-      extraction.error = new Error('sk-ant-secret exploded');
-      const res = await upload(alice).expect(500);
-      expect(JSON.stringify(res.body)).not.toContain('sk-ant');
+    it('enforces ownership and validates the id', async () => {
+      const v = (await start(alice)).body;
+      const res = await http()
+        .post(`/api/v1/verifications/${v.id}/seen`)
+        .set(bob.auth)
+        .expect(404);
+      expect(res.body.code).toBe('VERIFICATION_NOT_FOUND');
+      await http()
+        .post('/api/v1/verifications/nope/seen')
+        .set(alice.auth)
+        .expect(400);
+      await http()
+        .post('/api/v1/verifications/00000000-0000-4000-8000-000000000000/seen')
+        .set(alice.auth)
+        .expect(404);
+      await http().get('/api/v1/verifications/attention').expect(401);
+      await http().post(`/api/v1/verifications/${v.id}/seen`).expect(401);
+      // alice's row was not marked by bob's attempt
+      expect(
+        (await http().get(`/api/v1/verifications/${v.id}`).set(alice.auth)).body
+          .seenAt,
+      ).toBeNull();
+    });
+
+    it('filters the list by the new statuses', async () => {
+      extraction.error = new Error('x');
+      const failed = (await start(alice)).body;
+      const res = await http()
+        .get('/api/v1/verifications?status=FAILED')
+        .set(alice.auth)
+        .expect(200);
+      expect(res.body.items.map((i: any) => i.id)).toEqual([failed.id]);
+      await http()
+        .get('/api/v1/verifications?status=PROCESSING')
+        .set(alice.auth)
+        .expect(200);
     });
   });
 
   describe('history', () => {
     it('lists newest first with pagination, filtered by card, scoped to the user', async () => {
       for (let i = 0; i < 3; i++) {
-        const v = (await upload(alice).expect(201)).body;
+        const v = (await start(alice)).body;
         await confirm(alice, v.id).expect(200);
       }
       const all = await http()
@@ -1285,7 +1528,7 @@ describe('Verifications (e2e)', () => {
     });
 
     it('isolates get/delete between users and deletes', async () => {
-      const created = (await upload(alice).expect(201)).body;
+      const created = (await start(alice)).body;
       await http()
         .get(`/api/v1/verifications/${created.id}`)
         .set(bob.auth)
@@ -1305,7 +1548,7 @@ describe('Verifications (e2e)', () => {
     });
 
     it('removes history when its card is deleted', async () => {
-      const created = (await upload(alice).expect(201)).body;
+      const created = (await start(alice)).body;
       await http()
         .delete(`/api/v1/cards/${cardId}`)
         .set(alice.auth)

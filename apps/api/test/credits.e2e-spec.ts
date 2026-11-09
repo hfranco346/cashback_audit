@@ -1,10 +1,15 @@
 import request from 'supertest';
+import { CreditsService } from '../src/credits/application/credits.service.js';
 import {
   LineClassifier,
   ResultExplainer,
   StatementExtractor,
 } from '../src/verifications/domain/statement-extractor.js';
-import { ExtractionUnavailableError } from '../src/verifications/domain/verification-errors.js';
+import {
+  ExtractionUnavailableError,
+  UnreadableStatementError,
+} from '../src/verifications/domain/verification-errors.js';
+import { VerificationProcessingService } from '../src/verifications/application/verification-processing.service.js';
 import { mxnCashbackStatement } from './fixtures/statements.js';
 import {
   createTestApp,
@@ -34,6 +39,7 @@ describe('Credits (e2e)', () => {
   let counter = 0;
   let extractorError: Error | null = null;
   let extractCalls = 0;
+  let extractorGate: Promise<void> | null = null;
   const http = () => request(ctx.app.getHttpServer());
 
   beforeAll(async () => {
@@ -43,6 +49,7 @@ describe('Credits (e2e)', () => {
         useValue: {
           extract: async () => {
             extractCalls++;
+            if (extractorGate) await extractorGate;
             if (extractorError) throw extractorError;
             return { statement: mxnCashbackStatement(), model: 'stub' };
           },
@@ -64,10 +71,14 @@ describe('Credits (e2e)', () => {
       },
     ]);
   });
+  afterEach(async () => {
+    await ctx.app.get(VerificationProcessingService).idle();
+  });
   afterAll(() => ctx.close());
 
   beforeEach(async () => {
     extractorError = null;
+    extractorGate = null;
     extractCalls = 0;
     await resetDatabase(ctx.prisma);
     alice = await signInAs(ctx.app, 'alice');
@@ -92,6 +103,8 @@ describe('Credits (e2e)', () => {
         filename: 's.pdf',
         contentType: 'application/pdf',
       });
+  /** Waits for the background processor to finish every accepted upload. */
+  const settle = () => ctx.app.get(VerificationProcessingService).idle();
   const credits = async (user: TestUser = alice) =>
     (await http().get('/api/v1/credits/me').set(user.auth).expect(200)).body;
   const rc = (type: string, over: Record<string, unknown> = {}) => ({
@@ -158,8 +171,9 @@ describe('Credits (e2e)', () => {
     });
 
     it('uses the free credit, then answers 402 NO_CREDITS with the balance', async () => {
-      const first = await verify().expect(201);
-      expect(first.body.status).toBe('AWAITING_RATES');
+      const first = await verify().expect(202);
+      expect(first.body.status).toBe('PROCESSING');
+      // the credit is spent on acceptance, before the evaluation finishes
       expect((await credits()).total).toBe(0);
 
       const res = await verify().expect(402);
@@ -175,11 +189,12 @@ describe('Credits (e2e)', () => {
           subscriptionActive: false,
         },
       });
+      await settle();
       expect(extractCalls).toBe(1);
     });
 
     it('does not re-grant it after it was spent (even from the balance endpoint)', async () => {
-      await verify().expect(201);
+      await verify().expect(202);
       await credits();
       await credits();
       expect((await credits()).free).toBe(0);
@@ -246,9 +261,9 @@ describe('Credits (e2e)', () => {
     it('a refund debits the pack but never below zero', async () => {
       await send(pack('credits_3', { transaction_id: 'tx-R' })).expect(200);
       // spend the free credit first, then 2 of the 3 purchased credits
-      await verify().expect(201);
-      await verify().expect(201);
-      await verify().expect(201);
+      await verify().expect(202);
+      await verify().expect(202);
+      await verify().expect(202);
       expect((await credits()).purchased).toBe(1);
       const refund = rc('CANCELLATION', {
         product_id: 'credits_3',
@@ -309,7 +324,7 @@ describe('Credits (e2e)', () => {
     it('spends FREE, then PLAN, then PURCHASED', async () => {
       await send(rc('INITIAL_PURCHASE')).expect(200);
       await send(pack('credits_3')).expect(200);
-      for (let i = 0; i < 9; i++) await verify().expect(201);
+      for (let i = 0; i < 9; i++) await verify().expect(202);
       const consumed = (await history()).items
         .filter((i: any) => i.reason === 'CONSUME')
         .map((i: any) => i.bucket)
@@ -328,8 +343,8 @@ describe('Credits (e2e)', () => {
       await send(rc('INITIAL_PURCHASE', { expiration_at_ms: first })).expect(
         200,
       );
-      await verify().expect(201); // free
-      await verify().expect(201); // plan -> 4 left
+      await verify().expect(202); // free
+      await verify().expect(202); // plan -> 4 left
       expect((await credits()).plan).toBe(4);
 
       const second = first + 30 * DAY;
@@ -376,13 +391,14 @@ describe('Credits (e2e)', () => {
   describe('consumption', () => {
     it('is concurrency safe: two parallel uploads with one credit -> one 402', async () => {
       const [a, b] = await Promise.all([verify(), verify()]);
-      expect([a.status, b.status].sort((x, y) => x - y)).toEqual([201, 402]);
+      expect([a.status, b.status].sort((x, y) => x - y)).toEqual([202, 402]);
       expect((await credits()).total).toBe(0);
       expect(
         await ctx.prisma.creditLedger.count({
           where: { userId: alice.id, reason: 'CONSUME' },
         }),
       ).toBe(1);
+      await settle();
       expect(extractCalls).toBe(1);
     });
 
@@ -392,18 +408,29 @@ describe('Credits (e2e)', () => {
         Array.from({ length: 8 }, () => verify()),
       );
       const statuses = results.map((r) => r.status);
-      expect(statuses.filter((s) => s === 201)).toHaveLength(4);
+      expect(statuses.filter((s) => s === 202)).toHaveLength(4);
       expect(statuses.filter((s) => s === 402)).toHaveLength(4);
       expect((await credits()).total).toBe(0);
     });
 
-    it('refunds the credit to the same bucket when extraction fails', async () => {
+    it('refunds the credit to the same bucket when the evaluation fails', async () => {
       await send(pack('credits_3')).expect(200);
-      await verify().expect(201); // free spent
+      await verify().expect(202); // free spent
       extractorError = new ExtractionUnavailableError();
-      await verify().expect(503);
-      await verify().expect(503);
+      const a = (await verify().expect(202)).body;
+      const b = (await verify().expect(202)).body;
+      await settle();
       expect(await credits()).toMatchObject({ free: 0, purchased: 3 });
+      for (const id of [a.id, b.id]) {
+        const got = await http()
+          .get(`/api/v1/verifications/${id}`)
+          .set(alice.auth)
+          .expect(200);
+        expect(got.body).toMatchObject({
+          status: 'FAILED',
+          failureCode: 'EXTRACTION_FAILED',
+        });
+      }
       const entries = (await history()).items.filter(
         (i: any) => i.reason === 'CONSUME' || i.reason === 'REFUND',
       );
@@ -415,9 +442,32 @@ describe('Credits (e2e)', () => {
       ).toBe(true);
     });
 
+    it('refunds an unreadable statement as NOT_A_STATEMENT, tied to the verification', async () => {
+      extractorError = new UnreadableStatementError();
+      const v = (await verify().expect(202)).body;
+      await settle();
+      expect((await credits()).free).toBe(1);
+      const got = await http()
+        .get(`/api/v1/verifications/${v.id}`)
+        .set(alice.auth)
+        .expect(200);
+      expect(got.body).toMatchObject({
+        status: 'FAILED',
+        failureCode: 'NOT_A_STATEMENT',
+      });
+      expect((await history()).items[0]).toMatchObject({
+        delta: 1,
+        bucket: 'FREE',
+        reason: 'REFUND',
+        source: 'SYSTEM',
+        verificationId: v.id,
+      });
+    });
+
     it('refunds on unexpected crashes too, and not for invalid requests', async () => {
       extractorError = new Error('boom');
-      await verify().expect(500);
+      await verify().expect(202);
+      await settle();
       expect((await credits()).free).toBe(1);
       extractorError = null;
       // invalid PDFs / unknown cards never reserve anything
@@ -440,8 +490,55 @@ describe('Credits (e2e)', () => {
       ).toBe(1);
     });
 
+    it('refunds exactly once, however many times it is asked', async () => {
+      extractorError = new Error('boom');
+      const v = (await verify().expect(202)).body;
+      await settle();
+      const service = ctx.app.get(CreditsService);
+      await service.refundVerification(alice.id, v.id);
+      await service.refundVerification(alice.id, v.id);
+      expect(
+        await ctx.prisma.creditLedger.count({
+          where: { reason: 'REFUND', verificationId: v.id },
+        }),
+      ).toBe(1);
+      expect((await credits()).free).toBe(1);
+    });
+
+    it('boot recovery fails orphaned PROCESSING rows as INTERRUPTED and refunds them', async () => {
+      let release!: () => void;
+      extractorGate = new Promise<void>((resolve) => (release = resolve));
+      const v = (await verify().expect(202)).body;
+      expect((await credits()).free).toBe(0);
+      // simulate a restart: this process no longer owns the job
+      expect(
+        await ctx.app.get(VerificationProcessingService).recoverInterrupted(),
+      ).toBe(1);
+      const got = await http()
+        .get(`/api/v1/verifications/${v.id}`)
+        .set(alice.auth)
+        .expect(200);
+      expect(got.body).toMatchObject({
+        status: 'FAILED',
+        failureCode: 'INTERRUPTED',
+      });
+      expect((await credits()).free).toBe(1);
+      expect(
+        await ctx.app.get(VerificationProcessingService).recoverInterrupted(),
+      ).toBe(0);
+      expect((await credits()).free).toBe(1);
+      // the lost job ends later: it must not resurrect the failed verification
+      release();
+      await settle();
+      const after = await http()
+        .get(`/api/v1/verifications/${v.id}`)
+        .set(alice.auth)
+        .expect(200);
+      expect(after.body.status).toBe('FAILED');
+    });
+
     it('the consume entry references the verification it paid for', async () => {
-      const v = (await verify().expect(201)).body;
+      const v = (await verify().expect(202)).body;
       const consume = (await history()).items.find(
         (i: any) => i.reason === 'CONSUME',
       );
@@ -449,7 +546,7 @@ describe('Credits (e2e)', () => {
     });
 
     it('confirming, recalculating, reading and deleting cost nothing and are not gated', async () => {
-      const v = (await verify().expect(201)).body;
+      const v = (await verify().expect(202)).body;
       expect((await credits()).total).toBe(0);
       const confirm = () =>
         http()
@@ -470,7 +567,7 @@ describe('Credits (e2e)', () => {
     });
 
     it('rejects with 402 before looking at the upload when there is nothing to spend', async () => {
-      await verify().expect(201);
+      await verify().expect(202);
       // not even a valid PDF: the credit pre-check answers first
       const res = await http()
         .post('/api/v1/verifications')
@@ -488,7 +585,7 @@ describe('Credits (e2e)', () => {
   describe('history', () => {
     it('is paginated, newest first and scoped to the user', async () => {
       await send(pack('credits_3')).expect(200);
-      await verify().expect(201);
+      await verify().expect(202);
       const res = await http()
         .get('/api/v1/credits/me/history?pageSize=2')
         .set(alice.auth)

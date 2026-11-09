@@ -218,6 +218,28 @@ export class PrismaCreditLedgerRepository extends CreditLedgerRepository {
     );
   }
 
+  async refundVerification(
+    userId: string,
+    verificationId: string,
+  ): Promise<void> {
+    const consumed = await this.prisma.creditLedger.findFirst({
+      where: { userId, verificationId, reason: 'CONSUME' },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!consumed) return;
+    await this.refund({
+      entryId: consumed.id,
+      userId,
+      verificationId,
+      draft: {
+        delta: consumed.delta,
+        bucket: consumed.bucket,
+        reason: 'CONSUME',
+        periodEnd: consumed.periodEnd,
+      },
+    });
+  }
+
   async grantPlanPeriod(
     userId: string,
     params: {

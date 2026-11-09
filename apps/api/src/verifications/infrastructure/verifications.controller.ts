@@ -30,7 +30,9 @@ import { CreateVerificationUseCase } from '../application/create-verification.us
 import {
   DeleteVerificationUseCase,
   GetVerificationUseCase,
+  ListAttentionUseCase,
   ListVerificationsUseCase,
+  MarkVerificationSeenUseCase,
 } from '../application/verification.use-cases.js';
 import {
   CategoriesFromSuggestionsDto,
@@ -83,9 +85,13 @@ export class VerificationsController {
     private readonly listVerifications: ListVerificationsUseCase,
     private readonly getVerification: GetVerificationUseCase,
     private readonly deleteVerification: DeleteVerificationUseCase,
+    private readonly listAttention: ListAttentionUseCase,
+    private readonly markSeen: MarkVerificationSeenUseCase,
   ) {}
 
+  /** Answers 202 at once; the statement is evaluated in the background. */
   @Post()
+  @HttpCode(202)
   @UseGuards(CreditsGuard)
   @StrictThrottle()
   @UseInterceptors(FileInterceptor('file', pdfUploadOptions))
@@ -211,6 +217,22 @@ export class VerificationsController {
       pageSize: result.pageSize,
       total: result.total,
     };
+  }
+
+  /** Needs the user's attention: in flight, awaiting rates, or unseen results. */
+  @Get('attention')
+  async attention(@CurrentUser() user: AuthenticatedUser) {
+    const items = await this.listAttention.execute(user.id);
+    return { items: items.map(presentSummary) };
+  }
+
+  @Post(':id/seen')
+  @HttpCode(204)
+  async seen(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() { id }: IdParam,
+  ): Promise<void> {
+    await this.markSeen.execute(user.id, id);
   }
 
   @Get(':id')

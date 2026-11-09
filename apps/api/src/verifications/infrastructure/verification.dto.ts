@@ -177,10 +177,12 @@ export class TransactionIndexParam {
 }
 
 export class ListVerificationsQuery {
-  @ApiPropertyOptional({ enum: ['AWAITING_RATES', 'COMPLETED'] })
+  @ApiPropertyOptional({
+    enum: ['PROCESSING', 'AWAITING_RATES', 'COMPLETED', 'FAILED'],
+  })
   @IsOptional()
-  @IsEnum(['AWAITING_RATES', 'COMPLETED'])
-  status?: 'AWAITING_RATES' | 'COMPLETED';
+  @IsEnum(['PROCESSING', 'AWAITING_RATES', 'COMPLETED', 'FAILED'])
+  status?: 'PROCESSING' | 'AWAITING_RATES' | 'COMPLETED' | 'FAILED';
 
   @ApiPropertyOptional()
   @IsOptional()

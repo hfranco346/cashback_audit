@@ -114,3 +114,13 @@ export class InvalidExchangeRateError extends DomainError {
     super('VALIDATION', 'INVALID_EXCHANGE_RATE', message);
   }
 }
+
+export class VerificationNotReadyError extends DomainError {
+  constructor() {
+    super(
+      'CONFLICT',
+      'VERIFICATION_NOT_READY',
+      'This verification has no extracted statement yet (still processing or failed).',
+    );
+  }
+}

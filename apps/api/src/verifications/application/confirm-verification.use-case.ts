@@ -21,6 +21,7 @@ import {
   InvalidExchangeRateError,
   RatesRequiredError,
   VerificationNotFoundError,
+  VerificationNotReadyError,
 } from '../domain/verification-errors.js';
 import type { AppliedRates, Verification } from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
@@ -80,6 +81,11 @@ export class ConfirmVerificationUseCase {
       input.verificationId,
     );
     if (!verification) throw new VerificationNotFoundError();
+    if (
+      verification.status === 'PROCESSING' ||
+      verification.status === 'FAILED'
+    )
+      throw new VerificationNotReadyError();
     const card = await this.cards.findById(input.userId, verification.cardId);
     if (!card) throw new CardNotFoundError();
 
@@ -232,6 +238,7 @@ export class ConfirmVerificationUseCase {
       },
     );
     if (!updated) throw new VerificationNotFoundError();
+
     return updated;
   }
 }

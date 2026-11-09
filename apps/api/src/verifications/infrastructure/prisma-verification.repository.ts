@@ -271,6 +271,10 @@ function toSummary(row: PrismaVerification): VerificationSummary {
     totalSpent: decOrNull(row.totalSpent),
     totalToPay: decOrNull(row.totalToPay),
     status: row.status,
+    failureCode: row.failureCode,
+    seenAt: row.seenAt,
+    processingStartedAt: row.processingStartedAt,
+    processedAt: row.processedAt,
     reportedAmount: decOrNull(row.reportedAmount),
     reportedUnit: row.reportedUnit,
     rewardCurrency: row.rewardCurrency,
@@ -336,6 +340,10 @@ function toData(input: VerificationUpdate): Record<string, unknown> {
   set('totalSpent', dstr(input.totalSpent));
   set('totalToPay', dstr(input.totalToPay));
   set('status', input.status);
+  set('failureCode', input.failureCode);
+  set('seenAt', input.seenAt);
+  set('processingStartedAt', input.processingStartedAt);
+  set('processedAt', input.processedAt);
   set('reportedAmount', dstr(input.reportedAmount));
   set('reportedUnit', input.reportedUnit);
   set('rewardCurrency', input.rewardCurrency);
@@ -386,9 +394,14 @@ export class PrismaVerificationRepository extends VerificationRepository {
     userId: string,
     id: string,
     patch: VerificationUpdate,
+    options?: { onlyIfStatus?: VerificationStatus },
   ): Promise<Verification | null> {
     const owned = await this.prisma.verification.updateMany({
-      where: { id, userId },
+      where: {
+        id,
+        userId,
+        ...(options?.onlyIfStatus && { status: options.onlyIfStatus }),
+      },
       data: toData(patch) as Prisma.VerificationUncheckedUpdateManyInput,
     });
     if (owned.count === 0) return null;
@@ -426,6 +439,39 @@ export class PrismaVerificationRepository extends VerificationRepository {
       this.prisma.verification.count({ where }),
     ]);
     return { items: rows.map(toSummary), total };
+  }
+
+  async listAttention(userId: string): Promise<VerificationSummary[]> {
+    const rows = await this.prisma.verification.findMany({
+      where: {
+        userId,
+        OR: [
+          { status: { in: ['PROCESSING', 'AWAITING_RATES'] } },
+          { status: { in: ['FAILED', 'COMPLETED'] }, seenAt: null },
+        ],
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+    return rows.map(toSummary);
+  }
+
+  async markSeen(userId: string, id: string, at: Date): Promise<boolean> {
+    const first = await this.prisma.verification.updateMany({
+      where: { id, userId, seenAt: null },
+      data: { seenAt: at },
+    });
+    if (first.count > 0) return true;
+    const exists = await this.prisma.verification.count({
+      where: { id, userId },
+    });
+    return exists > 0;
+  }
+
+  listProcessing(): Promise<{ id: string; userId: string }[]> {
+    return this.prisma.verification.findMany({
+      where: { status: 'PROCESSING' },
+      select: { id: true, userId: true },
+    });
   }
 
   async deleteAwaitingCreatedBefore(cutoff: Date): Promise<number> {

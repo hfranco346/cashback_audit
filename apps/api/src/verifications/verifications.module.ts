@@ -10,14 +10,18 @@ import { CategoriesFromSuggestionsUseCase } from './application/categories-from-
 import { UpdateTransactionCategoryUseCase } from './application/update-transaction.use-case.js';
 import { ConfirmVerificationUseCase } from './application/confirm-verification.use-case.js';
 import { RateProposalService } from './application/rate-proposal.service.js';
+import { CreateVerificationUseCase } from './application/create-verification.use-case.js';
 import {
   CLASSIFICATION_MIN_CONFIDENCE,
-  CreateVerificationUseCase,
-} from './application/create-verification.use-case.js';
+  ProcessVerificationUseCase,
+} from './application/process-verification.use-case.js';
+import { VerificationProcessingService } from './application/verification-processing.service.js';
 import {
   DeleteVerificationUseCase,
   GetVerificationUseCase,
+  ListAttentionUseCase,
   ListVerificationsUseCase,
+  MarkVerificationSeenUseCase,
 } from './application/verification.use-cases.js';
 import {
   LineClassifier,
@@ -40,6 +44,8 @@ import { VerificationsController } from './infrastructure/verifications.controll
   controllers: [VerificationsController],
   providers: [
     CreateVerificationUseCase,
+    ProcessVerificationUseCase,
+    VerificationProcessingService,
     ConfirmVerificationUseCase,
     RateProposalService,
     UpdateTransactionCategoryUseCase,
@@ -48,6 +54,8 @@ import { VerificationsController } from './infrastructure/verifications.controll
     ListVerificationsUseCase,
     GetVerificationUseCase,
     DeleteVerificationUseCase,
+    ListAttentionUseCase,
+    MarkVerificationSeenUseCase,
     ClaudeJsonClient,
     {
       provide: ANTHROPIC_CLIENT,

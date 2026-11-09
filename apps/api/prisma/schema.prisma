@@ -30,8 +30,33 @@ model User {
   merchants     Merchant[]
   subscriptions Subscription[]
   creditEntries CreditLedger[]
+  currencies    UserCurrency[]
+
+  /// UI language preference: AUTO follows the phone.
+  locale          UserLocale @default(AUTO)
+  /// ISO 4217 code the user reads amounts in; null until chosen.
+  primaryCurrency String?    @db.Char(3)
 
   @@unique([provider, providerSubject])
+}
+
+enum UserLocale {
+  AUTO
+  ES
+  EN
+}
+
+/// A currency the user works with and the last rate used for it.
+model UserCurrency {
+  userId            String   @db.Uuid
+  code              String   @db.Char(3)
+  /// Units of the user's primary currency per 1 unit of `code`; null if unknown.
+  lastRateToPrimary Decimal? @db.Decimal(16, 6)
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, code])
 }
 
 model RefreshToken {
@@ -144,9 +169,20 @@ enum ReportedSource {
 }
 
 enum VerificationStatus {
+  /// Accepted; the statement is being read and classified in the background.
+  PROCESSING
   /// Extracted and classified; waiting for the user to confirm the rates.
   AWAITING_RATES
   COMPLETED
+  /// Processing ended without a result (see failureCode); the credit is refunded.
+  FAILED
+}
+
+enum VerificationFailureCode {
+  NOT_A_STATEMENT
+  EXTRACTION_FAILED
+  /// The server restarted while the verification was being processed.
+  INTERRUPTED
 }
 
 /// Result of auditing one statement. The PDF itself is never stored.
@@ -166,6 +202,11 @@ model Verification {
   totalSpent     Decimal?       @db.Decimal(16, 3)
   totalToPay     Decimal?       @db.Decimal(16, 3)
   status         VerificationStatus @default(COMPLETED)
+  failureCode    VerificationFailureCode?
+  /// When the user opened a FAILED/COMPLETED result; null = still unseen.
+  seenAt         DateTime?
+  processingStartedAt DateTime?
+  processedAt    DateTime?
   /// Reward figures are null while AWAITING_RATES.
   reportedAmount Decimal?       @db.Decimal(16, 3)
   reportedUnit   RewardUnit
@@ -202,6 +243,7 @@ model Verification {
   card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
 
   @@index([userId, status, createdAt(sort: Desc)])
+  @@index([userId, seenAt])
   @@index([userId, createdAt(sort: Desc)])
   @@index([cardId, createdAt(sort: Desc)])
 }

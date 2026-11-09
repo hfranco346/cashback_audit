@@ -98,6 +98,23 @@ export class CreditsService {
     }
   }
 
+  /**
+   * Gives back the credit a verification consumed. Idempotent (one refund per
+   * consumed entry, ever) and never throws.
+   */
+  async refundVerification(
+    userId: string,
+    verificationId: string,
+  ): Promise<void> {
+    try {
+      await this.ledger.refundVerification(userId, verificationId);
+    } catch (error) {
+      this.logger.error(
+        `Could not refund the credit of verification ${verificationId}: ${error instanceof Error ? error.name : 'unknown'}`,
+      );
+    }
+  }
+
   private noCredits(view: BalanceView): NoCreditsError {
     return new NoCreditsError({
       free: view.free,

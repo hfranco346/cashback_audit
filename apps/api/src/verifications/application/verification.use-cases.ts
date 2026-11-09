@@ -63,3 +63,22 @@ export class DeleteVerificationUseCase {
       throw new VerificationNotFoundError();
   }
 }
+
+@Injectable()
+export class ListAttentionUseCase {
+  constructor(private readonly verifications: VerificationRepository) {}
+
+  execute(userId: string) {
+    return this.verifications.listAttention(userId);
+  }
+}
+
+@Injectable()
+export class MarkVerificationSeenUseCase {
+  constructor(private readonly verifications: VerificationRepository) {}
+
+  async execute(userId: string, id: string): Promise<void> {
+    if (!(await this.verifications.markSeen(userId, id, new Date())))
+      throw new VerificationNotFoundError();
+  }
+}

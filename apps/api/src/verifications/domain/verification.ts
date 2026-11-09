@@ -83,7 +83,12 @@ export interface VerificationWarning {
   message: string;
 }
 
-export type VerificationStatus = 'AWAITING_RATES' | 'COMPLETED';
+export type VerificationStatus =
+  'PROCESSING' | 'AWAITING_RATES' | 'COMPLETED' | 'FAILED';
+
+/** Why a verification ended FAILED (the credit is refunded). */
+export type VerificationFailureCode =
+  'NOT_A_STATEMENT' | 'EXTRACTION_FAILED' | 'INTERRUPTED';
 
 /** The rate used for one category (or the base) in a completed audit. */
 export interface AppliedCategoryRate {
@@ -170,6 +175,12 @@ export interface Verification {
   totalSpent: Decimal | null;
   totalToPay: Decimal | null;
   status: VerificationStatus;
+  /** Set only when status is FAILED. */
+  failureCode: VerificationFailureCode | null;
+  /** When the user opened the FAILED/COMPLETED result; null = unseen. */
+  seenAt: Date | null;
+  processingStartedAt: Date | null;
+  processedAt: Date | null;
   /** Reward figures are null while AWAITING_RATES. */
   reportedAmount: Decimal | null;
   reportedUnit: RewardUnit;
@@ -198,9 +209,23 @@ export interface Verification {
 }
 
 /** `id` may be pre-generated (the credit reservation references it). */
-export type NewVerification = Omit<Verification, 'id' | 'createdAt'> & {
-  id?: string;
-};
+export type NewVerification = Omit<
+  Verification,
+  | 'id'
+  | 'createdAt'
+  | 'failureCode'
+  | 'seenAt'
+  | 'processingStartedAt'
+  | 'processedAt'
+> &
+  Partial<
+    Pick<
+      Verification,
+      'failureCode' | 'seenAt' | 'processingStartedAt' | 'processedAt'
+    >
+  > & {
+    id?: string;
+  };
 
 /** Fields that can change after creation (confirm / recalculate / corrections). */
 export type VerificationUpdate = Partial<

@@ -53,6 +53,15 @@ export abstract class CreditLedgerRepository {
   >;
   /** Gives the credit back; idempotent per reservation. */
   abstract refund(reservation: Reservation): Promise<void>;
+  /**
+   * Gives back the credit that paid for a verification (looked up in the
+   * ledger, so it works after a restart). Idempotent; a no-op when that
+   * verification consumed nothing (credit gate disabled).
+   */
+  abstract refundVerification(
+    userId: string,
+    verificationId: string,
+  ): Promise<void>;
   /** New billing period: expires the previous one and grants `credits`. */
   abstract grantPlanPeriod(
     userId: string,

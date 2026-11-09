@@ -4,7 +4,10 @@ import type { Category } from '../../categories/domain/category.js';
 import { CategoryRepository } from '../../categories/domain/category.repository.js';
 import { normalizeText } from '../domain/merchant-matcher.js';
 import { statementCategoryHints } from '../domain/statement-hints.js';
-import { VerificationNotFoundError } from '../domain/verification-errors.js';
+import {
+  VerificationNotFoundError,
+  VerificationNotReadyError,
+} from '../domain/verification-errors.js';
 import type { Verification } from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
 
@@ -38,6 +41,11 @@ export class CategoriesFromSuggestionsUseCase {
       input.verificationId,
     );
     if (!verification) throw new VerificationNotFoundError();
+    if (
+      verification.status === 'PROCESSING' ||
+      verification.status === 'FAILED'
+    )
+      throw new VerificationNotReadyError();
 
     const hints = statementCategoryHints(verification.detectedRates);
     const existing = await this.categories.listWithCounts(input.userId);

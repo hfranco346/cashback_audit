@@ -1,6 +1,5 @@
 import { Decimal } from 'decimal.js';
 import type { Card } from '../../cards/domain/card.js';
-import { CardRepository } from '../../cards/domain/card.repository.js';
 import { CategoryRepository } from '../../categories/domain/category.repository.js';
 import type { Merchant } from '../../merchants/domain/merchant.js';
 import { MerchantRepository } from '../../merchants/domain/merchant.repository.js';
@@ -23,11 +22,12 @@ import {
   LineClassifier,
   StatementExtractor,
 } from '../domain/statement-extractor.js';
-import type { NewVerification, Verification } from '../domain/verification.js';
+import type {
+  Verification,
+  VerificationUpdate,
+} from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
-import type { CreditsService } from '../../credits/application/credits.service.js';
-import { NoCreditsError } from '../../credits/domain/credit-errors.js';
-import { CreateVerificationUseCase } from './create-verification.use-case.js';
+import { ProcessVerificationUseCase } from './process-verification.use-case.js';
 
 const USER = 'user-1';
 const pdf = Buffer.from('%PDF-1.4 fake');
@@ -83,19 +83,14 @@ function setup(opts: {
   guesses?: LineClassification[] | Error;
   unclassified?: string[];
   categories?: { id: string; name: string; description: string | null }[];
-  card?: Card | null;
+  card?: Card;
   extractError?: Error;
-  credits?: 'ok' | 'none';
 }) {
-  const saved: NewVerification[] = [];
+  const saved: VerificationUpdate[] = [];
   const classifierCalls: string[][] = [];
   const categoryCalls: unknown[][] = [];
   const extractorContexts: unknown[] = [];
-  const events: string[] = [];
-  const useCase = new CreateVerificationUseCase(
-    {
-      findById: async () => (opts.card === undefined ? card : opts.card),
-    } as unknown as CardRepository,
+  const useCase = new ProcessVerificationUseCase(
     {
       listWithCounts: async () =>
         (opts.categories ?? defaultCategories).map((c) => ({
@@ -111,7 +106,6 @@ function setup(opts: {
     } as unknown as MerchantRepository,
     {
       extract: async (_pdf: Buffer, context: unknown) => {
-        events.push('extract');
         extractorContexts.push(context);
         if (opts.extractError) throw opts.extractError;
         return {
@@ -133,49 +127,38 @@ function setup(opts: {
       },
     } as unknown as LineClassifier,
     {
-      create: async (input: NewVerification) => {
-        saved.push(input);
-        return {
-          ...input,
-          id: input.id ?? 'v-1',
-          createdAt: new Date(),
-        } as Verification;
+      update: async (_user: string, id: string, patch: VerificationUpdate) => {
+        saved.push(patch);
+        return { ...patch, id, createdAt: new Date() } as Verification;
       },
     } as unknown as VerificationRepository,
     0.7,
-    {
-      reserve: async (_user: string, verificationId: string) => {
-        events.push('reserve');
-        if (opts.credits === 'none')
-          throw new NoCreditsError({
-            free: 0,
-            plan: 0,
-            planPeriodEnd: null,
-            purchased: 0,
-            total: 0,
-            subscriptionActive: false,
-          });
-        return { entryId: 'e-1', verificationId };
-      },
-      refund: async () => {
-        events.push('refund');
-      },
-    } as unknown as CreditsService,
   );
   return {
     useCase,
+    card: opts.card ?? card,
     saved,
     classifierCalls,
     categoryCalls,
     extractorContexts,
-    events,
   };
 }
 
-const run = (
+/** Runs the job and returns what the processor stored on the verification. */
+const run = async (
   s: ReturnType<typeof setup>,
   extra: { exchangeRate?: string; rewardProgramName?: string } = {},
-) => s.useCase.execute({ userId: USER, cardId: 'card-1', pdf, ...extra });
+  cardOverride?: Card,
+) => {
+  await s.useCase.execute({
+    verificationId: 'v-1',
+    userId: USER,
+    card: cardOverride ?? s.card,
+    pdf,
+    ...extra,
+  });
+  return s.saved.at(-1) as Verification;
+};
 
 const verdict = (
   descriptor: string,
@@ -189,7 +172,18 @@ const verdict = (
   ...over,
 });
 
-describe('CreateVerificationUseCase (step 1)', () => {
+describe('ProcessVerificationUseCase (step 1)', () => {
+  it('stores the extraction on the verification and ends AWAITING_RATES', async () => {
+    const s = setup({});
+    await run(s);
+    expect(s.saved).toHaveLength(1);
+    expect(s.saved[0]).toMatchObject({
+      status: 'AWAITING_RATES',
+      failureCode: null,
+    });
+    expect(s.saved[0]!.processedAt).toBeInstanceOf(Date);
+  });
+
   it('persists AWAITING_RATES with no reward figures', async () => {
     const s = setup({});
     const v = await run(s);
@@ -434,64 +428,6 @@ describe('CreateVerificationUseCase (step 1)', () => {
     expect(v.warnings.map((w) => w.code)).toContain('NO_TRANSACTIONS');
   });
 
-  it('rejects non-PDF bytes and unknown cards before calling Claude', async () => {
-    const s = setup({});
-    await expect(
-      s.useCase.execute({
-        userId: USER,
-        cardId: 'card-1',
-        pdf: Buffer.from('GIF89a'),
-      }),
-    ).rejects.toMatchObject({ code: 'INVALID_PDF' });
-    expect(s.extractorContexts).toHaveLength(0);
-    await expect(run(setup({ card: null }))).rejects.toMatchObject({
-      code: 'CARD_NOT_FOUND',
-    });
-  });
-
-  describe('credits', () => {
-    it('reserves the credit before extracting and keeps it on success', async () => {
-      const s = setup({});
-      const v = await run(s);
-      expect(s.events).toEqual(['reserve', 'extract']);
-      expect(v.id).toBe(s.saved[0]!.id);
-    });
-
-    it('uses the reservation verification id as the verification id', async () => {
-      const s = setup({});
-      await run(s);
-      expect(s.saved[0]!.id).toMatch(/^[0-9a-f-]{36}$/);
-    });
-
-    it('refunds when extraction fails, and rethrows the original error', async () => {
-      const boom = new Error('upstream');
-      const s = setup({ extractError: boom });
-      await expect(run(s)).rejects.toBe(boom);
-      expect(s.events).toEqual(['reserve', 'extract', 'refund']);
-    });
-
-    it('answers NO_CREDITS before any paid work', async () => {
-      const s = setup({ credits: 'none' });
-      await expect(run(s)).rejects.toMatchObject({ code: 'NO_CREDITS' });
-      expect(s.events).toEqual(['reserve']);
-    });
-
-    it('reserves nothing for invalid PDFs or unknown cards', async () => {
-      const s = setup({});
-      await expect(
-        s.useCase.execute({
-          userId: USER,
-          cardId: 'card-1',
-          pdf: Buffer.from('GIF89a'),
-        }),
-      ).rejects.toMatchObject({ code: 'INVALID_PDF' });
-      expect(s.events).toEqual([]);
-      const none = setup({ card: null });
-      await expect(run(none)).rejects.toMatchObject({ code: 'CARD_NOT_FOUND' });
-      expect(none.events).toEqual([]);
-    });
-  });
-
   it('keeps Decimal amounts exact', async () => {
     const v = await run(setup({}));
     expect(v.transactions[0]!.amount).toBeInstanceOf(Decimal);
@@ -499,7 +435,7 @@ describe('CreateVerificationUseCase (step 1)', () => {
   });
 });
 
-describe('CreateVerificationUseCase: statement category hints', () => {
+describe('ProcessVerificationUseCase: statement category hints', () => {
   const ficohsa = (over: Partial<ExtractedStatement> = {}) =>
     mxnCashbackStatement({
       detectedRates: [

@@ -6,6 +6,7 @@ import {
   TransactionNotClassifiableError,
   TransactionNotFoundError,
   VerificationNotFoundError,
+  VerificationNotReadyError,
 } from '../domain/verification-errors.js';
 import type { Verification } from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
@@ -32,6 +33,11 @@ export class UpdateTransactionCategoryUseCase {
       input.verificationId,
     );
     if (!verification) throw new VerificationNotFoundError();
+    if (
+      verification.status === 'PROCESSING' ||
+      verification.status === 'FAILED'
+    )
+      throw new VerificationNotReadyError();
     const tx = verification.transactions.find((t) => t.index === input.index);
     if (!tx) throw new TransactionNotFoundError();
     if (!REWARD_ELIGIBLE_KINDS.includes(tx.kind))
