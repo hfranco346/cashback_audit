@@ -4,9 +4,9 @@
 # Usage: apps/api/scripts/deploy.sh [--skip-checks]
 #
 # One-time VM setup (already done, documented in docs/deploy.md):
-#   - Postgres container `cashback-audit-postgres` on 127.0.0.1:5438
+#   - Postgres container `cashback-audit-postgres` on 127.0.0.1:15432
 #   - ~/cashback-audit/api/.env (production secrets, never in git)
-#   - nginx site for the API domain proxying to 127.0.0.1:3300
+#   - nginx site for the API domain proxying to 127.0.0.1:4300
 #
 # Note: statements are processed in memory. Restarting while a statement is being
 # analyzed marks it INTERRUPTED and refunds the credit, so deploy when idle.
@@ -17,7 +17,7 @@ VM_USER="${DEPLOY_USER:-hfranco}"
 SSH_KEY="${DEPLOY_SSH_KEY:-$HOME/.ssh/gcp_rsa}"
 REMOTE_DIR="cashback-audit/api"
 PM2_NAME="cashback-api"
-PORT=3300
+PORT=4300
 PNPM_VERSION="10.33.0"
 
 API_DIR="$(cd "$(dirname "$0")/.." && pwd)"
