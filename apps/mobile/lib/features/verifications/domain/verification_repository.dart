@@ -34,6 +34,16 @@ abstract class VerificationRepository {
   /// user confirmed. Never costs a credit.
   Future<Verification> confirm(String id, ConfirmRequest request);
 
+  /// Reads ONLY the loyalty program balances of last month's statement (free:
+  /// no credit, the PDF is never stored) and matches them to the program this
+  /// verification audits. Throws `NOT_A_STATEMENT` / `PROGRAM_NOT_FOUND`
+  /// (422). Slow: it runs Claude on the PDF.
+  Future<PreviousStatementResult> readPreviousStatement(
+    String id, {
+    required String filePath,
+    UploadProgress? onProgress,
+  });
+
   /// Changes the category of one line (`null` clears it). Does NOT recompute
   /// the result: call [confirm] again for that.
   Future<Verification> correctTransaction(

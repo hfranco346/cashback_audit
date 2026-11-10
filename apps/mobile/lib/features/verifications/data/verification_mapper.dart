@@ -111,6 +111,10 @@ abstract final class VerificationMapper {
       conversion: _conversion(_map(j['conversion'])),
       currencies: [for (final c in _maps(j['currencies'])) _currency(c)],
       loyalty: _loyalty(_map(j['loyalty'])),
+      rewardReportingProposal: _reportingProposal(
+        _map(j['rewardReportingProposal']),
+      ),
+      rewardReporting: _reportingResult(_map(j['rewardReporting'])),
       breakdown: [for (final b in _maps(j['breakdown'])) _line(b)],
       transactions: [
         for (final t in _maps(j['transactions'])) _transaction(t, primary),
@@ -129,6 +133,63 @@ abstract final class VerificationMapper {
       createdAt: DateTime.parse(j['createdAt'] as String),
     );
   }
+
+  static RewardReportingProposal? _reportingProposal(JsonMap? p) {
+    if (p == null) return null;
+    final suggested = RewardReporting.tryMode(p['suggestedMode']);
+    final mode = RewardReporting.tryMode(p['mode']) ?? suggested;
+    if (mode == null) return null;
+    return RewardReportingProposal(
+      mode: mode,
+      suggestedMode: suggested ?? mode,
+      reason: ReportingReason.fromApi(p['reason']),
+      cardSetting: RewardReporting.fromApi(p['cardSetting']),
+      currentBalance: tryParseDecimal(p['currentBalance']),
+      previousBalance: tryParseDecimal(p['previousBalance']),
+      previousBalanceSource: PreviousBalanceSource.tryFromApi(
+        p['previousBalanceSource'],
+      ),
+      previousVerificationId: _nonEmpty(p['previousVerificationId']),
+      previousPeriodEnd: _date(p['previousPeriodEnd']),
+      redeemedInPeriod: tryParseDecimal(p['redeemedInPeriod']),
+      expiredInPeriod: tryParseDecimal(p['expiredInPeriod']),
+      earned: tryParseDecimal(p['earned']),
+      previousBalanceRequired: p['previousBalanceRequired'] as bool? ?? false,
+      programName: _nonEmpty(p['programName']),
+      reportedLabel: _nonEmpty(p['reportedLabel']),
+    );
+  }
+
+  static RewardReportingResult? _reportingResult(JsonMap? r) {
+    final mode = RewardReporting.tryMode(r?['mode']);
+    if (r == null || mode == null) return null;
+    return RewardReportingResult(
+      mode: mode,
+      currentBalance: tryParseDecimal(r['currentBalance']),
+      previousBalance: tryParseDecimal(r['previousBalance']),
+      previousBalanceSource: PreviousBalanceSource.tryFromApi(
+        r['previousBalanceSource'],
+      ),
+      redeemedInPeriod: tryParseDecimal(r['redeemedInPeriod']),
+      expiredInPeriod: tryParseDecimal(r['expiredInPeriod']),
+      earned: tryParseDecimal(r['earned']),
+    );
+  }
+
+  static PreviousStatementResult previousStatement(JsonMap j) =>
+      PreviousStatementResult(
+        programs: [
+          for (final p in _maps(j['programs']))
+            if (_nonEmpty(p['name']) != null &&
+                tryParseDecimal(p['balance']) != null)
+              PreviousStatementProgram(
+                name: _nonEmpty(p['name'])!,
+                balance: tryParseDecimal(p['balance'])!,
+                periodEnd: _date(p['periodEnd']),
+              ),
+        ],
+        matchedBalance: tryParseDecimal(j['matchedBalance']),
+      );
 
   static String? _nonEmpty(Object? v) {
     final s = v is String ? v.trim() : null;
@@ -421,5 +482,15 @@ abstract final class VerificationMapper {
       'rewardExchangeRate': decimalToApi(r.rewardExchangeRate!),
     if (r.rewardProgramName != null && r.rewardProgramName!.trim().isNotEmpty)
       'rewardProgramName': r.rewardProgramName!.trim(),
+    if (r.rewardReporting != null)
+      'rewardReporting': {
+        'mode': r.rewardReporting!.mode.apiValue,
+        if (r.rewardReporting!.previousBalance != null)
+          'previousBalance': decimalToApi(r.rewardReporting!.previousBalance!),
+        if (r.rewardReporting!.previousBalanceSource != null)
+          'previousBalanceSource':
+              r.rewardReporting!.previousBalanceSource!.apiValue,
+        'rememberForCard': r.rewardReporting!.rememberForCard,
+      },
   };
 }

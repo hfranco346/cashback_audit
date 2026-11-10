@@ -4745,6 +4745,282 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Saldo actual: ilimitado'**
   String get creditsBalanceUnlimited;
+
+  /// No description provided for @cardReportingLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Cómo reporta tu banco el cashback'**
+  String get cardReportingLabel;
+
+  /// No description provided for @cardReportingHelp.
+  ///
+  /// In es, this message translates to:
+  /// **'Si lo sabes, no te lo preguntamos en cada verificación.'**
+  String get cardReportingHelp;
+
+  /// No description provided for @cardReportingAuto.
+  ///
+  /// In es, this message translates to:
+  /// **'Automático'**
+  String get cardReportingAuto;
+
+  /// No description provided for @cardReportingAutoHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo detectamos en cada estado de cuenta'**
+  String get cardReportingAutoHint;
+
+  /// No description provided for @cardReportingMonthly.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo ganado en el mes'**
+  String get cardReportingMonthly;
+
+  /// No description provided for @cardReportingMonthlyHint.
+  ///
+  /// In es, this message translates to:
+  /// **'El banco muestra solo lo del periodo'**
+  String get cardReportingMonthlyHint;
+
+  /// No description provided for @cardReportingCumulative.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo acumulado'**
+  String get cardReportingCumulative;
+
+  /// No description provided for @cardReportingCumulativeHint.
+  ///
+  /// In es, this message translates to:
+  /// **'El banco muestra el saldo total del programa'**
+  String get cardReportingCumulativeHint;
+
+  /// No description provided for @reportingTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Cashback reportado por el banco'**
+  String get reportingTitle;
+
+  /// No description provided for @reportingFigure.
+  ///
+  /// In es, this message translates to:
+  /// **'Cifra impresa'**
+  String get reportingFigure;
+
+  /// No description provided for @reportingQuestion.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Esta cifra es lo que ganaste este mes o tu saldo acumulado?'**
+  String get reportingQuestion;
+
+  /// No description provided for @reportingModeMonthly.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo que gané este mes'**
+  String get reportingModeMonthly;
+
+  /// No description provided for @reportingModeCumulative.
+  ///
+  /// In es, this message translates to:
+  /// **'Mi saldo acumulado'**
+  String get reportingModeCumulative;
+
+  /// No description provided for @reportingReasonStatementPrev.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu estado de cuenta incluye el saldo anterior'**
+  String get reportingReasonStatementPrev;
+
+  /// No description provided for @reportingReasonCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Así lo marcaste para esta tarjeta'**
+  String get reportingReasonCard;
+
+  /// No description provided for @reportingReasonLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu estado de cuenta dice «{label}»'**
+  String reportingReasonLabel(Object label);
+
+  /// No description provided for @reportingReasonLabelGeneric.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu estado de cuenta lo muestra como saldo acumulado'**
+  String get reportingReasonLabelGeneric;
+
+  /// No description provided for @reportingReasonFar.
+  ///
+  /// In es, this message translates to:
+  /// **'Es mucho más de lo esperado'**
+  String get reportingReasonFar;
+
+  /// No description provided for @reportingRemember.
+  ///
+  /// In es, this message translates to:
+  /// **'Recordar para esta tarjeta'**
+  String get reportingRemember;
+
+  /// No description provided for @reportingRememberHint.
+  ///
+  /// In es, this message translates to:
+  /// **'No te lo volveremos a preguntar'**
+  String get reportingRememberHint;
+
+  /// No description provided for @reportingPreviousLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo del mes anterior'**
+  String get reportingPreviousLabel;
+
+  /// No description provided for @reportingPreviousHelp.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo que mostraba el programa al cierre del estado de cuenta anterior.'**
+  String get reportingPreviousHelp;
+
+  /// No description provided for @reportingPrevSourceStatement.
+  ///
+  /// In es, this message translates to:
+  /// **'Del estado de cuenta'**
+  String get reportingPrevSourceStatement;
+
+  /// No description provided for @reportingPrevSourceVerification.
+  ///
+  /// In es, this message translates to:
+  /// **'De tu verificación anterior'**
+  String get reportingPrevSourceVerification;
+
+  /// No description provided for @reportingPrevSourceVerificationMonth.
+  ///
+  /// In es, this message translates to:
+  /// **'De tu verificación de {month}'**
+  String reportingPrevSourceVerificationMonth(Object month);
+
+  /// No description provided for @reportingPrevSourceUser.
+  ///
+  /// In es, this message translates to:
+  /// **'Escrito por ti'**
+  String get reportingPrevSourceUser;
+
+  /// No description provided for @reportingPrevSourcePdf.
+  ///
+  /// In es, this message translates to:
+  /// **'Del PDF del mes anterior'**
+  String get reportingPrevSourcePdf;
+
+  /// No description provided for @reportingPreviousRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe el saldo anterior o sube el PDF del mes anterior.'**
+  String get reportingPreviousRequired;
+
+  /// No description provided for @reportingUploadCta.
+  ///
+  /// In es, this message translates to:
+  /// **'Subir el PDF del mes anterior'**
+  String get reportingUploadCta;
+
+  /// No description provided for @reportingUploadNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Es gratis: solo leemos el saldo del programa y no guardamos el PDF.'**
+  String get reportingUploadNote;
+
+  /// No description provided for @reportingUploading.
+  ///
+  /// In es, this message translates to:
+  /// **'Subiendo el PDF…'**
+  String get reportingUploading;
+
+  /// No description provided for @reportingReading.
+  ///
+  /// In es, this message translates to:
+  /// **'Leyendo el saldo del programa…'**
+  String get reportingReading;
+
+  /// No description provided for @reportingPickProgram.
+  ///
+  /// In es, this message translates to:
+  /// **'No reconocimos tu programa. ¿Cuál es?'**
+  String get reportingPickProgram;
+
+  /// No description provided for @errNotAStatement.
+  ///
+  /// In es, this message translates to:
+  /// **'Ese PDF no parece un estado de cuenta. Prueba con el del mes anterior de esta tarjeta.'**
+  String get errNotAStatement;
+
+  /// No description provided for @errProgramNotFound.
+  ///
+  /// In es, this message translates to:
+  /// **'No encontramos el programa de recompensas en ese PDF. Escribe el saldo a mano.'**
+  String get errProgramNotFound;
+
+  /// No description provided for @errPreviousBalanceRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Falta el saldo del mes anterior para calcular lo que ganaste.'**
+  String get errPreviousBalanceRequired;
+
+  /// No description provided for @reportingBreakdownTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Cómo sale lo ganado'**
+  String get reportingBreakdownTitle;
+
+  /// No description provided for @reportingCurrentBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo actual'**
+  String get reportingCurrentBalance;
+
+  /// No description provided for @reportingPreviousBalance.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo anterior'**
+  String get reportingPreviousBalance;
+
+  /// No description provided for @reportingRedeemed.
+  ///
+  /// In es, this message translates to:
+  /// **'Canjeado en el mes'**
+  String get reportingRedeemed;
+
+  /// No description provided for @reportingExpired.
+  ///
+  /// In es, this message translates to:
+  /// **'Vencido en el mes'**
+  String get reportingExpired;
+
+  /// No description provided for @reportingEarned.
+  ///
+  /// In es, this message translates to:
+  /// **'Ganado este mes'**
+  String get reportingEarned;
+
+  /// No description provided for @reportingNegativeWarning.
+  ///
+  /// In es, this message translates to:
+  /// **'Sale negativo: revisa el saldo anterior. Puedes continuar de todos modos.'**
+  String get reportingNegativeWarning;
+
+  /// No description provided for @reportingResultTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Cómo se calculó lo reportado'**
+  String get reportingResultTitle;
+
+  /// No description provided for @reportedDerivedNote.
+  ///
+  /// In es, this message translates to:
+  /// **'del saldo acumulado'**
+  String get reportedDerivedNote;
+
+  /// No description provided for @warnBalanceInconsistent.
+  ///
+  /// In es, this message translates to:
+  /// **'Lo ganado salió negativo con el saldo anterior indicado. Revisa el saldo y recalcula.'**
+  String get warnBalanceInconsistent;
 }
 
 class _AppLocalizationsDelegate

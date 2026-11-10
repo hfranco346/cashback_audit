@@ -48,6 +48,24 @@ void main() {
     expect(card.isPoints, isFalse);
   });
 
+  test('reward reporting: parsed, defaults to AUTO, sent when meaningful', () {
+    final card = CardMapper.fromJson({
+      ...cardJson(),
+      'rewardReporting': 'CUMULATIVE',
+    });
+    expect(card.rewardReporting, RewardReporting.cumulative);
+    final body = CardMapper.toRequest(card.toDraft(), forUpdate: false);
+    expect(body['rewardReporting'], 'CUMULATIVE');
+    // Cards from older servers parse as AUTO and are not sent on create.
+    final legacy = CardMapper.fromJson(cardJson());
+    expect(legacy.rewardReporting, RewardReporting.auto);
+    final create = CardMapper.toRequest(legacy.toDraft(), forUpdate: false);
+    expect(create.containsKey('rewardReporting'), isFalse);
+    // ...but an update must be able to go back to AUTO.
+    final update = CardMapper.toRequest(legacy.toDraft(), forUpdate: true);
+    expect(update['rewardReporting'], 'AUTO');
+  });
+
   test('reward currency round-trips and clears on update', () {
     final withReward = CardMapper.fromJson(cardJson(rewardCurrency: 'usd'));
     expect(withReward.rewardCurrency, 'USD');

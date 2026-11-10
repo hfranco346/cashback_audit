@@ -1424,7 +1424,9 @@
   "historyOffline": "Sin conexión · mostrando lo guardado el {when} Para verificar necesitas internet.",
   "@historyOffline": {
     "placeholders": {
-      "when": {"type": "String"}
+      "when": {
+        "type": "String"
+      }
     }
   },
   "historyOfflineUndated": "Sin conexión · mostrando lo guardado. Para verificar necesitas internet.",
@@ -1718,5 +1720,61 @@
   "creditsUnlimited": "Ilimitados",
   "homeUnlimitedChecks": "Verificaciones ilimitadas",
   "profileUnlimitedNote": "Tu cuenta tiene verificaciones ilimitadas.",
-  "creditsBalanceUnlimited": "Saldo actual: ilimitado"
+  "creditsBalanceUnlimited": "Saldo actual: ilimitado",
+  "cardReportingLabel": "Cómo reporta tu banco el cashback",
+  "cardReportingHelp": "Si lo sabes, no te lo preguntamos en cada verificación.",
+  "cardReportingAuto": "Automático",
+  "cardReportingAutoHint": "Lo detectamos en cada estado de cuenta",
+  "cardReportingMonthly": "Lo ganado en el mes",
+  "cardReportingMonthlyHint": "El banco muestra solo lo del periodo",
+  "cardReportingCumulative": "Saldo acumulado",
+  "cardReportingCumulativeHint": "El banco muestra el saldo total del programa",
+  "reportingTitle": "Cashback reportado por el banco",
+  "reportingFigure": "Cifra impresa",
+  "reportingQuestion": "¿Esta cifra es lo que ganaste este mes o tu saldo acumulado?",
+  "reportingModeMonthly": "Lo que gané este mes",
+  "reportingModeCumulative": "Mi saldo acumulado",
+  "reportingReasonStatementPrev": "Tu estado de cuenta incluye el saldo anterior",
+  "reportingReasonCard": "Así lo marcaste para esta tarjeta",
+  "reportingReasonLabel": "Tu estado de cuenta dice «{label}»",
+  "@reportingReasonLabel": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "reportingReasonLabelGeneric": "Tu estado de cuenta lo muestra como saldo acumulado",
+  "reportingReasonFar": "Es mucho más de lo esperado",
+  "reportingRemember": "Recordar para esta tarjeta",
+  "reportingRememberHint": "No te lo volveremos a preguntar",
+  "reportingPreviousLabel": "Saldo del mes anterior",
+  "reportingPreviousHelp": "Lo que mostraba el programa al cierre del estado de cuenta anterior.",
+  "reportingPrevSourceStatement": "Del estado de cuenta",
+  "reportingPrevSourceVerification": "De tu verificación anterior",
+  "reportingPrevSourceVerificationMonth": "De tu verificación de {month}",
+  "@reportingPrevSourceVerificationMonth": {
+    "placeholders": {
+      "month": {}
+    }
+  },
+  "reportingPrevSourceUser": "Escrito por ti",
+  "reportingPrevSourcePdf": "Del PDF del mes anterior",
+  "reportingPreviousRequired": "Escribe el saldo anterior o sube el PDF del mes anterior.",
+  "reportingUploadCta": "Subir el PDF del mes anterior",
+  "reportingUploadNote": "Es gratis: solo leemos el saldo del programa y no guardamos el PDF.",
+  "reportingUploading": "Subiendo el PDF…",
+  "reportingReading": "Leyendo el saldo del programa…",
+  "reportingPickProgram": "No reconocimos tu programa. ¿Cuál es?",
+  "errNotAStatement": "Ese PDF no parece un estado de cuenta. Prueba con el del mes anterior de esta tarjeta.",
+  "errProgramNotFound": "No encontramos el programa de recompensas en ese PDF. Escribe el saldo a mano.",
+  "errPreviousBalanceRequired": "Falta el saldo del mes anterior para calcular lo que ganaste.",
+  "reportingBreakdownTitle": "Cómo sale lo ganado",
+  "reportingCurrentBalance": "Saldo actual",
+  "reportingPreviousBalance": "Saldo anterior",
+  "reportingRedeemed": "Canjeado en el mes",
+  "reportingExpired": "Vencido en el mes",
+  "reportingEarned": "Ganado este mes",
+  "reportingNegativeWarning": "Sale negativo: revisa el saldo anterior. Puedes continuar de todos modos.",
+  "reportingResultTitle": "Cómo se calculó lo reportado",
+  "reportedDerivedNote": "del saldo acumulado",
+  "warnBalanceInconsistent": "Lo ganado salió negativo con el saldo anterior indicado. Revisa el saldo y recalcula."
 }

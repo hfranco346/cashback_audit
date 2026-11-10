@@ -254,6 +254,47 @@ void main() {
     },
   );
 
+  test('previous-statement sends the PDF only and maps the answer', () async {
+    final file = File('${tmp.path}/prev.pdf')..writeAsBytesSync([37, 80]);
+    adapter = FakeAdapter(
+      (o) => const FakeResponse(200, {
+        'programs': [
+          {'name': 'CASH BAC', 'balance': '3000', 'periodEnd': '2025-12-31'},
+        ],
+        'matchedBalance': '3000',
+      }),
+    );
+    final r = await repo().readPreviousStatement('v1', filePath: file.path);
+    expect(r.matchedBalance, Decimal.parse('3000'));
+    expect(r.programs.single.name, 'CASH BAC');
+    final req = adapter.requests.single;
+    expect(req.path, '/verifications/v1/previous-statement');
+    final form = req.data as FormData;
+    expect(form.fields, isEmpty);
+    expect(form.files.single.key, 'file');
+    expect(form.files.single.value.contentType.toString(), 'application/pdf');
+    expect(req.receiveTimeout, const Duration(minutes: 3));
+    // Free and never stored: nothing reaches the offline cache.
+    expect(await db.readVerificationDetail('v1'), isNull);
+  });
+
+  test('previous-statement maps its 422 codes', () async {
+    final file = File('${tmp.path}/prev.pdf')..writeAsBytesSync([37]);
+    for (final code in ['NOT_A_STATEMENT', 'PROGRAM_NOT_FOUND']) {
+      adapter = FakeAdapter(
+        (o) => FakeResponse(422, {
+          'statusCode': 422,
+          'code': code,
+          'message': 'x',
+        }),
+      );
+      await expectLater(
+        repo().readPreviousStatement('v1', filePath: file.path),
+        throwsA(isA<AppException>().having((e) => e.code, 'code', code)),
+      );
+    }
+  });
+
   test('upload maps 402 NO_CREDITS', () async {
     final file = File('${tmp.path}/s.pdf')..writeAsBytesSync([37]);
     adapter = FakeAdapter(

@@ -25,6 +25,7 @@ abstract final class CardMapper {
     rewardProgramName: json['rewardProgramName'] as String?,
     rewardCurrency: _code(json['rewardCurrency']),
     claimEmail: _email(json['claimEmail']),
+    rewardReporting: RewardReporting.fromApi(json['rewardReporting']),
     rules: [
       for (final r in (json['rules'] as List<dynamic>? ?? const []))
         RewardRule(
@@ -60,6 +61,10 @@ abstract final class CardMapper {
         'rewardCurrency': rewardCurrency
       else if (forUpdate)
         'rewardCurrency': null,
+      // Older servers reject unknown keys: AUTO (the default) is only sent
+      // on update, where it must be able to clear a previous setting.
+      if (d.rewardReporting != RewardReporting.auto || forUpdate)
+        'rewardReporting': d.rewardReporting.apiValue,
       'rewardUnit': d.rewardUnit.apiValue,
       if (d.rewardUnit == RewardUnit.points && d.pointsPerCurrencyUnit != null)
         'pointsPerCurrencyUnit': decimalToApi(d.pointsPerCurrencyUnit!),

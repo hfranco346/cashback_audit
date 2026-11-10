@@ -2853,4 +2853,159 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get creditsBalanceUnlimited => 'Saldo actual: ilimitado';
+
+  @override
+  String get cardReportingLabel => 'Cómo reporta tu banco el cashback';
+
+  @override
+  String get cardReportingHelp =>
+      'Si lo sabes, no te lo preguntamos en cada verificación.';
+
+  @override
+  String get cardReportingAuto => 'Automático';
+
+  @override
+  String get cardReportingAutoHint => 'Lo detectamos en cada estado de cuenta';
+
+  @override
+  String get cardReportingMonthly => 'Lo ganado en el mes';
+
+  @override
+  String get cardReportingMonthlyHint => 'El banco muestra solo lo del periodo';
+
+  @override
+  String get cardReportingCumulative => 'Saldo acumulado';
+
+  @override
+  String get cardReportingCumulativeHint =>
+      'El banco muestra el saldo total del programa';
+
+  @override
+  String get reportingTitle => 'Cashback reportado por el banco';
+
+  @override
+  String get reportingFigure => 'Cifra impresa';
+
+  @override
+  String get reportingQuestion =>
+      '¿Esta cifra es lo que ganaste este mes o tu saldo acumulado?';
+
+  @override
+  String get reportingModeMonthly => 'Lo que gané este mes';
+
+  @override
+  String get reportingModeCumulative => 'Mi saldo acumulado';
+
+  @override
+  String get reportingReasonStatementPrev =>
+      'Tu estado de cuenta incluye el saldo anterior';
+
+  @override
+  String get reportingReasonCard => 'Así lo marcaste para esta tarjeta';
+
+  @override
+  String reportingReasonLabel(Object label) {
+    return 'Tu estado de cuenta dice «$label»';
+  }
+
+  @override
+  String get reportingReasonLabelGeneric =>
+      'Tu estado de cuenta lo muestra como saldo acumulado';
+
+  @override
+  String get reportingReasonFar => 'Es mucho más de lo esperado';
+
+  @override
+  String get reportingRemember => 'Recordar para esta tarjeta';
+
+  @override
+  String get reportingRememberHint => 'No te lo volveremos a preguntar';
+
+  @override
+  String get reportingPreviousLabel => 'Saldo del mes anterior';
+
+  @override
+  String get reportingPreviousHelp =>
+      'Lo que mostraba el programa al cierre del estado de cuenta anterior.';
+
+  @override
+  String get reportingPrevSourceStatement => 'Del estado de cuenta';
+
+  @override
+  String get reportingPrevSourceVerification => 'De tu verificación anterior';
+
+  @override
+  String reportingPrevSourceVerificationMonth(Object month) {
+    return 'De tu verificación de $month';
+  }
+
+  @override
+  String get reportingPrevSourceUser => 'Escrito por ti';
+
+  @override
+  String get reportingPrevSourcePdf => 'Del PDF del mes anterior';
+
+  @override
+  String get reportingPreviousRequired =>
+      'Escribe el saldo anterior o sube el PDF del mes anterior.';
+
+  @override
+  String get reportingUploadCta => 'Subir el PDF del mes anterior';
+
+  @override
+  String get reportingUploadNote =>
+      'Es gratis: solo leemos el saldo del programa y no guardamos el PDF.';
+
+  @override
+  String get reportingUploading => 'Subiendo el PDF…';
+
+  @override
+  String get reportingReading => 'Leyendo el saldo del programa…';
+
+  @override
+  String get reportingPickProgram => 'No reconocimos tu programa. ¿Cuál es?';
+
+  @override
+  String get errNotAStatement =>
+      'Ese PDF no parece un estado de cuenta. Prueba con el del mes anterior de esta tarjeta.';
+
+  @override
+  String get errProgramNotFound =>
+      'No encontramos el programa de recompensas en ese PDF. Escribe el saldo a mano.';
+
+  @override
+  String get errPreviousBalanceRequired =>
+      'Falta el saldo del mes anterior para calcular lo que ganaste.';
+
+  @override
+  String get reportingBreakdownTitle => 'Cómo sale lo ganado';
+
+  @override
+  String get reportingCurrentBalance => 'Saldo actual';
+
+  @override
+  String get reportingPreviousBalance => 'Saldo anterior';
+
+  @override
+  String get reportingRedeemed => 'Canjeado en el mes';
+
+  @override
+  String get reportingExpired => 'Vencido en el mes';
+
+  @override
+  String get reportingEarned => 'Ganado este mes';
+
+  @override
+  String get reportingNegativeWarning =>
+      'Sale negativo: revisa el saldo anterior. Puedes continuar de todos modos.';
+
+  @override
+  String get reportingResultTitle => 'Cómo se calculó lo reportado';
+
+  @override
+  String get reportedDerivedNote => 'del saldo acumulado';
+
+  @override
+  String get warnBalanceInconsistent =>
+      'Lo ganado salió negativo con el saldo anterior indicado. Revisa el saldo y recalcula.';
 }

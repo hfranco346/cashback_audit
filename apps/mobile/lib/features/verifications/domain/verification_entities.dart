@@ -749,6 +749,209 @@ class LoyaltyInfo extends Equatable {
   ];
 }
 
+/// Where the previous balance of a cumulative reward came from.
+enum PreviousBalanceSource {
+  statement('STATEMENT'),
+  previousVerification('PREVIOUS_VERIFICATION'),
+  user('USER'),
+  previousStatement('PREVIOUS_STATEMENT');
+
+  const PreviousBalanceSource(this.apiValue);
+  final String apiValue;
+
+  static PreviousBalanceSource? tryFromApi(Object? value) {
+    for (final s in values) {
+      if (s.apiValue == value) return s;
+    }
+    return null;
+  }
+}
+
+/// Why the backend suggests a reporting mode.
+enum ReportingReason {
+  statementHasPreviousBalance('STATEMENT_HAS_PREVIOUS_BALANCE'),
+  cardSetting('CARD_SETTING'),
+  labelSaysAccumulated('LABEL_SAYS_ACCUMULATED'),
+  reportedFarAboveExpected('REPORTED_FAR_ABOVE_EXPECTED'),
+  none('NONE');
+
+  const ReportingReason(this.apiValue);
+  final String apiValue;
+
+  static ReportingReason fromApi(Object? value) =>
+      values.firstWhere((r) => r.apiValue == value, orElse: () => none);
+}
+
+/// `earned = current - previous + redeemed + expired` (the backend's rule,
+/// mirrored for the live preview); `null` until both balances are known.
+Decimal? deriveEarned({
+  required Decimal? current,
+  required Decimal? previous,
+  Decimal? redeemed,
+  Decimal? expired,
+}) => current == null || previous == null
+    ? null
+    : current -
+          previous +
+          (redeemed ?? Decimal.zero) +
+          (expired ?? Decimal.zero);
+
+/// `rewardReportingProposal` of an `AWAITING_RATES` verification: what the
+/// bank's figure probably is and what is already known to derive it.
+class RewardReportingProposal extends Equatable {
+  const RewardReportingProposal({
+    required this.mode,
+    required this.suggestedMode,
+    this.reason = ReportingReason.none,
+    this.cardSetting = RewardReporting.auto,
+    this.currentBalance,
+    this.previousBalance,
+    this.previousBalanceSource,
+    this.previousVerificationId,
+    this.previousPeriodEnd,
+    this.redeemedInPeriod,
+    this.expiredInPeriod,
+    this.earned,
+    this.previousBalanceRequired = false,
+    this.programName,
+    this.reportedLabel,
+  });
+
+  /// Mode to preselect (`MONTHLY` or `CUMULATIVE`).
+  final RewardReporting mode;
+  final RewardReporting suggestedMode;
+  final ReportingReason reason;
+  final RewardReporting cardSetting;
+
+  /// The figure the statement prints.
+  final Decimal? currentBalance;
+  final Decimal? previousBalance;
+  final PreviousBalanceSource? previousBalanceSource;
+  final String? previousVerificationId;
+
+  /// Period end of the verification the balance came from (optional field).
+  final DateTime? previousPeriodEnd;
+  final Decimal? redeemedInPeriod;
+  final Decimal? expiredInPeriod;
+  final Decimal? earned;
+  final bool previousBalanceRequired;
+
+  /// Program name and label as printed (optional: fall back to the loyalty
+  /// program of the verification).
+  final String? programName;
+  final String? reportedLabel;
+
+  @override
+  List<Object?> get props => [
+    mode,
+    suggestedMode,
+    reason,
+    cardSetting,
+    currentBalance,
+    previousBalance,
+    previousBalanceSource,
+    previousVerificationId,
+    previousPeriodEnd,
+    redeemedInPeriod,
+    expiredInPeriod,
+    earned,
+    previousBalanceRequired,
+    programName,
+    reportedLabel,
+  ];
+}
+
+/// `rewardReporting` of a `COMPLETED` verification: how the audited figure
+/// was derived.
+class RewardReportingResult extends Equatable {
+  const RewardReportingResult({
+    required this.mode,
+    this.currentBalance,
+    this.previousBalance,
+    this.previousBalanceSource,
+    this.redeemedInPeriod,
+    this.expiredInPeriod,
+    this.earned,
+  });
+
+  final RewardReporting mode;
+  final Decimal? currentBalance;
+  final Decimal? previousBalance;
+  final PreviousBalanceSource? previousBalanceSource;
+  final Decimal? redeemedInPeriod;
+  final Decimal? expiredInPeriod;
+  final Decimal? earned;
+
+  bool get isCumulative => mode == RewardReporting.cumulative;
+
+  @override
+  List<Object?> get props => [
+    mode,
+    currentBalance,
+    previousBalance,
+    previousBalanceSource,
+    redeemedInPeriod,
+    expiredInPeriod,
+    earned,
+  ];
+}
+
+/// What the user decided about the bank's reward figure (confirm body).
+class RewardReportingInput extends Equatable {
+  const RewardReportingInput({
+    required this.mode,
+    this.previousBalance,
+    this.previousBalanceSource,
+    this.rememberForCard = false,
+  });
+
+  /// `monthly` or `cumulative`.
+  final RewardReporting mode;
+  final Decimal? previousBalance;
+  final PreviousBalanceSource? previousBalanceSource;
+  final bool rememberForCard;
+
+  @override
+  List<Object?> get props => [
+    mode,
+    previousBalance,
+    previousBalanceSource,
+    rememberForCard,
+  ];
+}
+
+/// A program balance read from last month's statement.
+class PreviousStatementProgram extends Equatable {
+  const PreviousStatementProgram({
+    required this.name,
+    required this.balance,
+    this.periodEnd,
+  });
+
+  final String name;
+  final Decimal balance;
+  final DateTime? periodEnd;
+
+  @override
+  List<Object?> get props => [name, balance, periodEnd];
+}
+
+/// Answer of `POST /verifications/:id/previous-statement`.
+class PreviousStatementResult extends Equatable {
+  const PreviousStatementResult({
+    this.programs = const [],
+    this.matchedBalance,
+  });
+
+  final List<PreviousStatementProgram> programs;
+
+  /// Balance of the program this verification audits, when it matched.
+  final Decimal? matchedBalance;
+
+  @override
+  List<Object?> get props => [programs, matchedBalance];
+}
+
 class Verification extends Equatable {
   const Verification({
     required this.id,
@@ -778,6 +981,8 @@ class Verification extends Equatable {
     this.conversion = const ConversionInfo(),
     this.currencies = const [],
     this.loyalty = LoyaltyInfo.empty,
+    this.rewardReportingProposal,
+    this.rewardReporting,
     this.models = const {},
     this.failureCode,
     this.seenAt,
@@ -829,6 +1034,13 @@ class Verification extends Equatable {
   final ConversionInfo conversion;
   final List<CurrencySubtotal> currencies;
   final LoyaltyInfo loyalty;
+
+  /// `AWAITING_RATES`: how the bank's reward figure is probably reported.
+  final RewardReportingProposal? rewardReportingProposal;
+
+  /// `COMPLETED`: how the audited figure was derived (always present on
+  /// current servers; `mode` tells monthly from cumulative).
+  final RewardReportingResult? rewardReporting;
   final List<BreakdownLine> breakdown;
   final List<VerificationTransaction> transactions;
   final List<VerificationWarning> warnings;
@@ -888,6 +1100,8 @@ class Verification extends Equatable {
     conversion,
     currencies,
     loyalty,
+    rewardReportingProposal,
+    rewardReporting,
     breakdown,
     transactions,
     warnings,
@@ -1034,6 +1248,7 @@ class ConfirmRequest extends Equatable {
     this.exchangeRates = const {},
     this.rewardExchangeRate,
     this.rewardProgramName,
+    this.rewardReporting,
   });
 
   final Decimal baseRatePercent;
@@ -1048,6 +1263,10 @@ class ConfirmRequest extends Equatable {
   /// Primary units per 1 unit of the reward currency.
   final Decimal? rewardExchangeRate;
   final String? rewardProgramName;
+
+  /// The user's answer about the bank's figure (absent for servers that
+  /// predate it and for recalculations that keep the previous decision).
+  final RewardReportingInput? rewardReporting;
 
   /// The same rates a completed verification was audited with, for a free
   /// recalculation after a line correction.
@@ -1074,5 +1293,6 @@ class ConfirmRequest extends Equatable {
     exchangeRates,
     rewardExchangeRate,
     rewardProgramName,
+    rewardReporting,
   ];
 }

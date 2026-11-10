@@ -2845,4 +2845,161 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creditsBalanceUnlimited => 'Current balance: unlimited';
+
+  @override
+  String get cardReportingLabel => 'How your bank reports the cashback';
+
+  @override
+  String get cardReportingHelp =>
+      'If you know it, we won\'t ask on every check.';
+
+  @override
+  String get cardReportingAuto => 'Automatic';
+
+  @override
+  String get cardReportingAutoHint => 'We detect it on each statement';
+
+  @override
+  String get cardReportingMonthly => 'Earned in the month';
+
+  @override
+  String get cardReportingMonthlyHint =>
+      'The bank shows only that period\'s reward';
+
+  @override
+  String get cardReportingCumulative => 'Accumulated balance';
+
+  @override
+  String get cardReportingCumulativeHint =>
+      'The bank shows the program\'s total balance';
+
+  @override
+  String get reportingTitle => 'Reward reported by your bank';
+
+  @override
+  String get reportingFigure => 'Printed figure';
+
+  @override
+  String get reportingQuestion =>
+      'Is this what you earned this month, or your accumulated balance?';
+
+  @override
+  String get reportingModeMonthly => 'What I earned this month';
+
+  @override
+  String get reportingModeCumulative => 'My accumulated balance';
+
+  @override
+  String get reportingReasonStatementPrev =>
+      'Your statement includes the previous balance';
+
+  @override
+  String get reportingReasonCard => 'You set it this way for this card';
+
+  @override
+  String reportingReasonLabel(Object label) {
+    return 'Your statement says “$label”';
+  }
+
+  @override
+  String get reportingReasonLabelGeneric =>
+      'Your statement shows it as an accumulated balance';
+
+  @override
+  String get reportingReasonFar => 'It\'s much more than expected';
+
+  @override
+  String get reportingRemember => 'Remember for this card';
+
+  @override
+  String get reportingRememberHint => 'We won\'t ask again';
+
+  @override
+  String get reportingPreviousLabel => 'Previous month\'s balance';
+
+  @override
+  String get reportingPreviousHelp =>
+      'What the program showed at the close of the previous statement.';
+
+  @override
+  String get reportingPrevSourceStatement => 'From your statement';
+
+  @override
+  String get reportingPrevSourceVerification => 'From your previous check';
+
+  @override
+  String reportingPrevSourceVerificationMonth(Object month) {
+    return 'From your $month check';
+  }
+
+  @override
+  String get reportingPrevSourceUser => 'Entered by you';
+
+  @override
+  String get reportingPrevSourcePdf => 'From last month\'s PDF';
+
+  @override
+  String get reportingPreviousRequired =>
+      'Enter the previous balance or upload last month\'s PDF.';
+
+  @override
+  String get reportingUploadCta => 'Upload last month\'s PDF';
+
+  @override
+  String get reportingUploadNote =>
+      'It\'s free: we only read the program balance and never store the PDF.';
+
+  @override
+  String get reportingUploading => 'Uploading the PDF…';
+
+  @override
+  String get reportingReading => 'Reading the program balance…';
+
+  @override
+  String get reportingPickProgram =>
+      'We couldn\'t match your program. Which one is it?';
+
+  @override
+  String get errNotAStatement =>
+      'That PDF doesn\'t look like a statement. Try last month\'s statement for this card.';
+
+  @override
+  String get errProgramNotFound =>
+      'We couldn\'t find the rewards program in that PDF. Enter the balance by hand.';
+
+  @override
+  String get errPreviousBalanceRequired =>
+      'The previous balance is missing to work out what you earned.';
+
+  @override
+  String get reportingBreakdownTitle => 'How we get what you earned';
+
+  @override
+  String get reportingCurrentBalance => 'Current balance';
+
+  @override
+  String get reportingPreviousBalance => 'Previous balance';
+
+  @override
+  String get reportingRedeemed => 'Redeemed in the month';
+
+  @override
+  String get reportingExpired => 'Expired in the month';
+
+  @override
+  String get reportingEarned => 'Earned this month';
+
+  @override
+  String get reportingNegativeWarning =>
+      'That comes out negative: check the previous balance. You can still continue.';
+
+  @override
+  String get reportingResultTitle => 'How the reported amount was worked out';
+
+  @override
+  String get reportedDerivedNote => 'from the accumulated balance';
+
+  @override
+  String get warnBalanceInconsistent =>
+      'Earned came out negative with the previous balance given. Check the balance and recalculate.';
 }

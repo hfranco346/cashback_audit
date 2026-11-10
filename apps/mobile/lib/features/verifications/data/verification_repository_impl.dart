@@ -93,6 +93,32 @@ class VerificationRepositoryImpl implements VerificationRepository {
       });
 
   @override
+  Future<PreviousStatementResult> readPreviousStatement(
+    String id, {
+    required String filePath,
+    UploadProgress? onProgress,
+  }) => guardApi(() async {
+    final form = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        filePath,
+        filename: 'previous-statement.pdf',
+        contentType: MediaType('application', 'pdf'),
+      ),
+    });
+    final res = await _dio.post<JsonMap>(
+      '/verifications/$id/previous-statement',
+      data: form,
+      onSendProgress: onProgress,
+      // Claude reads the PDF before answering: long, never auto-retried.
+      options: Options(
+        receiveTimeout: const Duration(minutes: 3),
+        sendTimeout: const Duration(minutes: 2),
+      ),
+    );
+    return VerificationMapper.previousStatement(res.data!);
+  });
+
+  @override
   Future<Verification> correctTransaction(
     String id,
     int index,

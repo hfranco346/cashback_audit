@@ -47,6 +47,10 @@ abstract final class S {
   static String get errInvalidPdf => _l.errInvalidPdf;
   static String get errUnreadable => _l.errUnreadable;
   static String get errRewardRateRequired => _l.errRewardRateRequired;
+  static String get errNotAStatement => _l.errNotAStatement;
+  static String get errProgramNotFound => _l.errProgramNotFound;
+  static String get errPreviousBalanceRequired => _l.errPreviousBalanceRequired;
+  static String get reportingPreviousLabel => _l.reportingPreviousLabel;
   static String get errInvalidExchangeRate => _l.errInvalidExchangeRate;
   static String get errInvalidCurrencies => _l.errInvalidCurrencies;
   static String get errRewardNotFound => _l.errRewardNotFound;

@@ -86,6 +86,24 @@ class FakeVerificationRepository implements VerificationRepository {
     return VerificationMapper.detail(detailJson);
   }
 
+  /// What `readPreviousStatement` returns (or throws when [previousError]).
+  PreviousStatementResult previousResult = const PreviousStatementResult();
+  Object? previousError;
+  final previousUploads = <({String id, String path})>[];
+
+  @override
+  Future<PreviousStatementResult> readPreviousStatement(
+    String id, {
+    required String filePath,
+    UploadProgress? onProgress,
+  }) async {
+    previousUploads.add((id: id, path: filePath));
+    onProgress?.call(5, 10);
+    onProgress?.call(10, 10);
+    if (previousError != null) throw previousError!;
+    return previousResult;
+  }
+
   @override
   Future<Verification> correctTransaction(
     String id,

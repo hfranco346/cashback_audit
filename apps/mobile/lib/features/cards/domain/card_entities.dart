@@ -14,6 +14,25 @@ enum RewardUnit {
   );
 }
 
+/// How the bank prints the reward figure: what was earned in the statement
+/// month, the program's accumulated balance, or unknown (detected per check).
+enum RewardReporting {
+  auto('AUTO'),
+  monthly('MONTHLY'),
+  cumulative('CUMULATIVE');
+
+  const RewardReporting(this.apiValue);
+  final String apiValue;
+
+  static RewardReporting fromApi(Object? value) => RewardReporting.values
+      .firstWhere((m) => m.apiValue == value, orElse: () => auto);
+
+  /// `monthly`/`cumulative` for an API mode, `null` for anything else.
+  static RewardReporting? tryMode(Object? value) => value == 'MONTHLY'
+      ? monthly
+      : (value == 'CUMULATIVE' ? cumulative : null);
+}
+
 class RewardRule extends Equatable {
   const RewardRule({
     required this.categoryId,
@@ -44,6 +63,7 @@ class CardDraft extends Equatable {
     this.pointsPerCurrencyUnit,
     this.rewardProgramName,
     this.rewardCurrency,
+    this.rewardReporting = RewardReporting.auto,
     this.rules = const [],
   });
 
@@ -62,6 +82,9 @@ class CardDraft extends Equatable {
   /// Currency the reward is paid in when it differs from [currency]; null
   /// lets the app detect it from the statement.
   final String? rewardCurrency;
+
+  /// How this card's bank reports the reward (default: detect each time).
+  final RewardReporting rewardReporting;
   final List<RewardRule> rules;
 
   @override
@@ -76,6 +99,7 @@ class CardDraft extends Equatable {
     currency,
     rewardProgramName,
     rewardCurrency,
+    rewardReporting,
     rules,
   ];
 }
@@ -94,6 +118,7 @@ class CreditCard extends Equatable {
     this.rewardProgramName,
     this.rewardCurrency,
     this.claimEmail,
+    this.rewardReporting = RewardReporting.auto,
     this.rules = const [],
   });
 
@@ -111,6 +136,9 @@ class CreditCard extends Equatable {
 
   /// Where the claim email for this card's bank goes (optional).
   final String? claimEmail;
+
+  /// What the bank's reward figure means (`AUTO` = decide per statement).
+  final RewardReporting rewardReporting;
   final List<RewardRule> rules;
 
   bool get isPoints => rewardUnit == RewardUnit.points;
@@ -126,6 +154,7 @@ class CreditCard extends Equatable {
     currency: currency,
     rewardProgramName: rewardProgramName,
     rewardCurrency: rewardCurrency,
+    rewardReporting: rewardReporting,
     rules: rules,
   );
 
@@ -143,6 +172,7 @@ class CreditCard extends Equatable {
     rewardProgramName,
     rewardCurrency,
     claimEmail,
+    rewardReporting,
     rules,
   ];
 }

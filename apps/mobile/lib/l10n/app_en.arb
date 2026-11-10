@@ -658,7 +658,9 @@
   "historyOffline": "Offline · showing what was saved {when}. You need internet to run a check.",
   "@historyOffline": {
     "placeholders": {
-      "when": {"type": "String"}
+      "when": {
+        "type": "String"
+      }
     }
   },
   "historyOfflineUndated": "Offline · showing what was saved. You need internet to run a check.",
@@ -888,5 +890,61 @@
   "creditsUnlimited": "Unlimited",
   "homeUnlimitedChecks": "Unlimited checks",
   "profileUnlimitedNote": "Your account has unlimited checks.",
-  "creditsBalanceUnlimited": "Current balance: unlimited"
+  "creditsBalanceUnlimited": "Current balance: unlimited",
+  "cardReportingLabel": "How your bank reports the cashback",
+  "cardReportingHelp": "If you know it, we won't ask on every check.",
+  "cardReportingAuto": "Automatic",
+  "cardReportingAutoHint": "We detect it on each statement",
+  "cardReportingMonthly": "Earned in the month",
+  "cardReportingMonthlyHint": "The bank shows only that period's reward",
+  "cardReportingCumulative": "Accumulated balance",
+  "cardReportingCumulativeHint": "The bank shows the program's total balance",
+  "reportingTitle": "Reward reported by your bank",
+  "reportingFigure": "Printed figure",
+  "reportingQuestion": "Is this what you earned this month, or your accumulated balance?",
+  "reportingModeMonthly": "What I earned this month",
+  "reportingModeCumulative": "My accumulated balance",
+  "reportingReasonStatementPrev": "Your statement includes the previous balance",
+  "reportingReasonCard": "You set it this way for this card",
+  "reportingReasonLabel": "Your statement says “{label}”",
+  "@reportingReasonLabel": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "reportingReasonLabelGeneric": "Your statement shows it as an accumulated balance",
+  "reportingReasonFar": "It's much more than expected",
+  "reportingRemember": "Remember for this card",
+  "reportingRememberHint": "We won't ask again",
+  "reportingPreviousLabel": "Previous month's balance",
+  "reportingPreviousHelp": "What the program showed at the close of the previous statement.",
+  "reportingPrevSourceStatement": "From your statement",
+  "reportingPrevSourceVerification": "From your previous check",
+  "reportingPrevSourceVerificationMonth": "From your {month} check",
+  "@reportingPrevSourceVerificationMonth": {
+    "placeholders": {
+      "month": {}
+    }
+  },
+  "reportingPrevSourceUser": "Entered by you",
+  "reportingPrevSourcePdf": "From last month's PDF",
+  "reportingPreviousRequired": "Enter the previous balance or upload last month's PDF.",
+  "reportingUploadCta": "Upload last month's PDF",
+  "reportingUploadNote": "It's free: we only read the program balance and never store the PDF.",
+  "reportingUploading": "Uploading the PDF…",
+  "reportingReading": "Reading the program balance…",
+  "reportingPickProgram": "We couldn't match your program. Which one is it?",
+  "errNotAStatement": "That PDF doesn't look like a statement. Try last month's statement for this card.",
+  "errProgramNotFound": "We couldn't find the rewards program in that PDF. Enter the balance by hand.",
+  "errPreviousBalanceRequired": "The previous balance is missing to work out what you earned.",
+  "reportingBreakdownTitle": "How we get what you earned",
+  "reportingCurrentBalance": "Current balance",
+  "reportingPreviousBalance": "Previous balance",
+  "reportingRedeemed": "Redeemed in the month",
+  "reportingExpired": "Expired in the month",
+  "reportingEarned": "Earned this month",
+  "reportingNegativeWarning": "That comes out negative: check the previous balance. You can still continue.",
+  "reportingResultTitle": "How the reported amount was worked out",
+  "reportedDerivedNote": "from the accumulated balance",
+  "warnBalanceInconsistent": "Earned came out negative with the previous balance given. Check the balance and recalculate."
 }
