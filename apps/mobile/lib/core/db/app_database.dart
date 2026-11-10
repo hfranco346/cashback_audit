@@ -23,9 +23,10 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'cashback_audit'));
 
   /// Bump when the cached API payloads change shape. v2: two-step
-  /// verifications (status, rates, loyalty, multi-currency lines).
+  /// verifications (status, rates, loyalty, multi-currency lines). v3: the
+  /// time each cached verification summary was saved (offline banner).
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -36,6 +37,10 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         await delete(cachedVerifications).go();
         await delete(cachedVerificationDetails).go();
+      }
+      // Existing rows are kept; their timestamp stays unknown (null).
+      if (from >= 2 && from < 3) {
+        await m.addColumn(cachedVerifications, cachedVerifications.cachedAt);
       }
     },
   );
@@ -149,6 +154,20 @@ class AppDatabase extends _$AppDatabase {
     return rows.map((r) => _decode(r.json)).toList();
   }
 
+  /// When the cached summaries in this scope were last saved: the oldest
+  /// timestamp among them (so it never overstates freshness). Null when there
+  /// is no cache or any row predates the timestamp (v2 rows until the next
+  /// refresh rewrites them).
+  Future<DateTime?> verificationsCachedAt({String? cardId}) async {
+    final query = select(cachedVerifications);
+    if (cardId != null) query.where((t) => t.cardId.equals(cardId));
+    final rows = await query.get();
+    if (rows.isEmpty || rows.any((r) => r.cachedAt == null)) return null;
+    return rows
+        .map((r) => r.cachedAt!)
+        .reduce((a, b) => a.isBefore(b) ? a : b);
+  }
+
   /// Upserts summaries. When [replaceScopeCardId] is given (or [replaceAll]),
   /// summaries in that scope that are not in [items] are dropped first.
   Future<void> saveVerificationSummaries(
@@ -163,6 +182,7 @@ class AppDatabase extends _$AppDatabase {
         cachedVerifications,
       )..where((t) => t.cardId.equals(replaceScopeCardId))).go();
     }
+    final now = DateTime.now();
     await batch((b) {
       b.insertAllOnConflictUpdate(cachedVerifications, [
         for (final item in items)
@@ -171,6 +191,7 @@ class AppDatabase extends _$AppDatabase {
             cardId: item['cardId'] as String,
             createdAt: DateTime.parse(item['createdAt'] as String),
             json: jsonEncode(item),
+            cachedAt: Value(now),
           ),
       ]);
     });

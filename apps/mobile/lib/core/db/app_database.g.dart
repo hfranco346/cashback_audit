@@ -823,8 +823,19 @@ class $CachedVerificationsTable extends CachedVerifications
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _cachedAtMeta = const VerificationMeta(
+    'cachedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, cardId, createdAt, json];
+  late final GeneratedColumn<DateTime> cachedAt = GeneratedColumn<DateTime>(
+    'cached_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, cardId, createdAt, json, cachedAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -866,6 +877,12 @@ class $CachedVerificationsTable extends CachedVerifications
     } else if (isInserting) {
       context.missing(_jsonMeta);
     }
+    if (data.containsKey('cached_at')) {
+      context.handle(
+        _cachedAtMeta,
+        cachedAt.isAcceptableOrUnknown(data['cached_at']!, _cachedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -891,6 +908,10 @@ class $CachedVerificationsTable extends CachedVerifications
         DriftSqlType.string,
         data['${effectivePrefix}json'],
       )!,
+      cachedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}cached_at'],
+      ),
     );
   }
 
@@ -906,11 +927,16 @@ class CachedVerification extends DataClass
   final String cardId;
   final DateTime createdAt;
   final String json;
+
+  /// When the row was last written from the server (null for rows cached
+  /// before v3).
+  final DateTime? cachedAt;
   const CachedVerification({
     required this.id,
     required this.cardId,
     required this.createdAt,
     required this.json,
+    this.cachedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -919,6 +945,9 @@ class CachedVerification extends DataClass
     map['card_id'] = Variable<String>(cardId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['json'] = Variable<String>(json);
+    if (!nullToAbsent || cachedAt != null) {
+      map['cached_at'] = Variable<DateTime>(cachedAt);
+    }
     return map;
   }
 
@@ -928,6 +957,9 @@ class CachedVerification extends DataClass
       cardId: Value(cardId),
       createdAt: Value(createdAt),
       json: Value(json),
+      cachedAt: cachedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cachedAt),
     );
   }
 
@@ -941,6 +973,7 @@ class CachedVerification extends DataClass
       cardId: serializer.fromJson<String>(json['cardId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       json: serializer.fromJson<String>(json['json']),
+      cachedAt: serializer.fromJson<DateTime?>(json['cachedAt']),
     );
   }
   @override
@@ -951,6 +984,7 @@ class CachedVerification extends DataClass
       'cardId': serializer.toJson<String>(cardId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'json': serializer.toJson<String>(json),
+      'cachedAt': serializer.toJson<DateTime?>(cachedAt),
     };
   }
 
@@ -959,11 +993,13 @@ class CachedVerification extends DataClass
     String? cardId,
     DateTime? createdAt,
     String? json,
+    Value<DateTime?> cachedAt = const Value.absent(),
   }) => CachedVerification(
     id: id ?? this.id,
     cardId: cardId ?? this.cardId,
     createdAt: createdAt ?? this.createdAt,
     json: json ?? this.json,
+    cachedAt: cachedAt.present ? cachedAt.value : this.cachedAt,
   );
   CachedVerification copyWithCompanion(CachedVerificationsCompanion data) {
     return CachedVerification(
@@ -971,6 +1007,7 @@ class CachedVerification extends DataClass
       cardId: data.cardId.present ? data.cardId.value : this.cardId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       json: data.json.present ? data.json.value : this.json,
+      cachedAt: data.cachedAt.present ? data.cachedAt.value : this.cachedAt,
     );
   }
 
@@ -980,13 +1017,14 @@ class CachedVerification extends DataClass
           ..write('id: $id, ')
           ..write('cardId: $cardId, ')
           ..write('createdAt: $createdAt, ')
-          ..write('json: $json')
+          ..write('json: $json, ')
+          ..write('cachedAt: $cachedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, cardId, createdAt, json);
+  int get hashCode => Object.hash(id, cardId, createdAt, json, cachedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -994,7 +1032,8 @@ class CachedVerification extends DataClass
           other.id == this.id &&
           other.cardId == this.cardId &&
           other.createdAt == this.createdAt &&
-          other.json == this.json);
+          other.json == this.json &&
+          other.cachedAt == this.cachedAt);
 }
 
 class CachedVerificationsCompanion extends UpdateCompanion<CachedVerification> {
@@ -1002,12 +1041,14 @@ class CachedVerificationsCompanion extends UpdateCompanion<CachedVerification> {
   final Value<String> cardId;
   final Value<DateTime> createdAt;
   final Value<String> json;
+  final Value<DateTime?> cachedAt;
   final Value<int> rowid;
   const CachedVerificationsCompanion({
     this.id = const Value.absent(),
     this.cardId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.json = const Value.absent(),
+    this.cachedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CachedVerificationsCompanion.insert({
@@ -1015,6 +1056,7 @@ class CachedVerificationsCompanion extends UpdateCompanion<CachedVerification> {
     required String cardId,
     required DateTime createdAt,
     required String json,
+    this.cachedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        cardId = Value(cardId),
@@ -1025,6 +1067,7 @@ class CachedVerificationsCompanion extends UpdateCompanion<CachedVerification> {
     Expression<String>? cardId,
     Expression<DateTime>? createdAt,
     Expression<String>? json,
+    Expression<DateTime>? cachedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1032,6 +1075,7 @@ class CachedVerificationsCompanion extends UpdateCompanion<CachedVerification> {
       if (cardId != null) 'card_id': cardId,
       if (createdAt != null) 'created_at': createdAt,
       if (json != null) 'json': json,
+      if (cachedAt != null) 'cached_at': cachedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1041,6 +1085,7 @@ class CachedVerificationsCompanion extends UpdateCompanion<CachedVerification> {
     Value<String>? cardId,
     Value<DateTime>? createdAt,
     Value<String>? json,
+    Value<DateTime?>? cachedAt,
     Value<int>? rowid,
   }) {
     return CachedVerificationsCompanion(
@@ -1048,6 +1093,7 @@ class CachedVerificationsCompanion extends UpdateCompanion<CachedVerification> {
       cardId: cardId ?? this.cardId,
       createdAt: createdAt ?? this.createdAt,
       json: json ?? this.json,
+      cachedAt: cachedAt ?? this.cachedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1067,6 +1113,9 @@ class CachedVerificationsCompanion extends UpdateCompanion<CachedVerification> {
     if (json.present) {
       map['json'] = Variable<String>(json.value);
     }
+    if (cachedAt.present) {
+      map['cached_at'] = Variable<DateTime>(cachedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1080,6 +1129,7 @@ class CachedVerificationsCompanion extends UpdateCompanion<CachedVerification> {
           ..write('cardId: $cardId, ')
           ..write('createdAt: $createdAt, ')
           ..write('json: $json, ')
+          ..write('cachedAt: $cachedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1856,6 +1906,7 @@ typedef $$CachedVerificationsTableCreateCompanionBuilder =
       required String cardId,
       required DateTime createdAt,
       required String json,
+      Value<DateTime?> cachedAt,
       Value<int> rowid,
     });
 typedef $$CachedVerificationsTableUpdateCompanionBuilder =
@@ -1864,6 +1915,7 @@ typedef $$CachedVerificationsTableUpdateCompanionBuilder =
       Value<String> cardId,
       Value<DateTime> createdAt,
       Value<String> json,
+      Value<DateTime?> cachedAt,
       Value<int> rowid,
     });
 
@@ -1893,6 +1945,11 @@ class $$CachedVerificationsTableFilterComposer
 
   ColumnFilters<String> get json => $composableBuilder(
     column: $table.json,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1925,6 +1982,11 @@ class $$CachedVerificationsTableOrderingComposer
     column: $table.json,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CachedVerificationsTableAnnotationComposer
@@ -1947,6 +2009,9 @@ class $$CachedVerificationsTableAnnotationComposer
 
   GeneratedColumn<String> get json =>
       $composableBuilder(column: $table.json, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get cachedAt =>
+      $composableBuilder(column: $table.cachedAt, builder: (column) => column);
 }
 
 class $$CachedVerificationsTableTableManager
@@ -1996,12 +2061,14 @@ class $$CachedVerificationsTableTableManager
                 Value<String> cardId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<String> json = const Value.absent(),
+                Value<DateTime?> cachedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CachedVerificationsCompanion(
                 id: id,
                 cardId: cardId,
                 createdAt: createdAt,
                 json: json,
+                cachedAt: cachedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2010,12 +2077,14 @@ class $$CachedVerificationsTableTableManager
                 required String cardId,
                 required DateTime createdAt,
                 required String json,
+                Value<DateTime?> cachedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CachedVerificationsCompanion.insert(
                 id: id,
                 cardId: cardId,
                 createdAt: createdAt,
                 json: json,
+                cachedAt: cachedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

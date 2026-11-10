@@ -644,7 +644,13 @@
   "rememberFailed": "This result was updated, but we couldn't remember the merchant: {error}",
   "resultNotConfirmedAction": "Confirm rates",
   "dismiss": "Dismiss",
-  "historyOffline": "Offline · showing what was saved. You need internet to run a check.",
+  "historyOffline": "Offline · showing what was saved {when}. You need internet to run a check.",
+  "@historyOffline": {
+    "placeholders": {
+      "when": {"type": "String"}
+    }
+  },
+  "historyOfflineUndated": "Offline · showing what was saved. You need internet to run a check.",
   "historyPending": "Pending",
   "historyCompleted": "Completed",
   "historyPillConfirm": "Confirm %",

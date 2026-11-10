@@ -2327,7 +2327,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get dismiss => 'Descartar';
 
   @override
-  String get historyOffline =>
+  String historyOffline(String when) {
+    return 'Sin conexión · mostrando lo guardado el $when Para verificar necesitas internet.';
+  }
+
+  @override
+  String get historyOfflineUndated =>
       'Sin conexión · mostrando lo guardado. Para verificar necesitas internet.';
 
   @override

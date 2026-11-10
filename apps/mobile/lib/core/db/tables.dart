@@ -37,6 +37,10 @@ class CachedVerifications extends Table {
   DateTimeColumn get createdAt => dateTime()();
   TextColumn get json => text()();
 
+  /// When the row was last written from the server (null for rows cached
+  /// before v3).
+  DateTimeColumn get cachedAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

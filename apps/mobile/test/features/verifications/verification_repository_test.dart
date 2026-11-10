@@ -365,6 +365,9 @@ void main() {
     final cached = await r.history(pageSize: 20);
     expect(cached.fromCache, isTrue);
     expect(cached.data.items, hasLength(2));
+    // The cache says when it was saved (shown in the offline banner).
+    expect(cached.cachedAt, isNotNull);
+    expect(first.cachedAt, isNull);
   });
 
   test('history offline with empty cache rethrows', () async {

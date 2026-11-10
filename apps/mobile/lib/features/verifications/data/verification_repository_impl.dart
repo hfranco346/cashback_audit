@@ -166,6 +166,7 @@ class VerificationRepositoryImpl implements VerificationRepository {
       if (!offlineCapable) rethrow;
       final rows = await _db.readVerificationSummaries(cardId: cardId);
       if (rows.isEmpty) rethrow;
+      final cachedAt = await _db.verificationsCachedAt(cardId: cardId);
       final start = (page - 1) * pageSize;
       final slice = rows.skip(start).take(pageSize).toList();
       return Cached(
@@ -176,6 +177,7 @@ class VerificationRepositoryImpl implements VerificationRepository {
           total: rows.length,
         ),
         fromCache: true,
+        cachedAt: cachedAt,
       );
     }
   }

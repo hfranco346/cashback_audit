@@ -2,6 +2,7 @@ import 'package:cashback_audit/features/cards/data/card_mapper.dart';
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
 import 'package:cashback_audit/features/verifications/presentation/widgets/history_view.dart';
+import 'package:cashback_audit/core/ui/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -35,6 +36,7 @@ VerificationSummary _summary(
 Widget _view(
   List<VerificationSummary> items, {
   bool offline = false,
+  DateTime? cachedAt,
   bool hasMore = false,
   ValueChanged<String?>? onCardFilter,
   VoidCallback? onLoadMore,
@@ -51,6 +53,7 @@ Widget _view(
   loadingMore: false,
   hasMore: hasMore,
   offline: offline,
+  cachedAt: cachedAt,
   onRefresh: () async {},
   onLoadMore: onLoadMore ?? () {},
   onOpen: onOpen ?? (_) {},
@@ -172,4 +175,46 @@ void main() {
       });
     }
   }
+
+  for (final lang in ['es', 'en']) {
+    testWidgets('offline banner shows when it was saved ($lang)', (
+      tester,
+    ) async {
+      await pumpUi(
+        tester,
+        _view(
+          [_summary('v1')],
+          offline: true,
+          cachedAt: DateTime(2026, 11, 8, 18, 40),
+        ),
+        lang: lang,
+      );
+      await tester.pumpAndSettle();
+      final text = tester.widget<InlineNotice>(
+        find.byKey(const Key('history-offline')),
+      );
+      expect(
+        text.message.replaceAll(RegExp(r'[\u202f\u00a0]'), ' '),
+        lang == 'es'
+            ? 'Sin conexión · mostrando lo guardado el 8 nov, 6:40 p. m. '
+                  'Para verificar necesitas internet.'
+            : 'Offline · showing what was saved Nov 8, 6:40 PM. '
+                  'You need internet to run a check.',
+      );
+    });
+  }
+
+  testWidgets('offline banner without a known date keeps the short copy', (
+    tester,
+  ) async {
+    await pumpUi(tester, _view([_summary('v1')], offline: true));
+    await tester.pumpAndSettle();
+    final text = tester.widget<InlineNotice>(
+      find.byKey(const Key('history-offline')),
+    );
+    expect(
+      text.message,
+      'Sin conexión · mostrando lo guardado. Para verificar necesitas internet.',
+    );
+  });
 }

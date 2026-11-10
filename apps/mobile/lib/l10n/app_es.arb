@@ -1347,7 +1347,13 @@
   },
   "resultNotConfirmedAction": "Confirmar porcentajes",
   "dismiss": "Descartar",
-  "historyOffline": "Sin conexión · mostrando lo guardado. Para verificar necesitas internet.",
+  "historyOffline": "Sin conexión · mostrando lo guardado el {when} Para verificar necesitas internet.",
+  "@historyOffline": {
+    "placeholders": {
+      "when": {"type": "String"}
+    }
+  },
+  "historyOfflineUndated": "Sin conexión · mostrando lo guardado. Para verificar necesitas internet.",
   "historyPending": "Pendientes",
   "historyCompleted": "Completadas",
   "historyPillConfirm": "Confirmar %",

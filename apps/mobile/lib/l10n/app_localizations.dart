@@ -3905,8 +3905,14 @@ abstract class AppLocalizations {
   /// No description provided for @historyOffline.
   ///
   /// In es, this message translates to:
+  /// **'Sin conexión · mostrando lo guardado el {when} Para verificar necesitas internet.'**
+  String historyOffline(String when);
+
+  /// No description provided for @historyOfflineUndated.
+  ///
+  /// In es, this message translates to:
   /// **'Sin conexión · mostrando lo guardado. Para verificar necesitas internet.'**
-  String get historyOffline;
+  String get historyOfflineUndated;
 
   /// No description provided for @historyPending.
   ///

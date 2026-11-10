@@ -53,6 +53,7 @@ class HistoryPage extends GetView<HistoryController> {
         loadingMore: controller.loadingMore.value,
         hasMore: controller.hasMore.value,
         offline: controller.offline.value,
+        cachedAt: controller.cachedAt.value,
         errorMessage: controller.errorMessage.value,
         onRefresh: controller.load,
         onLoadMore: controller.loadMore,

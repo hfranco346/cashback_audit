@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/ui/ui.dart';
@@ -25,6 +26,7 @@ class HistoryView extends StatelessWidget {
     required this.onOpen,
     required this.confirmDelete,
     this.errorMessage,
+    this.cachedAt,
   });
 
   final List<CreditCard> cards;
@@ -35,6 +37,9 @@ class HistoryView extends StatelessWidget {
   final bool loadingMore;
   final bool hasMore;
   final bool offline;
+
+  /// When the offline data was saved; the banner shows it when known.
+  final DateTime? cachedAt;
   final String? errorMessage;
   final Future<void> Function() onRefresh;
   final VoidCallback onLoadMore;
@@ -95,6 +100,15 @@ class HistoryView extends StatelessWidget {
     );
   }
 
+  /// `8 nov, 6:40 p. m.` / `Nov 8, 6:40 PM` in the active language.
+  static String _when(BuildContext context, DateTime at) {
+    final en = Localizations.localeOf(context).languageCode == 'en';
+    final locale = en ? 'en_US' : 'es_MX';
+    final local = at.toLocal();
+    return '${DateFormat.MMMd(locale).format(local)}, '
+        '${DateFormat.jm(locale).format(local)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -139,7 +153,9 @@ class HistoryView extends StatelessWidget {
                           InlineNotice(
                             key: const Key('history-offline'),
                             kind: StatusKind.neutral,
-                            message: l10n.historyOffline,
+                            message: cachedAt == null
+                                ? l10n.historyOfflineUndated
+                                : l10n.historyOffline(_when(context, cachedAt!)),
                           ),
                           const SizedBox(height: 14),
                         ],

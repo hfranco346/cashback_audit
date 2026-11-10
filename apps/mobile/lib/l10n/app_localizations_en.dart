@@ -2319,7 +2319,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dismiss => 'Dismiss';
 
   @override
-  String get historyOffline =>
+  String historyOffline(String when) {
+    return 'Offline · showing what was saved $when. You need internet to run a check.';
+  }
+
+  @override
+  String get historyOfflineUndated =>
       'Offline · showing what was saved. You need internet to run a check.';
 
   @override

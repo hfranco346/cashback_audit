@@ -3,10 +3,13 @@ import '../errors/app_exception.dart';
 /// A value plus whether it came from the local cache because the network
 /// was unavailable.
 class Cached<T> {
-  const Cached(this.data, {this.fromCache = false});
+  const Cached(this.data, {this.fromCache = false, this.cachedAt});
 
   final T data;
   final bool fromCache;
+
+  /// When the cached data was saved, when known (only set with [fromCache]).
+  final DateTime? cachedAt;
 }
 
 bool _isConnectivityProblem(AppException e) =>

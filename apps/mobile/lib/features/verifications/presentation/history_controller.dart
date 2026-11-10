@@ -49,6 +49,9 @@ class HistoryController extends GetxController {
   final loading = false.obs;
   final loadingMore = false.obs;
   final offline = false.obs;
+
+  /// When the cached history shown offline was saved, if known.
+  final cachedAt = Rxn<DateTime>();
   final hasMore = false.obs;
   final errorMessage = RxnString();
   int _page = 1;
@@ -83,6 +86,7 @@ class HistoryController extends GetxController {
       items.assignAll(r.data.items);
       hasMore.value = r.data.hasMore;
       offline.value = r.fromCache;
+      cachedAt.value = r.cachedAt;
     } catch (e) {
       items.clear();
       hasMore.value = false;
@@ -116,6 +120,7 @@ class HistoryController extends GetxController {
       ]);
     }
     offline.value = r.fromCache;
+    cachedAt.value = r.cachedAt;
     errorMessage.value = null;
   }
 
