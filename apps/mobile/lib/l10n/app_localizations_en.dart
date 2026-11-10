@@ -2544,4 +2544,81 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errInvalidCurrencies =>
       'That currency list isn\'t valid: no repeats, and it can\'t include the main currency.';
+
+  @override
+  String get emailFieldLabel => 'Email';
+
+  @override
+  String get emailFieldHint => 'you@example.com';
+
+  @override
+  String get emailSendCode => 'Send code';
+
+  @override
+  String emailRetryIn(int seconds) {
+    return 'Try again in ${seconds}s';
+  }
+
+  @override
+  String get emailInvalid =>
+      'Check your email address: it does not look valid.';
+
+  @override
+  String get emailOrContinueWith => 'or continue with';
+
+  @override
+  String get emailCodeTitle => 'Enter your code';
+
+  @override
+  String emailCodeSent(String email) {
+    return 'We sent a 6-digit code to $email.';
+  }
+
+  @override
+  String get emailChange => 'Change email';
+
+  @override
+  String get emailCodeLabel => 'Code';
+
+  @override
+  String emailCodeExpiry(int minutes) {
+    return 'The code expires in $minutes min. Nothing yet? Check your spam folder.';
+  }
+
+  @override
+  String get emailResend => 'Resend code';
+
+  @override
+  String emailResendIn(int seconds) {
+    return 'Resend in ${seconds}s';
+  }
+
+  @override
+  String get emailCodeInvalid => 'That code is not correct.';
+
+  @override
+  String emailCodeInvalidLeft(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'You have $n tries left',
+      one: 'You have 1 try left',
+    );
+    return 'That code is not correct. $_temp0.';
+  }
+
+  @override
+  String get emailCodeExpired => 'That code has expired. Request a new one.';
+
+  @override
+  String get emailCodeTooManyAttempts =>
+      'Too many attempts. Request a new code.';
+
+  @override
+  String emailRateLimited(int seconds) {
+    return 'Too many requests. Try again in ${seconds}s.';
+  }
+
+  @override
+  String get emailVerifying => 'Verifying…';
 }

@@ -1,10 +1,9 @@
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
 
-import 'package:cashback_audit/core/network/session_events.dart';
 import 'package:cashback_audit/features/auth/domain/auth_entities.dart';
-import 'package:cashback_audit/features/auth/domain/auth_repository.dart';
-import 'package:cashback_audit/features/auth/presentation/login_controller.dart';
-import 'package:cashback_audit/features/auth/presentation/session_controller.dart';
+
+import '../../support/email_flow.dart';
+
 import 'package:cashback_audit/features/auth/presentation/widgets/login_view.dart';
 import 'package:cashback_audit/features/onboarding/presentation/widgets/account_step.dart';
 import 'package:cashback_audit/features/onboarding/presentation/widgets/demo_step.dart';
@@ -28,34 +27,15 @@ import '../../support/fakes.dart';
 import '../../support/fixtures.dart';
 import 'onboarding_test.dart' show Harness;
 
-class _AuthRepo implements AuthRepository {
-  @override
-  Future<AppUser> signInWithGoogle() async => const AppUser(id: 'u');
-  @override
-  Future<AppUser> signInWithApple() async => const AppUser(id: 'u');
-  @override
-  Future<AppUser?> cachedUser() async => null;
-  @override
-  Future<AppUser?> loadUser() async => null;
-  @override
-  Future<void> signOut() async {}
-}
-
-LoginController _login({bool dev = false, bool apple = true}) {
-  final nav = FakeNavigator();
-  final repo = _AuthRepo();
-  return LoginController(
-    repository: repo,
-    session: SessionController(
-      repository: repo,
-      events: SessionEvents(),
-      clearLocalData: () async {},
-      navigator: nav,
-    ),
-    navigator: nav,
-    showApple: apple,
-    devSignIn: dev ? () async => const AppUser(id: 'dev') : null,
-  );
+Widget _account(
+  Harness h, {
+  bool dev = false,
+  bool apple = true,
+  AuthProviders providers = AuthProviders.emailOnly,
+}) {
+  final flow = EmailFlow(apple: apple, dev: dev);
+  flow.login.providers.value = providers;
+  return AccountStep(controller: h.c, login: flow.login, email: flow.email);
 }
 
 LocaleController _locale(List<Locale> applied) => LocaleController(
@@ -145,7 +125,12 @@ void main() {
       Get.reset();
       await pumpUi(
         tester,
-        LoginView(onGoogle: () {}, onApple: () {}, showApple: true),
+        LoginView(
+          emailSection: const SizedBox(),
+          onGoogle: () {},
+          onApple: () {},
+          showApple: true,
+        ),
         dark: v.dark,
         lang: v.lang,
       );
@@ -266,7 +251,11 @@ void main() {
       await h.fillSetup();
       await pumpUi(
         tester,
-        AccountStep(controller: h.c, login: _login(dev: true)),
+        _account(
+          h,
+          dev: true,
+          providers: const AuthProviders(google: true, apple: true),
+        ),
       );
       await tester.pump(const Duration(seconds: 1));
       expect(find.text('BAC Cash •••• 4821'), findsOneWidget);
@@ -281,10 +270,7 @@ void main() {
     ) async {
       final h = Harness();
       await h.fillSetup();
-      await pumpUi(
-        tester,
-        AccountStep(controller: h.c, login: _login(apple: false)),
-      );
+      await pumpUi(tester, _account(h, apple: false));
       await tester.pump(const Duration(seconds: 1));
       expect(find.byKey(const Key('onb-apple')), findsNothing);
       expect(find.byKey(const Key('dev-sign-in')), findsNothing);
@@ -294,7 +280,10 @@ void main() {
       final h = Harness();
       await h.fillSetup();
       h.c.syncError.value = 'boom';
-      await pumpUi(tester, AccountStep(controller: h.c, login: _login()));
+      await pumpUi(
+        tester,
+        _account(h, providers: const AuthProviders(google: true, apple: true)),
+      );
       await tester.pump(const Duration(seconds: 1));
       expect(find.byKey(const Key('onb-retry-sync')), findsOneWidget);
       expect(find.byKey(const Key('onb-google')), findsNothing);

@@ -1478,5 +1478,66 @@
   "curAddTitle": "Agregar moneda",
   "curCodeLabel": "Código de la moneda",
   "curSetPrimaryTitle": "Moneda principal",
-  "errInvalidCurrencies": "Esa lista de monedas no es válida: no repitas ni incluyas la moneda principal."
+  "errInvalidCurrencies": "Esa lista de monedas no es válida: no repitas ni incluyas la moneda principal.",
+  "emailFieldLabel": "Correo electrónico",
+  "emailFieldHint": "tu@correo.com",
+  "emailSendCode": "Enviar código",
+  "emailRetryIn": "Reintentar en {seconds} s",
+  "@emailRetryIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "emailInvalid": "Revisa tu correo: no parece válido.",
+  "emailOrContinueWith": "o continúa con",
+  "emailCodeTitle": "Escribe tu código",
+  "emailCodeSent": "Enviamos un código de 6 dígitos a {email}.",
+  "@emailCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailChange": "Cambiar correo",
+  "emailCodeLabel": "Código",
+  "emailCodeExpiry": "El código vence en {minutes} min. ¿No llega? Revisa spam o promociones.",
+  "@emailCodeExpiry": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "emailResend": "Reenviar código",
+  "emailResendIn": "Reenviar en {seconds} s",
+  "@emailResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "emailCodeInvalid": "Código incorrecto.",
+  "emailCodeInvalidLeft": "Código incorrecto. {n, plural, =1{Te queda 1 intento} other{Te quedan {n} intentos}}.",
+  "@emailCodeInvalidLeft": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "emailCodeExpired": "El código venció. Pide uno nuevo.",
+  "emailCodeTooManyAttempts": "Demasiados intentos. Pide un código nuevo.",
+  "emailRateLimited": "Demasiadas solicitudes. Inténtalo de nuevo en {seconds} s.",
+  "@emailRateLimited": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "emailVerifying": "Verificando…"
 }

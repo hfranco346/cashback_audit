@@ -11,7 +11,12 @@ void main() {
     var google = 0;
     await pumpUi(
       tester,
-      LoginView(onGoogle: () => google++, onApple: () {}, showApple: true),
+      LoginView(
+        emailSection: const SizedBox(),
+        onGoogle: () => google++,
+        onApple: () {},
+        showApple: true,
+      ),
     );
     await tester.pump(const Duration(seconds: 1));
     expect(find.text(S.loginTitle), findsOneWidget);
@@ -24,6 +29,7 @@ void main() {
     await pumpUi(
       tester,
       LoginView(
+        emailSection: const SizedBox(),
         onGoogle: () {},
         onApple: () {},
         showApple: false,
@@ -40,6 +46,7 @@ void main() {
     await pumpUi(
       tester,
       LoginView(
+        emailSection: const SizedBox(),
         onGoogle: () => taps++,
         onApple: () => taps++,
         showApple: true,
@@ -58,7 +65,12 @@ void main() {
     var dev = 0;
     await pumpUi(
       tester,
-      LoginView(onGoogle: () {}, onApple: () {}, showApple: false),
+      LoginView(
+        emailSection: const SizedBox(),
+        onGoogle: () {},
+        onApple: () {},
+        showApple: false,
+      ),
     );
     await tester.pump(const Duration(seconds: 1));
     expect(find.byKey(const Key('dev-sign-in')), findsNothing);
@@ -66,6 +78,7 @@ void main() {
     await pumpUi(
       tester,
       LoginView(
+        emailSection: const SizedBox(),
         onGoogle: () {},
         onApple: () {},
         showApple: false,

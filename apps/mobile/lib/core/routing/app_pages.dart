@@ -4,6 +4,7 @@ import '../config/app_config.dart';
 import 'package:get/get.dart';
 
 import '../../features/auth/domain/auth_repository.dart';
+import '../../features/auth/presentation/email_sign_in_controller.dart';
 import '../../features/auth/presentation/login_controller.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/session_controller.dart';
@@ -16,6 +17,7 @@ import '../../features/categories/domain/catalog_repositories.dart';
 import '../../features/categories/presentation/catalog_controller.dart';
 import '../../features/categories/presentation/catalog_page.dart';
 import '../../features/settings/presentation/language_currencies_page.dart';
+import '../../features/settings/presentation/locale_controller.dart';
 import '../../features/verifications/domain/pdf_picker.dart';
 import '../../features/verifications/domain/verification_entities.dart';
 import '../../features/verifications/domain/verification_repository.dart';
@@ -74,6 +76,7 @@ abstract final class AppPages {
       binding: BindingsBuilder(() {
         final login = _buildLoginController();
         Get.put(login);
+        Get.put(_buildEmailController(login));
         final session = Get.find<SessionController>();
         final drafts = Get.find<OnboardingDraftRepository>();
         final controller = OnboardingController(
@@ -105,7 +108,8 @@ abstract final class AppPages {
       name: Routes.login,
       page: () => const LoginPage(),
       binding: BindingsBuilder(() {
-        Get.lazyPut(_buildLoginController);
+        Get.put(_buildLoginController());
+        Get.put(_buildEmailController(Get.find<LoginController>()));
       }),
     ),
     GetPage(
@@ -283,6 +287,13 @@ abstract final class AppPages {
     ),
   ];
 }
+
+EmailSignInController _buildEmailController(LoginController login) =>
+    EmailSignInController(
+      repository: Get.find<AuthRepository>(),
+      login: login,
+      localeCode: () => Get.find<LocaleController>().locale.languageCode,
+    );
 
 LoginController _buildLoginController() => LoginController(
   repository: Get.find<AuthRepository>(),

@@ -711,5 +711,66 @@
   "curAddTitle": "Add currency",
   "curCodeLabel": "Currency code",
   "curSetPrimaryTitle": "Main currency",
-  "errInvalidCurrencies": "That currency list isn't valid: no repeats, and it can't include the main currency."
+  "errInvalidCurrencies": "That currency list isn't valid: no repeats, and it can't include the main currency.",
+  "emailFieldLabel": "Email",
+  "emailFieldHint": "you@example.com",
+  "emailSendCode": "Send code",
+  "emailRetryIn": "Try again in {seconds}s",
+  "@emailRetryIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "emailInvalid": "Check your email address: it does not look valid.",
+  "emailOrContinueWith": "or continue with",
+  "emailCodeTitle": "Enter your code",
+  "emailCodeSent": "We sent a 6-digit code to {email}.",
+  "@emailCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailChange": "Change email",
+  "emailCodeLabel": "Code",
+  "emailCodeExpiry": "The code expires in {minutes} min. Nothing yet? Check your spam folder.",
+  "@emailCodeExpiry": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "emailResend": "Resend code",
+  "emailResendIn": "Resend in {seconds}s",
+  "@emailResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "emailCodeInvalid": "That code is not correct.",
+  "emailCodeInvalidLeft": "That code is not correct. {n, plural, =1{You have 1 try left} other{You have {n} tries left}}.",
+  "@emailCodeInvalidLeft": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "emailCodeExpired": "That code has expired. Request a new one.",
+  "emailCodeTooManyAttempts": "Too many attempts. Request a new code.",
+  "emailRateLimited": "Too many requests. Try again in {seconds}s.",
+  "@emailRateLimited": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "emailVerifying": "Verifying…"
 }

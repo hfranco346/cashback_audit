@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../auth/presentation/email_sign_in_controller.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../settings/presentation/locale_controller.dart';
@@ -35,6 +36,7 @@ class OnboardingPage extends GetView<OnboardingController> {
           OnboardingStep.account => AccountStep(
             controller: c,
             login: Get.find<LoginController>(),
+            email: Get.find<EmailSignInController>(),
           ),
           OnboardingStep.pdf => FirstPdfStep(
             controller: c,

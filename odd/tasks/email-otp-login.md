@@ -21,8 +21,9 @@ Lowest-friction option that needs no third-party identity setup; a code (not a m
 
 ## Tasks
 - [x] E1 Backend: OTP module (start/verify, hashing, limits, review account, EmailSender port + log adapter), Prisma migration, tests, contract doc. Route: delegated.
-- [ ] E2 Mobile: email + code screens (login and onboarding "create account" step), autofill one-time code, resend countdown, error states, hide Google/Apple when not configured, ES/EN, tests. Route: delegated.
+- [x] E2 Mobile: email + code screens (login and onboarding "create account" step), autofill one-time code, resend countdown, error states, hide Google/Apple when not configured, ES/EN, tests. Route: delegated.
 - [ ] E3 Production email provider adapter + DNS (SPF/DKIM) + prod env + deploy. Route: inline after provider decision.
 
 ## Progress / evidence
 - E1 (delegated writer): migration `20261110003132_email_otp_login`; `GET /auth/providers`, `POST /auth/email/start|verify`; new env `OTP_HMAC_SECRET`, `EMAIL_FROM`, `EMAIL_PROVIDER`, `REVIEW_LOGIN_EMAIL/CODE`, `OTP_THROTTLE_LIMIT`; contract in `docs/api-contract.md` (section 3, 11, 12). Checks in apps/api: `pnpm lint` clean, `pnpm build` ok, `pnpm test` 339 passed, `pnpm test:e2e` 161 passed. Commit: see `git log` (feat(api): email one-time code sign-in).
+- E2 (mobile): auth repository start/verify/providers; EmailSignInController (countdown, auto-submit at 6 digits, error mapping incl. details.attemptsLeft/retryAfterSeconds); email + code forms (oneTimeCode autofill) in login screen and onboarding account step; Google/Apple shown only when /auth/providers enables them (email-only until it answers); dev sign-in kept. Checks in apps/mobile: flutter gen-l10n ok; dart format --set-exit-if-changed lib test: 0 changed; flutter analyze: No issues found; flutter test: 532 passed.

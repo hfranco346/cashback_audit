@@ -2552,4 +2552,80 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get errInvalidCurrencies =>
       'Esa lista de monedas no es válida: no repitas ni incluyas la moneda principal.';
+
+  @override
+  String get emailFieldLabel => 'Correo electrónico';
+
+  @override
+  String get emailFieldHint => 'tu@correo.com';
+
+  @override
+  String get emailSendCode => 'Enviar código';
+
+  @override
+  String emailRetryIn(int seconds) {
+    return 'Reintentar en $seconds s';
+  }
+
+  @override
+  String get emailInvalid => 'Revisa tu correo: no parece válido.';
+
+  @override
+  String get emailOrContinueWith => 'o continúa con';
+
+  @override
+  String get emailCodeTitle => 'Escribe tu código';
+
+  @override
+  String emailCodeSent(String email) {
+    return 'Enviamos un código de 6 dígitos a $email.';
+  }
+
+  @override
+  String get emailChange => 'Cambiar correo';
+
+  @override
+  String get emailCodeLabel => 'Código';
+
+  @override
+  String emailCodeExpiry(int minutes) {
+    return 'El código vence en $minutes min. ¿No llega? Revisa spam o promociones.';
+  }
+
+  @override
+  String get emailResend => 'Reenviar código';
+
+  @override
+  String emailResendIn(int seconds) {
+    return 'Reenviar en $seconds s';
+  }
+
+  @override
+  String get emailCodeInvalid => 'Código incorrecto.';
+
+  @override
+  String emailCodeInvalidLeft(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Te quedan $n intentos',
+      one: 'Te queda 1 intento',
+    );
+    return 'Código incorrecto. $_temp0.';
+  }
+
+  @override
+  String get emailCodeExpired => 'El código venció. Pide uno nuevo.';
+
+  @override
+  String get emailCodeTooManyAttempts =>
+      'Demasiados intentos. Pide un código nuevo.';
+
+  @override
+  String emailRateLimited(int seconds) {
+    return 'Demasiadas solicitudes. Inténtalo de nuevo en $seconds s.';
+  }
+
+  @override
+  String get emailVerifying => 'Verificando…';
 }

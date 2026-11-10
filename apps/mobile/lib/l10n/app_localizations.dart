@@ -4309,6 +4309,120 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Esa lista de monedas no es válida: no repitas ni incluyas la moneda principal.'**
   String get errInvalidCurrencies;
+
+  /// No description provided for @emailFieldLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo electrónico'**
+  String get emailFieldLabel;
+
+  /// No description provided for @emailFieldHint.
+  ///
+  /// In es, this message translates to:
+  /// **'tu@correo.com'**
+  String get emailFieldHint;
+
+  /// No description provided for @emailSendCode.
+  ///
+  /// In es, this message translates to:
+  /// **'Enviar código'**
+  String get emailSendCode;
+
+  /// No description provided for @emailRetryIn.
+  ///
+  /// In es, this message translates to:
+  /// **'Reintentar en {seconds} s'**
+  String emailRetryIn(int seconds);
+
+  /// No description provided for @emailInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa tu correo: no parece válido.'**
+  String get emailInvalid;
+
+  /// No description provided for @emailOrContinueWith.
+  ///
+  /// In es, this message translates to:
+  /// **'o continúa con'**
+  String get emailOrContinueWith;
+
+  /// No description provided for @emailCodeTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe tu código'**
+  String get emailCodeTitle;
+
+  /// No description provided for @emailCodeSent.
+  ///
+  /// In es, this message translates to:
+  /// **'Enviamos un código de 6 dígitos a {email}.'**
+  String emailCodeSent(String email);
+
+  /// No description provided for @emailChange.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar correo'**
+  String get emailChange;
+
+  /// No description provided for @emailCodeLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Código'**
+  String get emailCodeLabel;
+
+  /// No description provided for @emailCodeExpiry.
+  ///
+  /// In es, this message translates to:
+  /// **'El código vence en {minutes} min. ¿No llega? Revisa spam o promociones.'**
+  String emailCodeExpiry(int minutes);
+
+  /// No description provided for @emailResend.
+  ///
+  /// In es, this message translates to:
+  /// **'Reenviar código'**
+  String get emailResend;
+
+  /// No description provided for @emailResendIn.
+  ///
+  /// In es, this message translates to:
+  /// **'Reenviar en {seconds} s'**
+  String emailResendIn(int seconds);
+
+  /// No description provided for @emailCodeInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Código incorrecto.'**
+  String get emailCodeInvalid;
+
+  /// No description provided for @emailCodeInvalidLeft.
+  ///
+  /// In es, this message translates to:
+  /// **'Código incorrecto. {n, plural, =1{Te queda 1 intento} other{Te quedan {n} intentos}}.'**
+  String emailCodeInvalidLeft(int n);
+
+  /// No description provided for @emailCodeExpired.
+  ///
+  /// In es, this message translates to:
+  /// **'El código venció. Pide uno nuevo.'**
+  String get emailCodeExpired;
+
+  /// No description provided for @emailCodeTooManyAttempts.
+  ///
+  /// In es, this message translates to:
+  /// **'Demasiados intentos. Pide un código nuevo.'**
+  String get emailCodeTooManyAttempts;
+
+  /// No description provided for @emailRateLimited.
+  ///
+  /// In es, this message translates to:
+  /// **'Demasiadas solicitudes. Inténtalo de nuevo en {seconds} s.'**
+  String emailRateLimited(int seconds);
+
+  /// No description provided for @emailVerifying.
+  ///
+  /// In es, this message translates to:
+  /// **'Verificando…'**
+  String get emailVerifying;
 }
 
 class _AppLocalizationsDelegate
