@@ -104,6 +104,8 @@ paginated (see section 8).
 
 - Default: 120 requests per minute per user (per IP when unauthenticated).
 - `POST /verifications`: 5 requests per minute per user.
+- `POST /auth/email/start` and `POST /auth/email/verify`: 10 requests per minute
+  per IP each (on top of the per-address limits in section 3).
 
 Exceeding a limit returns `429` with `code: "TOO_MANY_REQUESTS"`. The `Retry-After`
 header says how many seconds to wait.
@@ -163,7 +165,8 @@ Rules the client must follow:
    authorization for the app; send it as `fullName` (`"Given Family"`) in that
    call. The backend stores it on first sight and never erases it afterwards.
    Later sign-ins can omit `fullName`.
-7. The user is identified by `(provider, providerSubject)`. Signing in with
+7. The user is identified by `(provider, providerSubject)` (for email sign-in the
+   subject is the normalized address). Signing in with
    Google and with Apple creates **two separate accounts** (no account linking
    in v1).
 
@@ -172,6 +175,114 @@ Rules the client must follow:
 ## 3. Auth endpoints
 
 All **Public**.
+
+### GET /auth/providers
+
+Which sign-in methods this server offers. Hide the Google/Apple buttons when
+their flag is `false` (their client IDs are not configured).
+
+`200` response:
+
+```json
+{ "email": true, "google": false, "apple": false }
+```
+
+### POST /auth/email/start
+
+Sends a 6-digit sign-in code by email. Request:
+
+```json
+{ "email": "ana@example.com", "locale": "es" }
+```
+
+`email` is trimmed and lowercased by the server (max 254). `locale` is optional
+(`"es"` default, or `"en"`) and only picks the language of the email (subject
+`Tu código de Cashback Audit: 123456` / `Your Cashback Audit code: 123456`).
+
+`202` response (always for a valid address, whether or not an account exists):
+
+```json
+{ "expiresInSeconds": 600, "resendAfterSeconds": 60 }
+```
+
+Errors:
+
+- `400 VALIDATION_ERROR` (malformed email, unknown locale).
+- `429 TOO_MANY_REQUESTS` when resending before 60 s, after 5 sends to the same
+  address within one hour, or from an IP over the per-IP limit. The seconds to
+  wait are in `details.retryAfterSeconds` (and the `Retry-After` header):
+
+```json
+{
+  "statusCode": 429,
+  "code": "TOO_MANY_REQUESTS",
+  "message": "Too many sign-in codes requested. Try again later.",
+  "details": { "retryAfterSeconds": 42 }
+}
+```
+
+  (The per-IP limit uses the generic `TOO_MANY_REQUESTS` body without `details`.)
+
+- `503 EMAIL_DELIVERY_FAILED` when the email provider rejected the message (no
+  code is kept; the user can retry immediately).
+
+A new code replaces the previous one. Codes last 10 minutes, are stored hashed
+and can be used once.
+
+### POST /auth/email/verify
+
+Request:
+
+```json
+{ "email": "ana@example.com", "code": "123456" }
+```
+
+`code` is exactly 6 digits. `200` response: **identical to `/auth/google`**
+(tokens + `user`; `user.name` is `null` for email users). The user is created on
+the first verified code and found by email afterwards; `GET /me` reports
+`provider: "EMAIL"`.
+
+Errors:
+
+- `400 VALIDATION_ERROR` (malformed email or code).
+- `400 INVALID_CODE`, with the guesses left before the code is burned:
+
+```json
+{
+  "statusCode": 400,
+  "code": "INVALID_CODE",
+  "message": "The code is not correct",
+  "details": { "attemptsLeft": 4 }
+}
+```
+
+- `429 TOO_MANY_ATTEMPTS`: the 5th wrong guess burned the code. Ask for a new one.
+
+```json
+{
+  "statusCode": 429,
+  "code": "TOO_MANY_ATTEMPTS",
+  "message": "Too many wrong attempts. Request a new code."
+}
+```
+
+- `410 CODE_EXPIRED`: the code is older than 10 minutes, was already used,
+  was replaced, or there is no active code for that address.
+
+```json
+{
+  "statusCode": 410,
+  "code": "CODE_EXPIRED",
+  "message": "The code expired. Request a new one."
+}
+```
+
+- `429 TOO_MANY_REQUESTS`: per-IP limit.
+
+App-review account: when the server sets `REVIEW_LOGIN_EMAIL` and
+`REVIEW_LOGIN_CODE`, that single address skips the email (`/auth/email/start`
+still answers `202`) and signs in with the fixed code (5 wrong guesses lock it
+for 10 minutes).
 
 ### POST /auth/google
 
@@ -265,7 +376,7 @@ unknown or already revoked tokens also return `204`. Revokes the whole session.
 }
 ```
 
-`provider` is `"GOOGLE"` or `"APPLE"`. Errors: `401`.
+`provider` is `"GOOGLE"`, `"APPLE"` or `"EMAIL"`. Errors: `401`.
 
 `locale` (`"auto" | "es" | "en"`, default `"auto"` = follow the phone),
 `primaryCurrency` (ISO 4217 or `null` until chosen) and `currencies` (the
@@ -805,6 +916,7 @@ Errors of step 1:
 | 400 | `VALIDATION_ERROR` | Bad `cardId` / `exchangeRate` / `rewardProgramName`, or an unknown field |
 | 402 | `NO_CREDITS` | Show the paywall (see section 9). `details` = the credit balance |
 | 404 | `CARD_NOT_FOUND` | Card missing or not yours |
+| 410 | `CODE_EXPIRED` | Email sign-in code expired, used, replaced or missing |
 | 413 | `PAYLOAD_TOO_LARGE` | File over 10 MB |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Not `application/pdf` |
 | 429 | `TOO_MANY_REQUESTS` | Slow down |
@@ -1421,6 +1533,7 @@ consumable products in RevenueCat/the stores.
 | 400 | `DUPLICATE_RULE_CATEGORY` | Two card rules for the same category (`details.categoryId`) |
 | 400 | `FILE_REQUIRED`, `INVALID_PDF` | See verifications |
 | 400 | `INVALID_WEBHOOK_PAYLOAD` | Webhook only |
+| 400 | `INVALID_CODE` | Wrong email sign-in code (`details.attemptsLeft`) |
 | 401 | `INVALID_ACCESS_TOKEN` | Missing, malformed, expired or forged access token -> refresh |
 | 401 | `INVALID_IDENTITY_TOKEN` | Google/Apple token rejected |
 | 401 | `INVALID_REFRESH_TOKEN` | Refresh token unknown, expired, revoked or reused -> sign in again |
@@ -1436,9 +1549,11 @@ consumable products in RevenueCat/the stores.
 | 400 | `INVALID_EXCHANGE_RATE` | See verifications |
 | 400 | `INVALID_CURRENCIES` | `PATCH /me/preferences`: repeated currency code or the primary currency in the list |
 | 422 | `REPORTED_REWARD_NOT_FOUND`, `REWARD_PROGRAM_AMBIGUOUS`, `REWARD_EXCHANGE_RATE_REQUIRED` | See verifications |
-| 429 | `TOO_MANY_REQUESTS` | Rate limit |
+| 429 | `TOO_MANY_REQUESTS` | Rate limit (email start: `details.retryAfterSeconds`) |
+| 429 | `TOO_MANY_ATTEMPTS` | 5 wrong email codes: the code is burned |
 | 500 | `INTERNAL_ERROR` | Unexpected; generic message, nothing leaked |
 | 503 | `IDENTITY_PROVIDER_UNAVAILABLE` | Google/Apple sign-in not configured |
+| 503 | `EMAIL_DELIVERY_FAILED` | The sign-in email could not be sent |
 | 503 | (health) | Database down |
 
 ---
@@ -1634,3 +1749,17 @@ Clients built against the previous contract must change:
   the subscription.
 - `SUBSCRIPTION_GATE_ENABLED` was renamed `CREDITS_GATE_ENABLED` (old name kept as
   alias).
+
+### Email one-time code sign-in
+
+- New endpoints `GET /auth/providers`, `POST /auth/email/start` and
+  `POST /auth/email/verify` (section 3). Additive: Google and Apple keep working.
+- `GET /me.provider` can now be `"EMAIL"`; do not treat it as a closed
+  `GOOGLE | APPLE` set.
+- New error codes `INVALID_CODE`, `CODE_EXPIRED` (410), `TOO_MANY_ATTEMPTS`,
+  `EMAIL_DELIVERY_FAILED`; `TOO_MANY_REQUESTS` carries
+  `details.retryAfterSeconds` for the per-address email limits.
+- New env vars: `OTP_HMAC_SECRET` (required in production), `EMAIL_FROM`,
+  `EMAIL_PROVIDER` (`log` only for now: nothing is delivered in production until
+  a provider adapter exists), `REVIEW_LOGIN_EMAIL` + `REVIEW_LOGIN_CODE`,
+  `OTP_THROTTLE_LIMIT`.

@@ -16,6 +16,8 @@ const KIND_TO_STATUS: Record<DomainErrorKind, number> = {
   FORBIDDEN: HttpStatus.FORBIDDEN,
   NOT_FOUND: HttpStatus.NOT_FOUND,
   CONFLICT: HttpStatus.CONFLICT,
+  GONE: HttpStatus.GONE,
+  RATE_LIMITED: HttpStatus.TOO_MANY_REQUESTS,
   UNPROCESSABLE: HttpStatus.UNPROCESSABLE_ENTITY,
   UPSTREAM_FAILURE: HttpStatus.BAD_GATEWAY,
   UPSTREAM_UNAVAILABLE: HttpStatus.SERVICE_UNAVAILABLE,
@@ -51,6 +53,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
     const body = this.toBody(exception);
+    const retryAfter = (body.details as { retryAfterSeconds?: unknown })
+      ?.retryAfterSeconds;
+    if (body.statusCode === 429 && typeof retryAfter === 'number') {
+      response.setHeader('Retry-After', String(retryAfter));
+    }
     response.status(body.statusCode).json(body);
   }
 

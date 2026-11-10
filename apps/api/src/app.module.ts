@@ -12,6 +12,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module.js';
 import { UsersModule } from './users/users.module.js';
 import { HealthController } from './health/health.controller.js';
 import {
+  OTP_THROTTLE_KEY,
   STRICT_THROTTLE_KEY,
   UserAwareThrottlerGuard,
 } from './shared/http/throttling.js';
@@ -38,6 +39,14 @@ import { PrismaModule } from './shared/prisma/prisma.module.js';
             limit: config.get('VERIFICATION_THROTTLE_LIMIT', { infer: true }),
             skipIf: (context) =>
               !Reflect.getMetadata(STRICT_THROTTLE_KEY, context.getHandler()),
+          },
+          {
+            // Only applies to routes tagged with @OtpThrottle(); keyed by IP.
+            name: 'otp',
+            ttl,
+            limit: config.get('OTP_THROTTLE_LIMIT', { infer: true }),
+            skipIf: (context) =>
+              !Reflect.getMetadata(OTP_THROTTLE_KEY, context.getHandler()),
           },
         ];
       },

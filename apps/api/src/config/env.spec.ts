@@ -157,6 +157,58 @@ describe('validateEnv', () => {
   });
 });
 
+describe('validateEnv email sign-in', () => {
+  it('defaults: dev secret, log provider, default sender, no review account', () => {
+    const env = validateEnv(base);
+    expect(env.OTP_HMAC_SECRET.length).toBeGreaterThanOrEqual(32);
+    expect(env.EMAIL_PROVIDER).toBe('log');
+    expect(env.EMAIL_FROM).toBe('Cashback Audit <no-reply@neargps.net>');
+    expect(env.REVIEW_LOGIN_EMAIL).toBeUndefined();
+  });
+
+  it('requires OTP_HMAC_SECRET in production', () => {
+    expect(() => validateEnv({ ...base, NODE_ENV: 'production' })).toThrow(
+      /OTP_HMAC_SECRET/,
+    );
+    expect(() =>
+      validateEnv({
+        ...base,
+        NODE_ENV: 'production',
+        OTP_HMAC_SECRET: 'short',
+      }),
+    ).toThrow(/OTP_HMAC_SECRET/);
+    expect(
+      validateEnv({
+        ...base,
+        NODE_ENV: 'production',
+        OTP_HMAC_SECRET: 'c'.repeat(32),
+      }).OTP_HMAC_SECRET,
+    ).toBe('c'.repeat(32));
+  });
+
+  it('review login needs both email and a 6-digit code', () => {
+    expect(() =>
+      validateEnv({ ...base, REVIEW_LOGIN_EMAIL: 'r@example.com' }),
+    ).toThrow(/together/);
+    expect(() => validateEnv({ ...base, REVIEW_LOGIN_CODE: '123456' })).toThrow(
+      /together/,
+    );
+    expect(() =>
+      validateEnv({
+        ...base,
+        REVIEW_LOGIN_EMAIL: 'r@example.com',
+        REVIEW_LOGIN_CODE: '12345',
+      }),
+    ).toThrow(/6 digits/);
+    const env = validateEnv({
+      ...base,
+      REVIEW_LOGIN_EMAIL: ' Review@Example.com ',
+      REVIEW_LOGIN_CODE: '123456',
+    });
+    expect(env.REVIEW_LOGIN_EMAIL).toBe('review@example.com');
+  });
+});
+
 describe('parseDurationSeconds', () => {
   it.each([
     ['45', 45],

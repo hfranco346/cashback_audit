@@ -55,6 +55,13 @@ const creditPacks = z
     return packs;
   });
 
+/** Empty values (`KEY=`) count as unset. */
+const emptyToUndefined = (value: unknown) =>
+  typeof value === 'string' && value.trim() === '' ? undefined : value;
+
+export const DEV_OTP_HMAC_SECRET =
+  'dev-only-otp-hmac-secret-do-not-use-in-prod';
+
 const baseSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
@@ -74,6 +81,37 @@ const baseSchema = z.object({
   GOOGLE_CLIENT_IDS: z.string().default(''),
   /** Expected `aud` claim of Apple identity tokens (the iOS bundle ID). */
   APPLE_BUNDLE_ID: z.string().default(''),
+
+  /** HMAC key for stored sign-in codes. Required in production. */
+  OTP_HMAC_SECRET: z.preprocess(
+    emptyToUndefined,
+    z.string().min(32, 'OTP_HMAC_SECRET needs >= 32 chars').optional(),
+  ),
+  /** `From` header of the sign-in code emails. */
+  EMAIL_FROM: z
+    .string()
+    .min(3)
+    .default('Cashback Audit <no-reply@neargps.net>'),
+  /** Email delivery adapter. Only `log` exists until a provider is chosen. */
+  EMAIL_PROVIDER: z.enum(['log']).default('log'),
+  /** App Store / Play review account: fixed code for this one address. */
+  REVIEW_LOGIN_EMAIL: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .trim()
+      .toLowerCase()
+      .pipe(z.email('REVIEW_LOGIN_EMAIL must be an email'))
+      .optional(),
+  ),
+  REVIEW_LOGIN_CODE: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/, 'REVIEW_LOGIN_CODE must be 6 digits')
+      .optional(),
+  ),
 
   ANTHROPIC_API_KEY: z.string().default(''),
   /** Model used to read the statement PDF. */
@@ -106,6 +144,8 @@ const baseSchema = z.object({
   THROTTLE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(120),
   VERIFICATION_THROTTLE_LIMIT: z.coerce.number().int().positive().default(5),
+  /** Email sign-in requests per IP per throttle window, per route (start, verify). */
+  OTP_THROTTLE_LIMIT: z.coerce.number().int().positive().default(10),
 });
 
 /**
@@ -113,17 +153,36 @@ const baseSchema = z.object({
  * the deprecated ANTHROPIC_MODEL, else the default; classification =
  * ANTHROPIC_CLASSIFICATION_MODEL, else the default.
  */
-export const envSchema = baseSchema.transform((env) => ({
-  ...env,
-  CREDITS_GATE_ENABLED:
-    env.CREDITS_GATE_ENABLED ?? env.SUBSCRIPTION_GATE_ENABLED ?? true,
-  ANTHROPIC_EXTRACTION_MODEL:
-    env.ANTHROPIC_EXTRACTION_MODEL ??
-    env.ANTHROPIC_MODEL ??
-    DEFAULT_EXTRACTION_MODEL,
-  ANTHROPIC_CLASSIFICATION_MODEL:
-    env.ANTHROPIC_CLASSIFICATION_MODEL ?? DEFAULT_CLASSIFICATION_MODEL,
-}));
+export const envSchema = baseSchema
+  .superRefine((env, ctx) => {
+    if (env.NODE_ENV === 'production' && !env.OTP_HMAC_SECRET) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['OTP_HMAC_SECRET'],
+        message: 'OTP_HMAC_SECRET is required in production (>= 32 chars)',
+      });
+    }
+    if (Boolean(env.REVIEW_LOGIN_EMAIL) !== Boolean(env.REVIEW_LOGIN_CODE)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['REVIEW_LOGIN_CODE'],
+        message:
+          'REVIEW_LOGIN_EMAIL and REVIEW_LOGIN_CODE must be set together',
+      });
+    }
+  })
+  .transform((env) => ({
+    ...env,
+    OTP_HMAC_SECRET: env.OTP_HMAC_SECRET ?? DEV_OTP_HMAC_SECRET,
+    CREDITS_GATE_ENABLED:
+      env.CREDITS_GATE_ENABLED ?? env.SUBSCRIPTION_GATE_ENABLED ?? true,
+    ANTHROPIC_EXTRACTION_MODEL:
+      env.ANTHROPIC_EXTRACTION_MODEL ??
+      env.ANTHROPIC_MODEL ??
+      DEFAULT_EXTRACTION_MODEL,
+    ANTHROPIC_CLASSIFICATION_MODEL:
+      env.ANTHROPIC_CLASSIFICATION_MODEL ?? DEFAULT_CLASSIFICATION_MODEL,
+  }));
 
 export type Env = z.infer<typeof envSchema>;
 

@@ -7,9 +7,16 @@ import {
   RefreshTokensUseCase,
 } from './application/session.use-cases.js';
 import {
+  OtpCodec,
+  SignInWithEmailUseCase,
+  StartEmailLoginUseCase,
+} from './application/email-login.use-cases.js';
+import {
   SignInWithAppleUseCase,
   SignInWithGoogleUseCase,
 } from './application/sign-in.use-case.js';
+import { EmailLoginCodeRepository } from './domain/email-login-code.repository.js';
+import { EmailSender } from './domain/email-sender.js';
 import {
   AppleIdTokenVerifier,
   GoogleIdTokenVerifier,
@@ -19,6 +26,8 @@ import { TokenService } from './domain/token-service.js';
 import { JoseAppleIdTokenVerifier } from './infrastructure/apple-id-token.verifier.js';
 import { AuthController } from './infrastructure/auth.controller.js';
 import { GoogleOAuthIdTokenVerifier } from './infrastructure/google-id-token.verifier.js';
+import { LogEmailSender } from './infrastructure/log-email.sender.js';
+import { PrismaEmailLoginCodeRepository } from './infrastructure/prisma-email-login-code.repository.js';
 import { JoseTokenService } from './infrastructure/jose-token.service.js';
 import { JwtAuthGuard } from './infrastructure/jwt-auth.guard.js';
 import { PrismaRefreshTokenRepository } from './infrastructure/prisma-refresh-token.repository.js';
@@ -30,9 +39,18 @@ import { PrismaRefreshTokenRepository } from './infrastructure/prisma-refresh-to
     AuthSessionService,
     SignInWithGoogleUseCase,
     SignInWithAppleUseCase,
+    OtpCodec,
+    StartEmailLoginUseCase,
+    SignInWithEmailUseCase,
     RefreshTokensUseCase,
     LogoutUseCase,
     JwtAuthGuard,
+    // EMAIL_PROVIDER only has `log` for now; a real adapter replaces it here.
+    { provide: EmailSender, useClass: LogEmailSender },
+    {
+      provide: EmailLoginCodeRepository,
+      useClass: PrismaEmailLoginCodeRepository,
+    },
     { provide: TokenService, useClass: JoseTokenService },
     { provide: RefreshTokenRepository, useClass: PrismaRefreshTokenRepository },
     { provide: GoogleIdTokenVerifier, useClass: GoogleOAuthIdTokenVerifier },

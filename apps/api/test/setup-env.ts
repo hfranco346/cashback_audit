@@ -11,3 +11,4 @@ process.env.REVENUECAT_WEBHOOK_AUTH = 'test-webhook-secret';
 process.env.THROTTLE_LIMIT = '100000';
 process.env.VERIFICATION_THROTTLE_LIMIT = '100000';
 process.env.CREDITS_GATE_ENABLED = 'false';
+process.env.OTP_THROTTLE_LIMIT = '100000';

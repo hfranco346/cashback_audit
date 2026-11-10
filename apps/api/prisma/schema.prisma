@@ -12,6 +12,7 @@ datasource db {
 enum AuthProvider {
   GOOGLE
   APPLE
+  EMAIL
 }
 
 model User {
@@ -337,4 +338,22 @@ model CreditLedger {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, bucket])
+}
+
+/// One-time sign-in code sent by email. Only an HMAC of the code is stored.
+model EmailLoginCode {
+  id         String    @id @default(uuid()) @db.Uuid
+  /// Normalized (trimmed, lowercase) address.
+  email      String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  /// Set when the code was used, replaced by a newer one or burned.
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  /// Requester IP, kept for abuse investigation.
+  ip         String?
+
+  @@index([email, createdAt(sort: Desc)])
+  @@index([createdAt])
 }

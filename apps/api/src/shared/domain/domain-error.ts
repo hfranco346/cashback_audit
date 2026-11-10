@@ -6,6 +6,8 @@ export type DomainErrorKind =
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'CONFLICT'
+  | 'GONE'
+  | 'RATE_LIMITED'
   | 'UNPROCESSABLE'
   | 'UPSTREAM_FAILURE'
   | 'UPSTREAM_UNAVAILABLE';

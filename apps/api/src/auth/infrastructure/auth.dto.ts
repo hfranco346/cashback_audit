@@ -1,5 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsEmail,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+} from 'class-validator';
+
+const trimmed = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim() : value;
+const normalizedEmail = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim().toLowerCase() : value;
 
 export class GoogleSignInDto {
   @ApiProperty({
@@ -36,4 +50,40 @@ export class RefreshDto {
   @IsNotEmpty()
   @MaxLength(8192)
   refreshToken!: string;
+}
+
+export class EmailStartDto {
+  @ApiProperty({
+    example: 'ana@example.com',
+    description: 'Trimmed and lowercased by the server',
+  })
+  @Transform(normalizedEmail)
+  @IsEmail()
+  @MaxLength(254)
+  email!: string;
+
+  @ApiPropertyOptional({
+    enum: ['es', 'en'],
+    description: 'Email language (default es)',
+  })
+  @IsOptional()
+  @IsIn(['es', 'en'])
+  locale?: 'es' | 'en';
+}
+
+export class EmailVerifyDto {
+  @ApiProperty({ example: 'ana@example.com' })
+  @Transform(normalizedEmail)
+  @IsEmail()
+  @MaxLength(254)
+  email!: string;
+
+  @ApiProperty({
+    example: '123456',
+    description: '6-digit code from the email',
+  })
+  @Transform(trimmed)
+  @IsString()
+  @Matches(/^\d{6}$/, { message: 'code must be 6 digits' })
+  code!: string;
 }
