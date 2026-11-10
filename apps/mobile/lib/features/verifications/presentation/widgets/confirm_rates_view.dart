@@ -1,3 +1,4 @@
+import 'package:decimal/decimal.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/ui.dart';
+import '../../../../core/utils/rate_direction.dart';
 import '../../domain/verification_entities.dart'
     show RewardConversion, SuggestedCategory;
 import '../confirm_rates_controller.dart';
@@ -45,6 +47,8 @@ class ConfirmRatesView extends StatelessWidget {
     this.rewardConversion,
     this.rewardRate,
     this.rewardRateOrigin = RateOrigin.none,
+    this.rewardDirection,
+    this.rewardPreviewAmount,
     this.rewardRateError,
     this.onRewardRateTouched,
     this.foreignRates = const [],
@@ -108,6 +112,8 @@ class ConfirmRatesView extends StatelessWidget {
   final RewardConversion? rewardConversion;
   final TextEditingController? rewardRate;
   final RateOrigin rewardRateOrigin;
+  final RateDirection? rewardDirection;
+  final Decimal? rewardPreviewAmount;
   final String? rewardRateError;
   final VoidCallback? onRewardRateTouched;
 
@@ -227,8 +233,11 @@ class ConfirmRatesView extends StatelessWidget {
                         conv.toCurrency,
                         conv.fromCurrency,
                       ),
-                      unit: conv.toCurrency,
-                      target: conv.fromCurrency,
+                      unit: rewardDirection?.unit ?? conv.toCurrency,
+                      target: rewardDirection?.quote ?? conv.fromCurrency,
+                      direction: rewardDirection,
+                      previewAmount: rewardPreviewAmount,
+                      previewKind: RatePreviewKind.reward,
                       controller: rewardRate!,
                       fieldKey: const Key('reward-rate-field'),
                       origin: rewardRateOrigin,
@@ -242,8 +251,10 @@ class ConfirmRatesView extends StatelessWidget {
                     ExchangeRateCard(
                       key: Key('foreign-rate-card-${rate.currency}'),
                       title: l10n.exchangeForeignTitle(rate.currency),
-                      unit: rate.currency,
-                      target: primaryCurrency,
+                      unit: rate.direction.unit,
+                      target: rate.direction.quote,
+                      direction: rate.direction,
+                      previewAmount: rate.previewAmount,
                       controller: rate.rate,
                       fieldKey: Key('foreign-rate-${rate.currency}'),
                       origin: rate.origin,

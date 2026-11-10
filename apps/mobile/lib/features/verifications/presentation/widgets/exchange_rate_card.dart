@@ -1,16 +1,25 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/molecules/inverted_rate_hint.dart';
 import '../../../../core/ui/ui.dart';
+import '../../../../core/utils/decimal_utils.dart';
+import '../../../../core/utils/rate_direction.dart';
+import '../../../cards/domain/card_validator.dart';
 import '../confirm_rates_controller.dart' show RateOrigin;
 
 final _decimal = FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'));
 
+/// What the live preview talks about.
+enum RatePreviewKind { reward, purchases }
+
 /// "1 USD = how many HNL?": the currency is fixed on each side of the field
-/// so the rate cannot be entered upside down. Required (cashback conversion)
-/// or optional (purchases in a foreign currency).
+/// (the stronger one is the unit, so the number is >= 1), a live preview shows
+/// the effect and an upside-down value gets a flip hint. Required (cashback
+/// conversion) or optional (purchases in a foreign currency).
 class ExchangeRateCard extends StatelessWidget {
   const ExchangeRateCard({
     super.key,
@@ -28,6 +37,9 @@ class ExchangeRateCard extends StatelessWidget {
     this.emptyNote,
     this.emptyNoteKey,
     this.showFindHint = true,
+    this.direction,
+    this.previewAmount,
+    this.previewKind = RatePreviewKind.purchases,
   });
 
   final String title;
@@ -58,6 +70,38 @@ class ExchangeRateCard extends StatelessWidget {
   final Key? emptyNoteKey;
   final bool showFindHint;
 
+  /// Unit/answer currencies and API conversion; `null` for the legacy
+  /// "any foreign currency" field (no preview, no flip hint).
+  final RateDirection? direction;
+
+  /// Amount in the other currency the preview converts (the reported reward
+  /// or the purchases in that currency); an example is shown when null.
+  final Decimal? previewAmount;
+  final RatePreviewKind previewKind;
+
+  String? _previewText(BuildContext context) {
+    final d = direction;
+    if (d == null) return null;
+    final shown = CardValidator.parse(controller.text);
+    if (shown == null) return null;
+    final stored = d.toStored(shown);
+    if (stored == null) return null;
+    final l10n = context.l10n;
+    final amount = previewAmount;
+    if (amount != null && amount > Decimal.zero) {
+      final from = formatMoney(amount, currency: d.other);
+      final to = formatMoney(amount * stored, currency: d.primary);
+      return previewKind == RatePreviewKind.reward
+          ? l10n.ratePreviewReward(from, to)
+          : l10n.ratePreviewPurchases(from, to);
+    }
+    final base = Decimal.fromInt(100);
+    return l10n.ratePreviewExample(
+      formatMoney(base, currency: d.unit),
+      formatMoney(base * shown, currency: d.quote),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -73,7 +117,12 @@ class ExchangeRateCard extends StatelessWidget {
           RateOrigin.statement => (
             StatusKind.ok,
             Icons.description_outlined,
-            l10n.badgeStatement,
+            l10n.rateSourceStatement,
+          ),
+          RateOrigin.lastRate => (
+            StatusKind.neutral,
+            Icons.history_rounded,
+            l10n.rateSourceLast,
           ),
           RateOrigin.previous => (
             StatusKind.neutral,
@@ -215,6 +264,38 @@ class ExchangeRateCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (direction != null)
+                  InvertedRateHint(
+                    direction: direction!,
+                    shown: CardValidator.parse(controller.text),
+                    onUse: (value) {
+                      controller.text = decimalToApi(value);
+                      onTouched?.call();
+                    },
+                  ),
+                if (_previewText(context) case final preview?) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    preview,
+                    key: const Key('rate-preview'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: appFigures,
+                    ),
+                  ),
+                ],
+                if (empty && direction?.exampleShown != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.rateExampleHelper(
+                      direction!.unit,
+                      formatExchangeRate(direction!.exampleShown!),
+                      direction!.quote,
+                    ),
+                    key: const Key('rate-example'),
+                    style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                  ),
+                ],
                 if (message != null) ...[
                   const SizedBox(height: 8),
                   Row(

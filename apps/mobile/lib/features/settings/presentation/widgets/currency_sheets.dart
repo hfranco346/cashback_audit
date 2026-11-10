@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/l10n/l10n_context.dart';
+import '../../../../core/ui/molecules/inverted_rate_hint.dart';
 import '../../../../core/ui/ui.dart';
+import '../../../../core/utils/rate_direction.dart';
 
 final _codePattern = RegExp(r'^[A-Za-z]{3}$');
 
@@ -106,7 +108,9 @@ class RateSheetResult {
   final bool clear;
 }
 
-/// "1 USD = how many HNL?" editor for the last exchange rate of [code].
+/// "1 USD = how many HNL?" editor for the last exchange rate of [code]. The
+/// stronger currency is the unit whichever side is [primary]; [current] and
+/// the returned rate are in the API direction (primary units per 1 [code]).
 Future<RateSheetResult?> showRateSheet(
   BuildContext context, {
   required String code,
@@ -140,8 +144,15 @@ class _RateSheet extends StatefulWidget {
 }
 
 class _RateSheetState extends State<_RateSheet> {
+  late final RateDirection _direction = RateDirection.choose(
+    primary: widget.primary,
+    other: widget.code,
+    knownStored: widget.current,
+  );
   late final _controller = TextEditingController(
-    text: widget.current?.toString() ?? '',
+    text: widget.current == null
+        ? ''
+        : _direction.toShown(widget.current!).toString(),
   );
   String? _error;
 
@@ -152,7 +163,8 @@ class _RateSheetState extends State<_RateSheet> {
   }
 
   void _submit() {
-    final rate = parseRateInput(_controller.text);
+    final shown = parseRateInput(_controller.text);
+    final rate = shown == null ? null : _direction.toStored(shown);
     if (rate == null) {
       setState(() => _error = context.l10n.curRateInvalid);
       return;
@@ -179,18 +191,33 @@ class _RateSheetState extends State<_RateSheet> {
                 Navigator.of(context).pop(const RateSheetResult.clear()),
           ),
       ],
-      child: AppField(
-        label: l10n.curRateQuestion(widget.code, widget.primary),
-        child: TextField(
-          key: const Key('rate-field'),
-          controller: _controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          onSubmitted: (_) => _submit(),
-          decoration: AppField.decoration(
-            prefix: '1 ${widget.code} = ',
-            suffix: widget.primary,
-          ).copyWith(errorText: _error),
+      child: ListenableBuilder(
+        listenable: _controller,
+        builder: (context, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppField(
+              label: l10n.curRateQuestion(_direction.unit, _direction.quote),
+              child: TextField(
+                key: const Key('rate-field'),
+                controller: _controller,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                onSubmitted: (_) => _submit(),
+                decoration: AppField.decoration(
+                  prefix: '1 ${_direction.unit} = ',
+                  suffix: _direction.quote,
+                ).copyWith(errorText: _error),
+              ),
+            ),
+            InvertedRateHint(
+              direction: _direction,
+              shown: parseRateInput(_controller.text),
+              onUse: (value) => _controller.text = value.toString(),
+            ),
+          ],
         ),
       ),
     );

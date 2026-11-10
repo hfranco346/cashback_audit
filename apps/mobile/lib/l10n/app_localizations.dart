@@ -3614,6 +3614,54 @@ abstract class AppLocalizations {
   /// **'Lo encuentras en tu estado de cuenta o en el sitio de tu banco.'**
   String get exchangeFindHint;
 
+  /// No description provided for @rateSourceStatement.
+  ///
+  /// In es, this message translates to:
+  /// **'Del estado de cuenta'**
+  String get rateSourceStatement;
+
+  /// No description provided for @rateSourceLast.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu último tipo de cambio'**
+  String get rateSourceLast;
+
+  /// No description provided for @rateExampleHelper.
+  ///
+  /// In es, this message translates to:
+  /// **'Por ejemplo: 1 {unit} = {value} {quote}.'**
+  String rateExampleHelper(String unit, String value, String quote);
+
+  /// No description provided for @rateInvertedHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Parece al revés. ¿Quisiste decir 1 {unit} = {value} {quote}?'**
+  String rateInvertedHint(String unit, String value, String quote);
+
+  /// No description provided for @rateInvertedUse.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar {value}'**
+  String rateInvertedUse(String value);
+
+  /// No description provided for @ratePreviewReward.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu banco pagó {from} → equivale a {to}'**
+  String ratePreviewReward(String from, String to);
+
+  /// No description provided for @ratePreviewPurchases.
+  ///
+  /// In es, this message translates to:
+  /// **'Tus compras de {from} → {to}'**
+  String ratePreviewPurchases(String from, String to);
+
+  /// No description provided for @ratePreviewExample.
+  ///
+  /// In es, this message translates to:
+  /// **'Ejemplo: {from} = {to}'**
+  String ratePreviewExample(String from, String to);
+
   /// No description provided for @exchangeForeignTitle.
   ///
   /// In es, this message translates to:

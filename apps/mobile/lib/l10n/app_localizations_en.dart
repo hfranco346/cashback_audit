@@ -2132,6 +2132,42 @@ class AppLocalizationsEn extends AppLocalizations {
       'You\'ll find it on your statement or your bank\'s website.';
 
   @override
+  String get rateSourceStatement => 'From your statement';
+
+  @override
+  String get rateSourceLast => 'Your last exchange rate';
+
+  @override
+  String rateExampleHelper(String unit, String value, String quote) {
+    return 'For example: 1 $unit = $value $quote.';
+  }
+
+  @override
+  String rateInvertedHint(String unit, String value, String quote) {
+    return 'That looks upside down. Did you mean 1 $unit = $value $quote?';
+  }
+
+  @override
+  String rateInvertedUse(String value) {
+    return 'Use $value';
+  }
+
+  @override
+  String ratePreviewReward(String from, String to) {
+    return 'Your bank paid $from → equals $to';
+  }
+
+  @override
+  String ratePreviewPurchases(String from, String to) {
+    return 'Your purchases of $from → $to';
+  }
+
+  @override
+  String ratePreviewExample(String from, String to) {
+    return 'Example: $from = $to';
+  }
+
+  @override
   String exchangeForeignTitle(String currency) {
     return 'Purchases in $currency';
   }

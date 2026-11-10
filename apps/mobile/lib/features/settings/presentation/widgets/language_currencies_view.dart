@@ -1,3 +1,4 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/l10n/currency_names.dart';
@@ -5,6 +6,7 @@ import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/ui.dart';
 import '../../../../core/utils/decimal_utils.dart';
+import '../../../../core/utils/rate_direction.dart';
 import '../../../cards/presentation/widgets/currency_picker.dart';
 import '../../domain/locale_preference.dart';
 import '../../domain/user_preferences.dart';
@@ -13,6 +15,26 @@ import 'settings_rows.dart';
 /// Pure presentational "Idioma y monedas": app language (Automatic /
 /// Español / English), main currency and the currencies the user works with
 /// (each with its last exchange rate).
+/// "Last exchange rate: 1 USD = 26.30 HNL": stronger currency first,
+/// whichever side is the main currency.
+String _lastRate(
+  AppLocalizations l10n,
+  String code,
+  Decimal stored,
+  String primary,
+) {
+  final d = RateDirection.choose(
+    primary: primary,
+    other: code,
+    knownStored: stored,
+  );
+  return l10n.curLastRate(
+    d.unit,
+    formatExchangeRate(d.toShown(stored)),
+    d.quote,
+  );
+}
+
 class LanguageCurrenciesView extends StatelessWidget {
   const LanguageCurrenciesView({
     super.key,
@@ -200,11 +222,7 @@ class LanguageCurrenciesView extends StatelessWidget {
                               ? null
                               : c.rate == null
                               ? l10n.curNoRate
-                              : l10n.curLastRate(
-                                  c.code,
-                                  formatExchangeRate(c.rate!),
-                                  primary!,
-                                ),
+                              : _lastRate(l10n, c.code, c.rate!, primary!),
                           onTap: primary == null ? null : () => onEditRate(c),
                           trailing: IconButton(
                             key: Key('remove-${c.code}'),

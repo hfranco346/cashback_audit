@@ -128,9 +128,9 @@ void main() {
         savedPrimary: 'HNL',
       );
       expect(c.foreignRates.single.rate.text, '28.1');
-      expect(c.foreignRates.single.origin, RateOrigin.previous);
+      expect(c.foreignRates.single.origin, RateOrigin.lastRate);
       expect(c.rewardRate.text, '26.5');
-      expect(c.rewardRateOrigin, RateOrigin.previous);
+      expect(c.rewardRateOrigin, RateOrigin.lastRate);
     });
 
     test('a saved rate expressed in another primary currency is ignored', () {
@@ -273,7 +273,9 @@ void main() {
     expect(c.buildRequest().categoryRates.single.monthlyCap, _d('500'));
   });
 
-  testWidgets('saved rate shows the "previous" label', (tester) async {
+  testWidgets('saved rate shows the "your last exchange rate" label', (
+    tester,
+  ) async {
     await pumpPage(
       tester,
       _fico(),
@@ -281,7 +283,7 @@ void main() {
       savedPrimary: 'HNL',
     );
     final l10n = l10nOf(tester);
-    expect(find.text(l10n.badgePrevious), findsNWidgets(2));
+    expect(find.text(l10n.rateSourceLast), findsNWidgets(2));
     final field = tester.widget<TextField>(
       find.byKey(const Key('reward-rate-field')),
     );

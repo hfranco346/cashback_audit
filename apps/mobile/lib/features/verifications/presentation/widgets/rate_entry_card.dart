@@ -29,7 +29,7 @@ class RateEntryCard extends StatelessWidget {
   RateSource get _source => switch (entry.origin) {
     RateOrigin.statement => RateSource.detected,
     RateOrigin.cardRule => RateSource.cardRules,
-    RateOrigin.previous => RateSource.previous,
+    RateOrigin.previous || RateOrigin.lastRate => RateSource.previous,
     RateOrigin.none => RateSource.required,
   };
 

@@ -1176,6 +1176,77 @@
     }
   },
   "exchangeFindHint": "Lo encuentras en tu estado de cuenta o en el sitio de tu banco.",
+  "rateSourceStatement": "Del estado de cuenta",
+  "rateSourceLast": "Tu último tipo de cambio",
+  "rateExampleHelper": "Por ejemplo: 1 {unit} = {value} {quote}.",
+  "@rateExampleHelper": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      },
+      "quote": {
+        "type": "String"
+      }
+    }
+  },
+  "rateInvertedHint": "Parece al revés. ¿Quisiste decir 1 {unit} = {value} {quote}?",
+  "@rateInvertedHint": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      },
+      "quote": {
+        "type": "String"
+      }
+    }
+  },
+  "rateInvertedUse": "Usar {value}",
+  "@rateInvertedUse": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "ratePreviewReward": "Tu banco pagó {from} → equivale a {to}",
+  "@ratePreviewReward": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "ratePreviewPurchases": "Tus compras de {from} → {to}",
+  "@ratePreviewPurchases": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "ratePreviewExample": "Ejemplo: {from} = {to}",
+  "@ratePreviewExample": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
   "exchangeForeignTitle": "Compras en {currency}",
   "@exchangeForeignTitle": {
     "placeholders": {

@@ -300,6 +300,45 @@ void main() {
       expect(result?.clear, isTrue);
     });
 
+    testWidgets('rate sheet asks with the stronger currency as the unit', (
+      tester,
+    ) async {
+      RateSheetResult? result;
+      await pumpUi(
+        tester,
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () async => result = await showRateSheet(
+              context,
+              code: 'HNL',
+              primary: 'USD',
+              current: Decimal.parse('0.038023'),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      // Main currency USD, saved as 1 HNL = 0.038023 USD: shown as
+      // "1 USD = 26.3 HNL" and saved back in the API direction.
+      expect(find.text('1 USD = ¿cuántos HNL?'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('rate-field')))
+            .controller!
+            .text,
+        '26.3',
+      );
+      await tester.enterText(find.byKey(const Key('rate-field')), '0.038');
+      await tester.pump();
+      expect(find.byKey(const Key('inverted-rate-hint')), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('rate-field')), '26.5');
+      await tester.tap(find.byKey(const Key('rate-sheet-save')));
+      await tester.pumpAndSettle();
+      expect(result?.rate, Decimal.parse('0.037736'));
+    });
+
     testWidgets('code sheet only accepts 3 letters', (tester) async {
       String? code;
       await pumpUi(

@@ -8,6 +8,7 @@ import '../../../core/l10n/strings.dart';
 import '../../../core/routing/app_navigator.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/utils/decimal_utils.dart';
+import '../../../core/utils/rate_direction.dart';
 import '../../cards/domain/card_entities.dart';
 import '../../cards/domain/card_validator.dart';
 import '../../cards/presentation/cards_controller.dart';
@@ -40,8 +41,9 @@ class ConfirmRatesArgs {
   final bool returnToResult;
 }
 
-/// Where a prefilled value came from (drives the badge).
-enum RateOrigin { statement, cardRule, previous, none }
+/// Where a prefilled value came from (drives the badge). [lastRate] is the
+/// user's saved exchange rate for the currency.
+enum RateOrigin { statement, cardRule, previous, lastRate, none }
 
 /// Editable state of one rate entry (the base rate or one category).
 class RateEntryDraft {
@@ -97,9 +99,13 @@ class RateEntryDraft {
 }
 
 /// `null` when [text] is a valid exchange rate (> 0, at most 6 decimals).
-String? validateExchangeRate(String text) {
+/// With a [direction] the API value derived from it must also be valid.
+String? validateExchangeRate(String text, {RateDirection? direction}) {
   final d = CardValidator.parse(text);
   if (d == null || d <= Decimal.zero || d.scale > 6) {
+    return S.exchangeRateInvalid;
+  }
+  if (direction != null && direction.toStored(d) == null) {
     return S.exchangeRateInvalid;
   }
   return null;
@@ -110,17 +116,33 @@ class ForeignRateDraft {
   ForeignRateDraft({
     required this.currency,
     required this.origin,
+    required this.direction,
+    this.previewAmount,
     String rate = '',
   }) : rate = TextEditingController(text: rate);
 
   final String currency;
   final RateOrigin origin;
+
+  /// Which currency is the unit of the question; [rate] holds the number as
+  /// the user sees it, [apiRate] converts it to the API direction.
+  final RateDirection direction;
+
+  /// Net purchases in [currency] (preview of the effect), when known.
+  final Decimal? previewAmount;
   final TextEditingController rate;
+
+  /// The value to send (`primary units per 1 [currency]`), or `null`.
+  Decimal? get apiRate {
+    final shown = CardValidator.parse(rate.text);
+    return shown == null ? null : direction.toStored(shown);
+  }
 
   bool get hasRate => rate.text.trim().isNotEmpty;
 
   /// Optional: only validated when something was typed.
-  String? get error => hasRate ? validateExchangeRate(rate.text) : null;
+  String? get error =>
+      hasRate ? validateExchangeRate(rate.text, direction: direction) : null;
 
   /// Without a rate this currency's purchases are left out of the audit.
   bool get willBeExcluded => !hasRate;
@@ -168,6 +190,13 @@ class ConfirmRatesController extends GetxController {
   final rewardConversion = Rxn<RewardConversion>();
   final rewardRate = TextEditingController();
   RateOrigin rewardRateOrigin = RateOrigin.none;
+
+  /// Unit of the reward question and API conversion (set with
+  /// [rewardConversion]); [rewardRate] holds the number as the user sees it.
+  RateDirection? rewardDirection;
+
+  /// The bank-reported reward in the reward currency (preview), if known.
+  Decimal? rewardPreviewAmount;
   bool rewardRateTouched = false;
 
   /// One optional rate per foreign spend currency.
@@ -247,7 +276,7 @@ class ConfirmRatesController extends GetxController {
           ? S.rewardRateRequiredError
           : null;
     }
-    return validateExchangeRate(t);
+    return validateExchangeRate(t, direction: rewardDirection);
   }
 
   String? get overrideError {
@@ -377,7 +406,9 @@ class ConfirmRatesController extends GetxController {
 
   /// Prefill priority for the reward and foreign rates: what the
   /// verification was audited with / sent before > what the statement prints
-  /// > empty.
+  /// > the user's last saved rate > empty. The stored value (API direction)
+  /// also decides which currency is the unit of the question; the field
+  /// shows it in that direction.
   void _loadConversion(Verification v) {
     final conv = v.rewardConversion;
     rewardConversion.value = conv;
@@ -388,11 +419,32 @@ class ConfirmRatesController extends GetxController {
         ? null
         : _savedRate(code: conv.toCurrency, target: conv.fromCurrency);
     final reward = used ?? conv?.rate ?? saved;
-    rewardRate.text = reward == null ? '' : decimalToApi(reward);
-    rewardRateOrigin = (used != null || (conv?.rate == null && saved != null))
+    rewardDirection = conv == null
+        ? null
+        : RateDirection.choose(
+            primary: conv.fromCurrency,
+            other: conv.toCurrency,
+            knownStored: reward,
+          );
+    rewardRate.text = reward == null
+        ? ''
+        : decimalToApi(rewardDirection!.toShown(reward));
+    rewardRateOrigin = used != null
         ? RateOrigin.previous
-        : (conv?.rate != null ? RateOrigin.statement : RateOrigin.none);
+        : conv?.rate != null
+        ? RateOrigin.statement
+        : saved != null
+        ? RateOrigin.lastRate
+        : RateOrigin.none;
     rewardRateTouched = false;
+    final reported = v.reported;
+    rewardPreviewAmount =
+        conv != null &&
+            reported != null &&
+            reported.unit != RewardUnit.points &&
+            (reported.currency ?? conv.toCurrency) == conv.toCurrency
+        ? reported.amount
+        : null;
 
     for (final f in foreignRates) {
       f.dispose();
@@ -403,12 +455,23 @@ class ConfirmRatesController extends GetxController {
           final sent = v.conversion.requestedRates[e.currency];
           final saved = _savedRate(code: e.currency, target: v.currency);
           final value = sent ?? e.rate ?? saved;
+          final direction = RateDirection.choose(
+            primary: v.currency,
+            other: e.currency,
+            knownStored: value,
+          );
           final draft = ForeignRateDraft(
             currency: e.currency,
-            origin: sent != null || (e.rate == null && saved != null)
+            direction: direction,
+            previewAmount: _netPurchases(v, e.currency),
+            origin: sent != null
                 ? RateOrigin.previous
-                : (e.rate != null ? RateOrigin.statement : RateOrigin.none),
-            rate: value == null ? '' : decimalToApi(value),
+                : e.rate != null
+                ? RateOrigin.statement
+                : saved != null
+                ? RateOrigin.lastRate
+                : RateOrigin.none,
+            rate: value == null ? '' : decimalToApi(direction.toShown(value)),
           );
           draft.rate.addListener(_bump);
           return draft;
@@ -418,6 +481,17 @@ class ConfirmRatesController extends GetxController {
     _handledSuggestions.clear();
     suggestionsCreatedNotice.value = false;
     _loadSuggestions(v, preselect: true);
+  }
+
+  /// Purchases minus refunds in [currency] (what the rate converts), or
+  /// `null` when there is nothing to convert.
+  static Decimal? _netPurchases(Verification v, String currency) {
+    var total = Decimal.zero;
+    for (final t in v.transactions) {
+      if (t.currency != currency || !t.kind.earnsReward) continue;
+      total += t.isCredit ? -t.amount : t.amount;
+    }
+    return total > Decimal.zero ? total : null;
   }
 
   /// The user's saved rate for [code] when it is expressed in [target].
@@ -602,11 +676,9 @@ class ConfirmRatesController extends GetxController {
       exchangeRate: showExchangeRate ? exchange : null,
       exchangeRates: {
         for (final f in foreignRates)
-          if (f.hasRate) f.currency: CardValidator.parse(f.rate.text)!,
+          if (f.hasRate && f.apiRate != null) f.currency: f.apiRate!,
       },
-      rewardExchangeRate: rewardConversion.value == null
-          ? null
-          : CardValidator.parse(rewardRate.text),
+      rewardExchangeRate: _rewardApiRate,
       rewardProgramName: selectedProgram.value,
     );
   }
@@ -633,6 +705,21 @@ class ConfirmRatesController extends GetxController {
     } finally {
       submitting.value = false;
     }
+  }
+
+  /// The reward rate in the API direction (primary units per 1 reward
+  /// unit), or `null` when there is no conversion or nothing valid typed.
+  Decimal? get _rewardApiRate {
+    final conv = rewardConversion.value;
+    if (conv == null) return null;
+    final shown = CardValidator.parse(rewardRate.text);
+    if (shown == null) return null;
+    return (rewardDirection ??
+            RateDirection.choose(
+              primary: conv.fromCurrency,
+              other: conv.toCurrency,
+            ))
+        .toStored(shown);
   }
 
   Future<void> confirm() async {
@@ -683,6 +770,14 @@ class ConfirmRatesController extends GetxController {
             required: true,
             note: current?.note,
           );
+          if (rewardDirection?.primary != from ||
+              rewardDirection?.other != to) {
+            rewardDirection = RateDirection.choose(
+              primary: from,
+              other: to,
+              knownStored: current?.rate,
+            );
+          }
         }
         rewardRateTouched = true;
         errorMessage.value = userMessageFor(e);

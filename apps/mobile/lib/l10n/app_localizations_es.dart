@@ -2139,6 +2139,42 @@ class AppLocalizationsEs extends AppLocalizations {
       'Lo encuentras en tu estado de cuenta o en el sitio de tu banco.';
 
   @override
+  String get rateSourceStatement => 'Del estado de cuenta';
+
+  @override
+  String get rateSourceLast => 'Tu último tipo de cambio';
+
+  @override
+  String rateExampleHelper(String unit, String value, String quote) {
+    return 'Por ejemplo: 1 $unit = $value $quote.';
+  }
+
+  @override
+  String rateInvertedHint(String unit, String value, String quote) {
+    return 'Parece al revés. ¿Quisiste decir 1 $unit = $value $quote?';
+  }
+
+  @override
+  String rateInvertedUse(String value) {
+    return 'Usar $value';
+  }
+
+  @override
+  String ratePreviewReward(String from, String to) {
+    return 'Tu banco pagó $from → equivale a $to';
+  }
+
+  @override
+  String ratePreviewPurchases(String from, String to) {
+    return 'Tus compras de $from → $to';
+  }
+
+  @override
+  String ratePreviewExample(String from, String to) {
+    return 'Ejemplo: $from = $to';
+  }
+
+  @override
   String exchangeForeignTitle(String currency) {
     return 'Compras en $currency';
   }

@@ -4,6 +4,7 @@ import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/ui.dart';
 import '../../../../core/utils/decimal_utils.dart';
+import '../../../../core/utils/rate_direction.dart';
 import '../../../cards/domain/card_entities.dart';
 import '../../domain/verification_entities.dart';
 import '../format_reward.dart';
@@ -113,6 +114,12 @@ class _RewardRate extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    // Same direction as the question that was asked: stronger currency first.
+    final direction = RateDirection.choose(
+      primary: rate.fromCurrency,
+      other: rate.toCurrency,
+      knownStored: rate.rate,
+    );
     final origin = switch (rate.source) {
       'STATEMENT_CONFIRMED' => l10n.rewardRateFromStatement,
       'USER_ENTERED' => l10n.rewardRateUserEntered,
@@ -125,9 +132,9 @@ class _RewardRate extends StatelessWidget {
         KvRow(
           label: l10n.rewardRateDetailTitle,
           value: l10n.rewardRateDetail(
-            rate.toCurrency,
-            decimalToApi(rate.rate),
-            rate.fromCurrency,
+            direction.unit,
+            formatExchangeRate(direction.toShown(rate.rate)),
+            direction.quote,
           ),
         ),
         if (origin != null)

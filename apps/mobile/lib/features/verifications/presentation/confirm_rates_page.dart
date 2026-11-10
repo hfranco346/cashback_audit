@@ -91,6 +91,8 @@ class ConfirmRatesPage extends GetView<ConfirmRatesController> {
         rewardConversion: controller.rewardConversion.value,
         rewardRate: controller.rewardRate,
         rewardRateOrigin: controller.rewardRateOrigin,
+        rewardDirection: controller.rewardDirection,
+        rewardPreviewAmount: controller.rewardPreviewAmount,
         // Errors show once the user typed or left the field (or the server
         // answered REWARD_EXCHANGE_RATE_REQUIRED).
         rewardRateError:
