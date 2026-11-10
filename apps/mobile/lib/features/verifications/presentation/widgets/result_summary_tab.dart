@@ -82,6 +82,72 @@ class KvRow extends StatelessWidget {
   }
 }
 
+/// "Card cap reached": the card-wide cap per statement cut the total, shown
+/// as `uncapped → capped`. Amounts are in the card's currency.
+class CapAppliedCard extends StatelessWidget {
+  const CapAppliedCard({super.key, required this.cap, required this.format});
+
+  final RewardCapApplied cap;
+  final String Function(Decimal) format;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final colors = context.appColors;
+    return Container(
+      key: const Key('cap-applied'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.warning.bg,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: colors.warning.fg.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.vertical_align_top_rounded,
+                size: 18,
+                color: colors.warning.fg,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.resultCapTitle,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: colors.warning.fg,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.resultCapChange(format(cap.uncapped), format(cap.capped)),
+            key: const Key('cap-applied-change'),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              fontFeatures: appFigures,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.resultCapBody(format(cap.cap)),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// "Summary" tab: the verdict, a short explanation, one collapsible notice,
 /// the breakdown by category and the audited rewards program.
 class ResultSummaryTab extends StatelessWidget {
@@ -212,6 +278,13 @@ class ResultSummaryTab extends StatelessWidget {
             equivalence: equivalence,
           ),
         ),
+        if (v.rewardCapApplied case final capApplied?) ...[
+          const SizedBox(height: AppSpacing.md),
+          CapAppliedCard(
+            cap: capApplied,
+            format: (d) => formatReward(d, v.unit, currency: currency),
+          ),
+        ],
         if (derived != null) ...[
           const SizedBox(height: AppSpacing.md),
           RewardDerivationSection(

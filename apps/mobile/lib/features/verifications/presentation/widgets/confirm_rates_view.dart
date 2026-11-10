@@ -8,7 +8,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/ui.dart';
 import '../../../../core/utils/rate_direction.dart';
 import '../../domain/verification_entities.dart'
-    show RewardConversion, SuggestedCategory;
+    show RewardConversion, RewardProgramOption, SuggestedCategory;
 import '../confirm_rates_controller.dart';
 import 'delete_verification_dialog.dart';
 import 'exchange_rate_card.dart';
@@ -37,6 +37,9 @@ class ConfirmRatesView extends StatelessWidget {
     required this.programChoices,
     required this.selectedProgram,
     required this.onSelectProgram,
+    this.programDetails = const {},
+    this.rememberProgram = false,
+    this.onRememberProgram,
     required this.needsOverride,
     required this.reportedOverride,
     this.headerLine,
@@ -103,6 +106,11 @@ class ConfirmRatesView extends StatelessWidget {
   final List<String> programChoices;
   final String? selectedProgram;
   final ValueChanged<String?> onSelectProgram;
+
+  /// Unit, currency and printed label of each choice, by name.
+  final Map<String, RewardProgramOption> programDetails;
+  final bool rememberProgram;
+  final ValueChanged<bool>? onRememberProgram;
 
   final bool needsOverride;
   final TextEditingController reportedOverride;
@@ -298,6 +306,9 @@ class ConfirmRatesView extends StatelessWidget {
                       choices: programChoices,
                       selected: selectedProgram,
                       onSelected: onSelectProgram,
+                      details: programDetails,
+                      remember: rememberProgram,
+                      onRemember: onRememberProgram,
                     ),
                     const SizedBox(height: AppSpacing.md),
                   ],
@@ -457,16 +468,33 @@ class _ProgramChooser extends StatelessWidget {
     required this.choices,
     required this.selected,
     required this.onSelected,
+    this.details = const {},
+    this.remember = false,
+    this.onRemember,
   });
 
   final List<String> choices;
   final String? selected;
   final ValueChanged<String?> onSelected;
+  final Map<String, RewardProgramOption> details;
+  final bool remember;
+  final ValueChanged<bool>? onRemember;
+
+  String? _kind(AppLocalizations l10n, RewardProgramOption o) {
+    final unit = switch (o.unit) {
+      'POINTS' => l10n.programUnitPoints,
+      'CURRENCY' => l10n.programUnitCurrency,
+      _ => null,
+    };
+    final parts = [?unit, ?o.currency];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
     return Card(
       key: const Key('program-chooser'),
       child: Padding(
@@ -489,6 +517,32 @@ class _ProgramChooser extends StatelessWidget {
                       contentPadding: EdgeInsets.zero,
                       value: name,
                       title: Text(name),
+                      subtitle: switch (details[name]) {
+                        final o?
+                            when _kind(l10n, o) != null ||
+                                o.reportedLabel != null =>
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (_kind(l10n, o) != null)
+                                Text(
+                                  _kind(l10n, o)!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: muted,
+                                  ),
+                                ),
+                              if (o.reportedLabel != null)
+                                Text(
+                                  l10n.programPrintedAs(o.reportedLabel!),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: muted,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        _ => null,
+                      },
                     ),
                 ],
               ),
@@ -512,6 +566,16 @@ class _ProgramChooser extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            if (onRemember != null)
+              CheckboxListTile(
+                key: const Key('program-remember'),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                dense: true,
+                value: remember,
+                onChanged: (v) => onRemember!(v ?? false),
+                title: Text(l10n.programRemember),
               ),
           ],
         ),

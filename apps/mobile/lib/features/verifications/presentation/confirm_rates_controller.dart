@@ -218,6 +218,12 @@ class ConfirmRatesController extends GetxController {
   final programChoices = <String>[].obs;
   final selectedProgram = RxnString();
 
+  /// Details (unit, currency, printed label) of each choice, by name.
+  final programOptions = <String, RewardProgramOption>{}.obs;
+
+  /// Save the chosen program on the card.
+  final rememberProgram = false.obs;
+
   /// The statement shows no usable reward figure: the user types it.
   final needsReportedOverride = false.obs;
 
@@ -477,10 +483,20 @@ class ConfirmRatesController extends GetxController {
     _loadReporting(v);
     final requested = v.conversion.requestedRate;
     exchangeRate.text = requested == null ? '' : decimalToApi(requested);
-    programChoices.assignAll(
-      v.loyalty.needsChoice ? v.loyalty.programs.map((p) => p.name) : const [],
-    );
+    final choice = v.rewardProgramChoice;
+    if (choice != null && choice.required && choice.options.isNotEmpty) {
+      programOptions.assignAll({for (final o in choice.options) o.name: o});
+      programChoices.assignAll(choice.options.map((o) => o.name));
+    } else {
+      programOptions.clear();
+      programChoices.assignAll(
+        v.loyalty.needsChoice
+            ? v.loyalty.programs.map((p) => p.name)
+            : const [],
+      );
+    }
     selectedProgram.value = null;
+    rememberProgram.value = false;
     _bump();
   }
 
@@ -877,6 +893,8 @@ class ConfirmRatesController extends GetxController {
     _bump();
   }
 
+  void setRememberProgram(bool value) => rememberProgram.value = value;
+
   void setSaveToCard(bool value) => saveToCard.value = value;
 
   /// Builds the request from the current inputs. Entries without a value
@@ -906,6 +924,8 @@ class ConfirmRatesController extends GetxController {
       },
       rewardExchangeRate: _rewardApiRate,
       rewardProgramName: selectedProgram.value,
+      rememberProgramForCard:
+          selectedProgram.value != null && rememberProgram.value,
       rewardReporting: _reportingInput(),
     );
   }
@@ -956,7 +976,11 @@ class ConfirmRatesController extends GetxController {
     errorMessage.value = null;
     try {
       final result = await _repository.confirm(v.id, buildRequest());
-      if (saveToCard.value || rememberReporting.value) _cards.load();
+      if (saveToCard.value ||
+          rememberReporting.value ||
+          (selectedProgram.value != null && rememberProgram.value)) {
+        _cards.load();
+      }
       if (args.returnToResult) {
         _navigator.pop(result: result);
       } else {
@@ -971,8 +995,8 @@ class ConfirmRatesController extends GetxController {
 
   void _handleError(AppException e) {
     switch (e.code) {
-      case 'REWARD_PROGRAM_AMBIGUOUS':
-        final programs = _stringList((e.details as Map?)?['programs']);
+      case 'REWARD_PROGRAM_AMBIGUOUS' || 'INVALID_REWARD_PROGRAM':
+        final programs = _programNames((e.details as Map?)?['programs']);
         if (programs.isNotEmpty) {
           programChoices.assignAll(programs);
           selectedProgram.value = null;
@@ -1038,8 +1062,13 @@ class ConfirmRatesController extends GetxController {
     _bump();
   }
 
-  static List<String> _stringList(Object? v) =>
-      v is List ? [for (final e in v) e.toString()] : const [];
+  /// Program names from a list of strings or of `{name, ...}` objects.
+  static List<String> _programNames(Object? v) => v is List
+      ? [
+          for (final e in v)
+            if (e is Map) (e['name'] ?? '').toString() else e.toString(),
+        ].where((n) => n.isNotEmpty).toList()
+      : const [];
 
   @override
   void onClose() {

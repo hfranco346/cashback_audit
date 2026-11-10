@@ -3049,4 +3049,38 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get cardReviewNoRules =>
       'Sin rubros especiales: todo gana la tasa base.';
+
+  @override
+  String get errInvalidRewardProgram =>
+      'Ese programa no está en tu estado de cuenta. Elige uno de la lista.';
+
+  @override
+  String get programUnitPoints => 'Puntos o millas';
+
+  @override
+  String get programUnitCurrency => 'Dinero';
+
+  @override
+  String programPrintedAs(String label) {
+    return 'Como aparece: «$label»';
+  }
+
+  @override
+  String get programRemember => 'Recordar para esta tarjeta';
+
+  @override
+  String get resultCapTitle => 'Tope de la tarjeta alcanzado';
+
+  @override
+  String resultCapBody(String cap) {
+    return 'Tu tarjeta paga como máximo $cap por corte, así que se recortó lo que excedía.';
+  }
+
+  @override
+  String resultCapChange(String uncapped, String capped) {
+    return '$uncapped → $capped';
+  }
+
+  @override
+  String get resultCapRow => 'Tope de la tarjeta';
 }

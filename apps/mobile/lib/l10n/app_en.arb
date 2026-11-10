@@ -959,5 +959,14 @@
   "cardRewardCapLabelPoints": "Points cap per statement",
   "cardRewardCapHelp": "If your bank gives you at most {example} per statement, enter it here.",
   "cardRewardCapNone": "No cap",
-  "cardReviewNoRules": "No special categories: everything earns the base rate."
+  "cardReviewNoRules": "No special categories: everything earns the base rate.",
+  "errInvalidRewardProgram": "That program is not on your statement. Choose one from the list.",
+  "programUnitPoints": "Points or miles",
+  "programUnitCurrency": "Money",
+  "programPrintedAs": "As printed: “{label}”",
+  "programRemember": "Remember for this card",
+  "resultCapTitle": "Card cap reached",
+  "resultCapBody": "Your card pays at most {cap} per statement, so the excess was cut.",
+  "resultCapChange": "{uncapped} → {capped}",
+  "resultCapRow": "Card cap"
 }

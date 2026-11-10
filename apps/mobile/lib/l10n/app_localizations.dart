@@ -5099,6 +5099,60 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Sin rubros especiales: todo gana la tasa base.'**
   String get cardReviewNoRules;
+
+  /// No description provided for @errInvalidRewardProgram.
+  ///
+  /// In es, this message translates to:
+  /// **'Ese programa no está en tu estado de cuenta. Elige uno de la lista.'**
+  String get errInvalidRewardProgram;
+
+  /// No description provided for @programUnitPoints.
+  ///
+  /// In es, this message translates to:
+  /// **'Puntos o millas'**
+  String get programUnitPoints;
+
+  /// No description provided for @programUnitCurrency.
+  ///
+  /// In es, this message translates to:
+  /// **'Dinero'**
+  String get programUnitCurrency;
+
+  /// No description provided for @programPrintedAs.
+  ///
+  /// In es, this message translates to:
+  /// **'Como aparece: «{label}»'**
+  String programPrintedAs(String label);
+
+  /// No description provided for @programRemember.
+  ///
+  /// In es, this message translates to:
+  /// **'Recordar para esta tarjeta'**
+  String get programRemember;
+
+  /// No description provided for @resultCapTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tope de la tarjeta alcanzado'**
+  String get resultCapTitle;
+
+  /// No description provided for @resultCapBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu tarjeta paga como máximo {cap} por corte, así que se recortó lo que excedía.'**
+  String resultCapBody(String cap);
+
+  /// No description provided for @resultCapChange.
+  ///
+  /// In es, this message translates to:
+  /// **'{uncapped} → {capped}'**
+  String resultCapChange(String uncapped, String capped);
+
+  /// No description provided for @resultCapRow.
+  ///
+  /// In es, this message translates to:
+  /// **'Tope de la tarjeta'**
+  String get resultCapRow;
 }
 
 class _AppLocalizationsDelegate

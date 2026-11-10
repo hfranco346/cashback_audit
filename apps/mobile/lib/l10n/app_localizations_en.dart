@@ -3043,4 +3043,38 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cardReviewNoRules =>
       'No special categories: everything earns the base rate.';
+
+  @override
+  String get errInvalidRewardProgram =>
+      'That program is not on your statement. Choose one from the list.';
+
+  @override
+  String get programUnitPoints => 'Points or miles';
+
+  @override
+  String get programUnitCurrency => 'Money';
+
+  @override
+  String programPrintedAs(String label) {
+    return 'As printed: “$label”';
+  }
+
+  @override
+  String get programRemember => 'Remember for this card';
+
+  @override
+  String get resultCapTitle => 'Card cap reached';
+
+  @override
+  String resultCapBody(String cap) {
+    return 'Your card pays at most $cap per statement, so the excess was cut.';
+  }
+
+  @override
+  String resultCapChange(String uncapped, String capped) {
+    return '$uncapped → $capped';
+  }
+
+  @override
+  String get resultCapRow => 'Card cap';
 }

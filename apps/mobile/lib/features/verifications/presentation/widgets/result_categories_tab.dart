@@ -8,7 +8,8 @@ import '../../../../core/utils/rate_direction.dart';
 import '../../../cards/domain/card_entities.dart';
 import '../../domain/verification_entities.dart';
 import '../format_reward.dart';
-import 'result_summary_tab.dart' show KvCard, KvRow, LoyaltyCard;
+import 'result_summary_tab.dart'
+    show CapAppliedCard, KvCard, KvRow, LoyaltyCard;
 import 'reward_derivation.dart';
 
 /// "Categories" tab: the percentages the audit used (and the reward
@@ -61,10 +62,23 @@ class ResultCategoriesTab extends StatelessWidget {
                         ? formatRate(r.ratePercent)
                         : '${formatRate(r.ratePercent)} · ${l10n.capOf(formatReward(r.monthlyCap!, v.unit, currency: currency))}',
                   ),
+                if (v.rewardCapApplied case final capApplied?)
+                  KvRow(
+                    key: const Key('applied-cap-row'),
+                    label: l10n.resultCapRow,
+                    value:
+                        '${formatReward(capApplied.uncapped, v.unit, currency: currency)} → ${formatReward(capApplied.capped, v.unit, currency: currency)}',
+                  ),
                 if (applied.rewardExchangeRate != null)
                   _RewardRate(rate: applied.rewardExchangeRate!),
               ],
             ),
+          ),
+        ],
+        if (applied == null && v.rewardCapApplied != null) ...[
+          CapAppliedCard(
+            cap: v.rewardCapApplied!,
+            format: (d) => formatReward(d, v.unit, currency: currency),
           ),
         ],
         if (showCurrencies) ...[

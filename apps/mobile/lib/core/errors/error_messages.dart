@@ -30,6 +30,8 @@ String userMessageFor(Object error) {
       return S.errNoCredits;
     case 'RATES_REQUIRED':
       return S.errRatesRequired;
+    case 'INVALID_REWARD_PROGRAM':
+      return S.errInvalidRewardProgram;
     case 'REWARD_PROGRAM_AMBIGUOUS':
       return S.errProgramAmbiguous;
     case 'REWARD_EXCHANGE_RATE_REQUIRED':

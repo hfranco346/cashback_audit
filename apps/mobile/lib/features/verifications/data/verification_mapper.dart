@@ -115,6 +115,8 @@ abstract final class VerificationMapper {
         _map(j['rewardReportingProposal']),
       ),
       rewardReporting: _reportingResult(_map(j['rewardReporting'])),
+      rewardProgramChoice: _programChoice(_map(j['rewardProgramChoice'])),
+      rewardCapApplied: _capApplied(_map(j['rewardCapApplied'])),
       breakdown: [for (final b in _maps(j['breakdown'])) _line(b)],
       transactions: [
         for (final t in _maps(j['transactions'])) _transaction(t, primary),
@@ -158,6 +160,32 @@ abstract final class VerificationMapper {
       programName: _nonEmpty(p['programName']),
       reportedLabel: _nonEmpty(p['reportedLabel']),
     );
+  }
+
+  static RewardProgramChoice? _programChoice(JsonMap? c) {
+    if (c == null) return null;
+    final options = [
+      for (final o in _maps(c['options']))
+        if (_nonEmpty(o['name']) != null)
+          RewardProgramOption(
+            name: _nonEmpty(o['name'])!,
+            unit: _nonEmpty(o['unit']),
+            currency: _currencyCode(o['currency']),
+            reportedLabel: _nonEmpty(o['reportedLabel']),
+          ),
+    ];
+    return RewardProgramChoice(
+      required: c['required'] as bool? ?? false,
+      options: options,
+    );
+  }
+
+  static RewardCapApplied? _capApplied(JsonMap? c) {
+    final cap = tryParseDecimal(c?['cap']);
+    final uncapped = tryParseDecimal(c?['uncapped']);
+    final capped = tryParseDecimal(c?['capped']);
+    if (cap == null || uncapped == null || capped == null) return null;
+    return RewardCapApplied(cap: cap, uncapped: uncapped, capped: capped);
   }
 
   static RewardReportingResult? _reportingResult(JsonMap? r) {
@@ -482,6 +510,10 @@ abstract final class VerificationMapper {
       'rewardExchangeRate': decimalToApi(r.rewardExchangeRate!),
     if (r.rewardProgramName != null && r.rewardProgramName!.trim().isNotEmpty)
       'rewardProgramName': r.rewardProgramName!.trim(),
+    if (r.rewardProgramName != null &&
+        r.rewardProgramName!.trim().isNotEmpty &&
+        r.rememberProgramForCard)
+      'rememberProgramForCard': true,
     if (r.rewardReporting != null)
       'rewardReporting': {
         'mode': r.rewardReporting!.mode.apiValue,

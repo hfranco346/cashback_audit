@@ -796,6 +796,58 @@ Decimal? deriveEarned({
           (redeemed ?? Decimal.zero) +
           (expired ?? Decimal.zero);
 
+/// One loyalty program the user can pick on the confirm screen.
+class RewardProgramOption extends Equatable {
+  const RewardProgramOption({
+    required this.name,
+    this.unit,
+    this.currency,
+    this.reportedLabel,
+  });
+
+  /// Program name as printed on the statement.
+  final String name;
+
+  /// `CURRENCY`, `POINTS` or `UNKNOWN`.
+  final String? unit;
+  final String? currency;
+
+  /// The label the statement uses next to the reported figure.
+  final String? reportedLabel;
+
+  @override
+  List<Object?> get props => [name, unit, currency, reportedLabel];
+}
+
+/// `rewardProgramChoice` of an `AWAITING_RATES` verification: the statement
+/// has several programs and the card has none set.
+class RewardProgramChoice extends Equatable {
+  const RewardProgramChoice({required this.required, this.options = const []});
+
+  final bool required;
+  final List<RewardProgramOption> options;
+
+  @override
+  List<Object?> get props => [required, options];
+}
+
+/// `rewardCapApplied` of a completed verification: the card-wide cap cut the
+/// total from [uncapped] to [capped]. Values are in the card's currency.
+class RewardCapApplied extends Equatable {
+  const RewardCapApplied({
+    required this.cap,
+    required this.uncapped,
+    required this.capped,
+  });
+
+  final Decimal cap;
+  final Decimal uncapped;
+  final Decimal capped;
+
+  @override
+  List<Object?> get props => [cap, uncapped, capped];
+}
+
 /// `rewardReportingProposal` of an `AWAITING_RATES` verification: what the
 /// bank's figure probably is and what is already known to derive it.
 class RewardReportingProposal extends Equatable {
@@ -983,6 +1035,8 @@ class Verification extends Equatable {
     this.loyalty = LoyaltyInfo.empty,
     this.rewardReportingProposal,
     this.rewardReporting,
+    this.rewardProgramChoice,
+    this.rewardCapApplied,
     this.models = const {},
     this.failureCode,
     this.seenAt,
@@ -1037,6 +1091,12 @@ class Verification extends Equatable {
 
   /// `AWAITING_RATES`: how the bank's reward figure is probably reported.
   final RewardReportingProposal? rewardReportingProposal;
+
+  /// Present when the user must pick the program to audit.
+  final RewardProgramChoice? rewardProgramChoice;
+
+  /// Present when the card-wide cap reduced the total.
+  final RewardCapApplied? rewardCapApplied;
 
   /// `COMPLETED`: how the audited figure was derived (always present on
   /// current servers; `mode` tells monthly from cumulative).
@@ -1102,6 +1162,8 @@ class Verification extends Equatable {
     loyalty,
     rewardReportingProposal,
     rewardReporting,
+    rewardProgramChoice,
+    rewardCapApplied,
     breakdown,
     transactions,
     warnings,
@@ -1248,6 +1310,7 @@ class ConfirmRequest extends Equatable {
     this.exchangeRates = const {},
     this.rewardExchangeRate,
     this.rewardProgramName,
+    this.rememberProgramForCard = false,
     this.rewardReporting,
   });
 
@@ -1263,6 +1326,9 @@ class ConfirmRequest extends Equatable {
   /// Primary units per 1 unit of the reward currency.
   final Decimal? rewardExchangeRate;
   final String? rewardProgramName;
+
+  /// Save [rewardProgramName] on the card for the next statements.
+  final bool rememberProgramForCard;
 
   /// The user's answer about the bank's figure (absent for servers that
   /// predate it and for recalculations that keep the previous decision).
@@ -1293,6 +1359,7 @@ class ConfirmRequest extends Equatable {
     exchangeRates,
     rewardExchangeRate,
     rewardProgramName,
+    rememberProgramForCard,
     rewardReporting,
   ];
 }

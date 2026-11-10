@@ -1796,5 +1796,38 @@
     }
   },
   "cardRewardCapNone": "Sin tope",
-  "cardReviewNoRules": "Sin rubros especiales: todo gana la tasa base."
+  "cardReviewNoRules": "Sin rubros especiales: todo gana la tasa base.",
+  "errInvalidRewardProgram": "Ese programa no está en tu estado de cuenta. Elige uno de la lista.",
+  "programUnitPoints": "Puntos o millas",
+  "programUnitCurrency": "Dinero",
+  "programPrintedAs": "Como aparece: «{label}»",
+  "@programPrintedAs": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "programRemember": "Recordar para esta tarjeta",
+  "resultCapTitle": "Tope de la tarjeta alcanzado",
+  "resultCapBody": "Tu tarjeta paga como máximo {cap} por corte, así que se recortó lo que excedía.",
+  "@resultCapBody": {
+    "placeholders": {
+      "cap": {
+        "type": "String"
+      }
+    }
+  },
+  "resultCapChange": "{uncapped} → {capped}",
+  "@resultCapChange": {
+    "placeholders": {
+      "uncapped": {
+        "type": "String"
+      },
+      "capped": {
+        "type": "String"
+      }
+    }
+  },
+  "resultCapRow": "Tope de la tarjeta"
 }

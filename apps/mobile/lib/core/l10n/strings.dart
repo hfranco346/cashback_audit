@@ -28,6 +28,7 @@ abstract final class S {
   static String get errNoCredits => _l.errNoCredits;
   static String get errRatesRequired => _l.errRatesRequired;
   static String get errProgramAmbiguous => _l.errProgramAmbiguous;
+  static String get errInvalidRewardProgram => _l.errInvalidRewardProgram;
   static String get errTransactionNotFound => _l.errTransactionNotFound;
   static String get errTransactionNotClassifiable =>
       _l.errTransactionNotClassifiable;
