@@ -21,6 +21,7 @@ User feedback (2026-11-09): could not find the prefilled claim; needs unlimited 
 ## Tasks
 - [x] C1 Backend: unlimitedCredits flag + gate/ledger bypass + balance/me fields + operator script; card claimEmail; tests; contract doc. Route: delegated.
 - [x] C2 Mobile: claim screen + entry from Result; unlimited credits UI; status auto-refresh in Home/History; tests. Route: delegated.
+- [ ] C4 Align with the design exactly: onboarding prefilled Supermercados + Farmacia 7%; guided empty categories lets the user add several suggestions without leaving the guided view; offline History shows last-updated date (cache stores timestamp); change-category sheet title in Bodoni like the design. Route: delegated.
 - [ ] C3 Deploy API, set unlimited for the owner in production, install builds on devices. Route: inline.
 
 ## Progress / evidence
