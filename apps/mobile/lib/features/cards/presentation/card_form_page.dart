@@ -111,6 +111,8 @@ class CardFormPage extends GetView<CardFormController> {
                     baseRate: controller.baseRate,
                     rewardUnit: controller.rewardUnit.value,
                     onUnitChanged: controller.setUnit,
+                    rewardReporting: controller.rewardReporting.value,
+                    onRewardReportingChanged: controller.setRewardReporting,
                     rules: controller.rules.toList(),
                     categories: controller.catalog.categories.toList(),
                     ruleErrors: Map.of(controller.ruleErrors),

@@ -75,7 +75,7 @@ void main() {
     List<String> userCurrencies = const [],
     String? defaultCurrency,
   }) async {
-    tester.view.physicalSize = const Size(390, 2000);
+    tester.view.physicalSize = const Size(390, 2600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -338,6 +338,49 @@ void main() {
       await tester.tap(find.byKey(const Key('submit-card')));
       await tester.pumpAndSettle();
       expect(repo.saved.single.rewardProgramName, 'CASH BAC CREDOMATIC');
+    });
+
+    for (final dark in [false, true]) {
+      for (final lang in ['es', 'en']) {
+        testWidgets('how the bank reports the cashback: default and choice '
+            '(${dark ? 'dark' : 'light'} $lang)', (tester) async {
+          await pumpPage(tester, dark: dark, lang: lang);
+          await fillBasics(tester);
+          await openAdvanced(tester);
+          final l10n = AppLocalizations.of(
+            tester.element(find.byType(CardFormPage)),
+          );
+          await tester.ensureVisible(
+            find.byKey(const Key('reward-reporting-field')),
+          );
+          expect(
+            find.textContaining(l10n.cardReportingLabel, findRichText: true),
+            findsOneWidget,
+          );
+          expect(find.text(l10n.cardReportingAuto), findsOneWidget);
+          expect(find.text(l10n.cardReportingMonthly), findsOneWidget);
+          expect(find.text(l10n.cardReportingCumulative), findsOneWidget);
+          expect(controller.rewardReporting.value, RewardReporting.auto);
+
+          await tester.tap(find.byKey(const Key('reporting-cumulative')));
+          await tester.pumpAndSettle();
+          expect(controller.rewardReporting.value, RewardReporting.cumulative);
+          await tester.tap(find.byKey(const Key('submit-card')));
+          await tester.pumpAndSettle();
+          expect(repo.saved.single.rewardReporting, RewardReporting.cumulative);
+        });
+      }
+    }
+
+    testWidgets('editing a card loads its reporting setting', (tester) async {
+      await pumpPage(
+        tester,
+        editing: CardMapper.fromJson({
+          ...cardJson(),
+          'rewardReporting': 'MONTHLY',
+        }),
+      );
+      expect(controller.rewardReporting.value, RewardReporting.monthly);
     });
 
     testWidgets('reward currency: detect, chips and validated free entry', (

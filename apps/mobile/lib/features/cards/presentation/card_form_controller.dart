@@ -67,6 +67,7 @@ class CardFormController extends GetxController {
   final baseRate = TextEditingController();
 
   final rewardUnit = RewardUnit.cashbackCurrency.obs;
+  final rewardReporting = RewardReporting.auto.obs;
   final rules = <RuleDraft>[].obs;
   final submitting = false.obs;
   final deleting = false.obs;
@@ -98,6 +99,7 @@ class CardFormController extends GetxController {
       pointsFactor.text = decimalToApi(c.pointsPerCurrencyUnit);
       baseRate.text = decimalToApi(c.baseRatePercent);
       rewardUnit.value = c.rewardUnit;
+      rewardReporting.value = c.rewardReporting;
       selectedNetwork.value = _networkChipFor(network.text);
       rules.assignAll([
         for (final r in c.rules)
@@ -143,6 +145,9 @@ class CardFormController extends GetxController {
   }
 
   void setUnit(RewardUnit unit) => rewardUnit.value = unit;
+
+  void setRewardReporting(RewardReporting value) =>
+      rewardReporting.value = value;
 
   /// Category ids not yet used by another rule row.
   bool addRule() {
@@ -213,6 +218,7 @@ class CardFormController extends GetxController {
           ? null
           : rewardCurrency.text.trim().toUpperCase(),
       rewardUnit: rewardUnit.value,
+      rewardReporting: rewardReporting.value,
       pointsPerCurrencyUnit: isPoints
           ? CardValidator.parse(pointsFactor.text)
           : null,

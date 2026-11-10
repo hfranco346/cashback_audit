@@ -40,6 +40,8 @@ class CardFormView extends StatelessWidget {
     required this.submitting,
     required this.isEditing,
     this.errorMessage,
+    this.rewardReporting = RewardReporting.auto,
+    this.onRewardReportingChanged,
     this.advancedOpen = false,
     this.onToggleAdvanced,
     this.selectedNetwork,
@@ -72,6 +74,10 @@ class CardFormView extends StatelessWidget {
   final bool submitting;
   final bool isEditing;
   final String? errorMessage;
+
+  /// How the bank reports the reward figure (advanced section).
+  final RewardReporting rewardReporting;
+  final ValueChanged<RewardReporting>? onRewardReportingChanged;
 
   final bool advancedOpen;
   final VoidCallback? onToggleAdvanced;
@@ -367,6 +373,11 @@ class CardFormView extends StatelessWidget {
               userCurrencies: userCurrencies,
             ),
           ],
+          gap,
+          _RewardReportingField(
+            value: rewardReporting,
+            onChanged: onRewardReportingChanged,
+          ),
           if (onDelete != null) ...[
             const SizedBox(height: 18),
             Divider(color: scheme.outlineVariant, height: 1),
@@ -455,6 +466,74 @@ class _AdvancedHeader extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 child: const Icon(Icons.expand_more_rounded, size: 20),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "How does your bank report the cashback?": Auto / earned in the month /
+/// accumulated balance, as three self-explaining rows.
+class _RewardReportingField extends StatelessWidget {
+  const _RewardReportingField({required this.value, required this.onChanged});
+
+  final RewardReporting value;
+  final ValueChanged<RewardReporting>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final options = [
+      (
+        RewardReporting.auto,
+        l10n.cardReportingAuto,
+        l10n.cardReportingAutoHint,
+      ),
+      (
+        RewardReporting.monthly,
+        l10n.cardReportingMonthly,
+        l10n.cardReportingMonthlyHint,
+      ),
+      (
+        RewardReporting.cumulative,
+        l10n.cardReportingCumulative,
+        l10n.cardReportingCumulativeHint,
+      ),
+    ];
+    return AppField(
+      key: const Key('reward-reporting-field'),
+      label: l10n.cardReportingLabel,
+      optionalTag: l10n.cardOptionalTag,
+      help: l10n.cardReportingHelp,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadii.field),
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+        child: RadioGroup<RewardReporting>(
+          groupValue: value,
+          onChanged: (v) {
+            if (v != null) onChanged?.call(v);
+          },
+          child: Column(
+            children: [
+              for (final (mode, title, hint) in options)
+                RadioListTile<RewardReporting>(
+                  key: Key('reporting-${mode.name}'),
+                  value: mode,
+                  dense: true,
+                  title: Text(title),
+                  subtitle: Text(
+                    hint,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
