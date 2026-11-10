@@ -11,6 +11,7 @@ class StepProgress extends StatelessWidget {
     required this.step,
     this.total = 5,
     this.onBack,
+    this.showBack = true,
     this.stepName,
     this.trailing,
   });
@@ -18,6 +19,9 @@ class StepProgress extends StatelessWidget {
   final int step;
   final int total;
   final VoidCallback? onBack;
+
+  /// Hides the header back button (when navigation lives elsewhere).
+  final bool showBack;
 
   /// Name shown after the number ("Step 2 of 5 · Your card").
   final String? stepName;
@@ -34,18 +38,20 @@ class StepProgress extends StatelessWidget {
       children: [
         Row(
           children: [
-            TextButton.icon(
-              onPressed: onBack,
-              icon: const Icon(Icons.arrow_back_rounded, size: 18),
-              label: Text(l10n.back),
-            ),
-            const SizedBox(width: 8),
+            if (showBack) ...[
+              TextButton.icon(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                label: Text(l10n.back),
+              ),
+              const SizedBox(width: 8),
+            ],
             Expanded(
               child: Text(
                 stepName == null
                     ? l10n.stepOf(step, total)
                     : l10n.onbStepLabel(step, total, stepName!),
-                textAlign: TextAlign.end,
+                textAlign: showBack ? TextAlign.end : TextAlign.start,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelMedium?.copyWith(

@@ -26,6 +26,7 @@ abstract final class CardMapper {
     rewardCurrency: _code(json['rewardCurrency']),
     claimEmail: _email(json['claimEmail']),
     rewardReporting: RewardReporting.fromApi(json['rewardReporting']),
+    rewardCap: tryParseDecimal(json['rewardCap']),
     rules: [
       for (final r in (json['rules'] as List<dynamic>? ?? const []))
         RewardRule(
@@ -65,6 +66,12 @@ abstract final class CardMapper {
       // on update, where it must be able to clear a previous setting.
       if (d.rewardReporting != RewardReporting.auto || forUpdate)
         'rewardReporting': d.rewardReporting.apiValue,
+      // Older servers reject unknown keys: only sent when set, or on update
+      // where null must be able to clear a previous cap.
+      if (d.rewardCap != null)
+        'rewardCap': decimalToApi(d.rewardCap!)
+      else if (forUpdate)
+        'rewardCap': null,
       'rewardUnit': d.rewardUnit.apiValue,
       if (d.rewardUnit == RewardUnit.points && d.pointsPerCurrencyUnit != null)
         'pointsPerCurrencyUnit': decimalToApi(d.pointsPerCurrencyUnit!),

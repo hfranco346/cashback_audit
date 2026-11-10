@@ -1880,9 +1880,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navAria => 'Main navigation';
 
   @override
-  String get cardBasicCaption => 'Basics';
-
-  @override
   String get cardNameLabel => 'Card name';
 
   @override
@@ -1914,12 +1911,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cardAddCap => '+ Monthly cap';
 
   @override
-  String get cardAdvancedTitle => 'Advanced options';
-
-  @override
-  String get cardAdvancedSubtitle => 'Network, currency, audited program…';
-
-  @override
   String get cardNetworkLabel => 'Network';
 
   @override
@@ -1933,13 +1924,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cardMainCurrency => 'Card\'s main currency';
-
-  @override
-  String get cardProgramLabel => 'Program to audit';
-
-  @override
-  String get cardProgramHelp =>
-      'If your statement lists several programs (cash, points, miles), pick the one we check.';
 
   @override
   String get cardRewardCurrencyQuestion => 'Currency you receive cashback in';
@@ -3017,4 +3001,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get categoryPickerCreateConfirm => 'Create and choose';
+
+  @override
+  String get cardStepTabCard => 'Card';
+
+  @override
+  String get cardStepTabReward => 'Reward';
+
+  @override
+  String get cardStepTabRules => 'Categories';
+
+  @override
+  String get cardStepTabReview => 'Review';
+
+  @override
+  String get cardStepTitleCard => 'Your card';
+
+  @override
+  String get cardStepTitleReward => 'What it rewards you with';
+
+  @override
+  String get cardStepTitleRules => 'Categories and rates';
+
+  @override
+  String get cardStepTitleReview => 'Review and save';
+
+  @override
+  String get cardRewardCapLabel => 'Cashback cap per statement';
+
+  @override
+  String get cardRewardCapLabelPoints => 'Points cap per statement';
+
+  @override
+  String cardRewardCapHelp(String example) {
+    return 'If your bank gives you at most $example per statement, enter it here.';
+  }
+
+  @override
+  String get cardRewardCapNone => 'No cap';
+
+  @override
+  String get cardReviewNoRules =>
+      'No special categories: everything earns the base rate.';
 }

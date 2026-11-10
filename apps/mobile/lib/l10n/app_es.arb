@@ -1018,7 +1018,6 @@
   "navCategories": "Rubros",
   "navProfile": "Perfil",
   "navAria": "Navegación principal",
-  "cardBasicCaption": "Básico",
   "cardNameLabel": "Nombre de la tarjeta",
   "cardLast4Short": "Últimos 4",
   "cardRewardKindQuestion": "¿Qué te da?",
@@ -1029,15 +1028,11 @@
   "cardRulesTitle": "Rubros con % especial",
   "cardAddRule": "+ Agregar rubro",
   "cardAddCap": "+ Tope mensual",
-  "cardAdvancedTitle": "Opciones avanzadas",
-  "cardAdvancedSubtitle": "Red, moneda, programa a auditar…",
   "cardNetworkLabel": "Red",
   "cardOptionalTag": "(opcional)",
   "cardNetworkOther": "Otra",
   "cardNetworkOtherHint": "Nombre de la red",
   "cardMainCurrency": "Moneda principal de la tarjeta",
-  "cardProgramLabel": "Programa a auditar",
-  "cardProgramHelp": "Si tu estado de cuenta trae varios programas (cash, puntos, millas), elige cuál revisamos.",
   "cardRewardCurrencyQuestion": "Moneda en que recibes el cashback",
   "cardRewardDetect": "Detectar sola",
   "cardRewardCurrencyNote": "Si es distinta a la de tus compras, te pediremos el tipo de cambio al verificar.",
@@ -1781,5 +1776,25 @@
   "categoryPickerSearch": "Buscar rubro",
   "categoryPickerEmpty": "Ningún rubro coincide con tu búsqueda.",
   "categoryPickerCreate": "Crear rubro",
-  "categoryPickerCreateConfirm": "Crear y elegir"
+  "categoryPickerCreateConfirm": "Crear y elegir",
+  "cardStepTabCard": "Tarjeta",
+  "cardStepTabReward": "Recompensa",
+  "cardStepTabRules": "Rubros",
+  "cardStepTabReview": "Revisar",
+  "cardStepTitleCard": "Tu tarjeta",
+  "cardStepTitleReward": "Qué recompensa te da",
+  "cardStepTitleRules": "Rubros y porcentajes",
+  "cardStepTitleReview": "Revisa y guarda",
+  "cardRewardCapLabel": "Tope de cashback por corte",
+  "cardRewardCapLabelPoints": "Tope de puntos por corte",
+  "cardRewardCapHelp": "Si tu banco te da máximo {example} por corte, escríbelo aquí.",
+  "@cardRewardCapHelp": {
+    "placeholders": {
+      "example": {
+        "type": "String"
+      }
+    }
+  },
+  "cardRewardCapNone": "Sin tope",
+  "cardReviewNoRules": "Sin rubros especiales: todo gana la tasa base."
 }

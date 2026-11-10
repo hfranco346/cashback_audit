@@ -1881,9 +1881,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navAria => 'Navegación principal';
 
   @override
-  String get cardBasicCaption => 'Básico';
-
-  @override
   String get cardNameLabel => 'Nombre de la tarjeta';
 
   @override
@@ -1915,12 +1912,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cardAddCap => '+ Tope mensual';
 
   @override
-  String get cardAdvancedTitle => 'Opciones avanzadas';
-
-  @override
-  String get cardAdvancedSubtitle => 'Red, moneda, programa a auditar…';
-
-  @override
   String get cardNetworkLabel => 'Red';
 
   @override
@@ -1934,13 +1925,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cardMainCurrency => 'Moneda principal de la tarjeta';
-
-  @override
-  String get cardProgramLabel => 'Programa a auditar';
-
-  @override
-  String get cardProgramHelp =>
-      'Si tu estado de cuenta trae varios programas (cash, puntos, millas), elige cuál revisamos.';
 
   @override
   String get cardRewardCurrencyQuestion => 'Moneda en que recibes el cashback';
@@ -3023,4 +3007,46 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get categoryPickerCreateConfirm => 'Crear y elegir';
+
+  @override
+  String get cardStepTabCard => 'Tarjeta';
+
+  @override
+  String get cardStepTabReward => 'Recompensa';
+
+  @override
+  String get cardStepTabRules => 'Rubros';
+
+  @override
+  String get cardStepTabReview => 'Revisar';
+
+  @override
+  String get cardStepTitleCard => 'Tu tarjeta';
+
+  @override
+  String get cardStepTitleReward => 'Qué recompensa te da';
+
+  @override
+  String get cardStepTitleRules => 'Rubros y porcentajes';
+
+  @override
+  String get cardStepTitleReview => 'Revisa y guarda';
+
+  @override
+  String get cardRewardCapLabel => 'Tope de cashback por corte';
+
+  @override
+  String get cardRewardCapLabelPoints => 'Tope de puntos por corte';
+
+  @override
+  String cardRewardCapHelp(String example) {
+    return 'Si tu banco te da máximo $example por corte, escríbelo aquí.';
+  }
+
+  @override
+  String get cardRewardCapNone => 'Sin tope';
+
+  @override
+  String get cardReviewNoRules =>
+      'Sin rubros especiales: todo gana la tasa base.';
 }

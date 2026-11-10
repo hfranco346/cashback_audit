@@ -3194,12 +3194,6 @@ abstract class AppLocalizations {
   /// **'Navegación principal'**
   String get navAria;
 
-  /// No description provided for @cardBasicCaption.
-  ///
-  /// In es, this message translates to:
-  /// **'Básico'**
-  String get cardBasicCaption;
-
   /// No description provided for @cardNameLabel.
   ///
   /// In es, this message translates to:
@@ -3260,18 +3254,6 @@ abstract class AppLocalizations {
   /// **'+ Tope mensual'**
   String get cardAddCap;
 
-  /// No description provided for @cardAdvancedTitle.
-  ///
-  /// In es, this message translates to:
-  /// **'Opciones avanzadas'**
-  String get cardAdvancedTitle;
-
-  /// No description provided for @cardAdvancedSubtitle.
-  ///
-  /// In es, this message translates to:
-  /// **'Red, moneda, programa a auditar…'**
-  String get cardAdvancedSubtitle;
-
   /// No description provided for @cardNetworkLabel.
   ///
   /// In es, this message translates to:
@@ -3301,18 +3283,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Moneda principal de la tarjeta'**
   String get cardMainCurrency;
-
-  /// No description provided for @cardProgramLabel.
-  ///
-  /// In es, this message translates to:
-  /// **'Programa a auditar'**
-  String get cardProgramLabel;
-
-  /// No description provided for @cardProgramHelp.
-  ///
-  /// In es, this message translates to:
-  /// **'Si tu estado de cuenta trae varios programas (cash, puntos, millas), elige cuál revisamos.'**
-  String get cardProgramHelp;
 
   /// No description provided for @cardRewardCurrencyQuestion.
   ///
@@ -5051,6 +5021,84 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Crear y elegir'**
   String get categoryPickerCreateConfirm;
+
+  /// No description provided for @cardStepTabCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta'**
+  String get cardStepTabCard;
+
+  /// No description provided for @cardStepTabReward.
+  ///
+  /// In es, this message translates to:
+  /// **'Recompensa'**
+  String get cardStepTabReward;
+
+  /// No description provided for @cardStepTabRules.
+  ///
+  /// In es, this message translates to:
+  /// **'Rubros'**
+  String get cardStepTabRules;
+
+  /// No description provided for @cardStepTabReview.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar'**
+  String get cardStepTabReview;
+
+  /// No description provided for @cardStepTitleCard.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu tarjeta'**
+  String get cardStepTitleCard;
+
+  /// No description provided for @cardStepTitleReward.
+  ///
+  /// In es, this message translates to:
+  /// **'Qué recompensa te da'**
+  String get cardStepTitleReward;
+
+  /// No description provided for @cardStepTitleRules.
+  ///
+  /// In es, this message translates to:
+  /// **'Rubros y porcentajes'**
+  String get cardStepTitleRules;
+
+  /// No description provided for @cardStepTitleReview.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa y guarda'**
+  String get cardStepTitleReview;
+
+  /// No description provided for @cardRewardCapLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Tope de cashback por corte'**
+  String get cardRewardCapLabel;
+
+  /// No description provided for @cardRewardCapLabelPoints.
+  ///
+  /// In es, this message translates to:
+  /// **'Tope de puntos por corte'**
+  String get cardRewardCapLabelPoints;
+
+  /// No description provided for @cardRewardCapHelp.
+  ///
+  /// In es, this message translates to:
+  /// **'Si tu banco te da máximo {example} por corte, escríbelo aquí.'**
+  String cardRewardCapHelp(String example);
+
+  /// No description provided for @cardRewardCapNone.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin tope'**
+  String get cardRewardCapNone;
+
+  /// No description provided for @cardReviewNoRules.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin rubros especiales: todo gana la tasa base.'**
+  String get cardReviewNoRules;
 }
 
 class _AppLocalizationsDelegate

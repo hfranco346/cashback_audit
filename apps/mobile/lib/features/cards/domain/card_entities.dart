@@ -64,6 +64,7 @@ class CardDraft extends Equatable {
     this.rewardProgramName,
     this.rewardCurrency,
     this.rewardReporting = RewardReporting.auto,
+    this.rewardCap,
     this.rules = const [],
   });
 
@@ -85,6 +86,10 @@ class CardDraft extends Equatable {
 
   /// How this card's bank reports the reward (default: detect each time).
   final RewardReporting rewardReporting;
+
+  /// Maximum reward the whole card earns per statement, in its reward unit
+  /// (null = no card-wide cap).
+  final Decimal? rewardCap;
   final List<RewardRule> rules;
 
   @override
@@ -100,6 +105,7 @@ class CardDraft extends Equatable {
     rewardProgramName,
     rewardCurrency,
     rewardReporting,
+    rewardCap,
     rules,
   ];
 }
@@ -119,6 +125,7 @@ class CreditCard extends Equatable {
     this.rewardCurrency,
     this.claimEmail,
     this.rewardReporting = RewardReporting.auto,
+    this.rewardCap,
     this.rules = const [],
   });
 
@@ -139,6 +146,9 @@ class CreditCard extends Equatable {
 
   /// What the bank's reward figure means (`AUTO` = decide per statement).
   final RewardReporting rewardReporting;
+
+  /// Card-wide maximum reward per statement (null = none).
+  final Decimal? rewardCap;
   final List<RewardRule> rules;
 
   bool get isPoints => rewardUnit == RewardUnit.points;
@@ -155,6 +165,7 @@ class CreditCard extends Equatable {
     rewardProgramName: rewardProgramName,
     rewardCurrency: rewardCurrency,
     rewardReporting: rewardReporting,
+    rewardCap: rewardCap,
     rules: rules,
   );
 
@@ -173,6 +184,7 @@ class CreditCard extends Equatable {
     rewardCurrency,
     claimEmail,
     rewardReporting,
+    rewardCap,
     rules,
   ];
 }

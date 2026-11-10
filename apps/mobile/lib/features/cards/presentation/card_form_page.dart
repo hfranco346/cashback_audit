@@ -1,10 +1,13 @@
-import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/l10n/l10n_context.dart';
 import 'card_form_controller.dart';
 import 'widgets/card_form_view.dart';
+import 'widgets/card_step_basics.dart';
+import 'widgets/card_step_review.dart';
+import 'widgets/card_step_reward.dart';
+import 'widgets/card_step_rules.dart';
 
 /// Container: wires [CardFormController] to the presentational form. Used
 /// to create a card and, with a card argument, to edit or delete it.
@@ -54,8 +57,6 @@ class CardFormPage extends GetView<CardFormController> {
     if (await controller.delete()) {
       navigator.pop();
       messenger.showSnackBar(SnackBar(content: Text(l10n.cardDeleted)));
-    } else {
-      controller.advancedOpen.value = true;
     }
   }
 
@@ -94,52 +95,85 @@ class CardFormPage extends GetView<CardFormController> {
               ),
             ),
             Expanded(
-              child: FadeInUp(
-                from: 12,
-                duration: const Duration(milliseconds: 320),
-                child: Obx(
-                  () => CardFormView(
-                    formKey: controller.formKey,
-                    alias: controller.alias,
-                    bank: controller.bank,
-                    last4: controller.last4,
-                    network: controller.network,
-                    rewardProgram: controller.rewardProgram,
-                    rewardCurrency: controller.rewardCurrency,
-                    currency: controller.currency,
-                    pointsFactor: controller.pointsFactor,
-                    baseRate: controller.baseRate,
-                    rewardUnit: controller.rewardUnit.value,
-                    onUnitChanged: controller.setUnit,
-                    rewardReporting: controller.rewardReporting.value,
-                    onRewardReportingChanged: controller.setRewardReporting,
-                    rules: controller.rules.toList(),
-                    categories: controller.catalog.categories.toList(),
-                    ruleErrors: Map.of(controller.ruleErrors),
-                    onAddRule: controller.addRule,
-                    onRemoveRule: controller.removeRule,
-                    onRuleCategoryChanged: controller.setRuleCategory,
-                    onSubmit: () => _submit(context),
-                    submitting: controller.submitting.value,
-                    isEditing: controller.isEditing,
-                    errorMessage: controller.errorMessage.value,
-                    advancedOpen: controller.advancedOpen.value,
-                    onToggleAdvanced: controller.toggleAdvanced,
-                    selectedNetwork: controller.selectedNetwork.value,
-                    onPickNetwork: controller.pickNetwork,
-                    onPickOtherNetwork: controller.pickOtherNetwork,
-                    userCurrencies: controller.userCurrencies,
-                    onDelete: controller.isEditing
-                        ? () => _confirmDelete(context)
-                        : null,
-                    deleting: controller.deleting.value,
-                  ),
-                ),
-              ),
+              child: Obx(() {
+                final step = controller.step.value;
+                // Read inside the builder so the tabs follow `maxStep`.
+                controller.maxStep.value;
+                return CardFormView(
+                  step: step,
+                  stepCount: CardFormController.stepCount,
+                  canJumpTo: controller.canJumpTo,
+                  onJump: controller.goTo,
+                  onBack: controller.back,
+                  onNext: controller.next,
+                  onSubmit: () => _submit(context),
+                  submitting: controller.submitting.value,
+                  forward: controller.movedForward,
+                  child: _stepContent(context, step),
+                );
+              }),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _stepContent(BuildContext context, int step) {
+    final c = controller;
+    final validated = c.validatedSteps.contains(step);
+    switch (step) {
+      case 0:
+        return CardStepBasics(
+          formKey: c.stepKeys[0],
+          autovalidate: validated,
+          alias: c.alias,
+          bank: c.bank,
+          last4: c.last4,
+          currency: c.currency,
+          network: c.network,
+          selectedNetwork: c.selectedNetwork.value,
+          onPickNetwork: c.pickNetwork,
+          onPickOtherNetwork: c.pickOtherNetwork,
+          userCurrencies: c.userCurrencies,
+        );
+      case 1:
+        return CardStepReward(
+          formKey: c.stepKeys[1],
+          autovalidate: validated,
+          rewardUnit: c.rewardUnit.value,
+          onUnitChanged: c.setUnit,
+          pointsFactor: c.pointsFactor,
+          rewardCurrency: c.rewardCurrency,
+          currency: c.currency,
+          rewardCap: c.rewardCap,
+          capUnit: () => c.capUnit,
+          rewardReporting: c.rewardReporting.value,
+          onRewardReportingChanged: c.setRewardReporting,
+          userCurrencies: c.userCurrencies,
+        );
+      case 2:
+        return CardStepRules(
+          formKey: c.stepKeys[2],
+          autovalidate: validated,
+          baseRate: c.baseRate,
+          rules: c.rules.toList(),
+          categories: c.catalog.categories.toList(),
+          ruleErrors: Map.of(c.ruleErrors),
+          capSuffix: () => c.capUnit,
+          onAddRule: c.addRule,
+          onRemoveRule: c.removeRule,
+          onRuleCategoryChanged: c.setRuleCategory,
+          onCreateCategory: c.createCategory,
+        );
+      default:
+        return CardStepReview(
+          data: c.review(),
+          onEditStep: c.goTo,
+          errorMessage: c.errorMessage.value,
+          onDelete: c.isEditing ? () => _confirmDelete(context) : null,
+          deleting: c.deleting.value,
+        );
+    }
   }
 }
