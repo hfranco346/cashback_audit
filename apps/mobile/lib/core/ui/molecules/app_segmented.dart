@@ -33,7 +33,11 @@ class AppSegmented<T> extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadii.pill),
         border: Border.all(color: scheme.outlineVariant),
       ),
-      child: ClipRRect(
+      // A clipping Material (not ClipRRect): Ink paints on the nearest
+      // Material, so only this keeps the selected fill inside the pill.
+      child: Material(
+        type: MaterialType.transparency,
+        clipBehavior: Clip.antiAlias,
         borderRadius: BorderRadius.circular(AppRadii.pill - 1),
         child: Row(
           children: [
