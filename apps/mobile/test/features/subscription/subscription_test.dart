@@ -90,7 +90,7 @@ class _Billing implements BillingService {
   Future<void> restore() async => log.add('restore');
 }
 
-class _NoopAuthRepo implements AuthRepository {
+class _NoopAuthRepo with EmailAuthStub implements AuthRepository {
   @override
   Future<AppUser> signInWithGoogle() => throw UnimplementedError();
   @override

@@ -81,3 +81,23 @@ class FakeApple implements AppleIdentityProvider {
     return credential ?? const AppleCredential(identityToken: 'apple-token');
   }
 }
+
+/// Email-code and providers endpoints for test repositories that only care
+/// about the other [AuthRepository] methods.
+mixin EmailAuthStub implements AuthRepository {
+  @override
+  Future<EmailChallenge> startEmailSignIn({
+    required String email,
+    required String locale,
+  }) async =>
+      const EmailChallenge(expiresInSeconds: 600, resendAfterSeconds: 60);
+
+  @override
+  Future<AppUser> verifyEmailCode({
+    required String email,
+    required String code,
+  }) async => const AppUser(id: 'u');
+
+  @override
+  Future<AuthProviders> fetchProviders() async => AuthProviders.emailOnly;
+}

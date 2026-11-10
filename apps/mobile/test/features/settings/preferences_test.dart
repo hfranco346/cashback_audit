@@ -22,7 +22,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import '../../support/fake_adapter.dart';
 import '../../support/fakes.dart';
 
-class _NoopAuthRepo implements AuthRepository {
+class _NoopAuthRepo with EmailAuthStub implements AuthRepository {
   @override
   Future<AppUser> signInWithGoogle() => throw UnimplementedError();
   @override

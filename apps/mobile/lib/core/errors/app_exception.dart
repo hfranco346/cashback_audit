@@ -27,6 +27,7 @@ class AppException implements Exception {
     this.code,
     this.serverMessage,
     this.details,
+    this.body,
   });
 
   final AppErrorKind kind;
@@ -34,6 +35,17 @@ class AppException implements Exception {
   final String? code;
   final String? serverMessage;
   final Object? details;
+
+  /// The raw error body, for endpoints that add fields (`attemptsLeft`,
+  /// `retryAfterSeconds`).
+  final Map<String, dynamic>? body;
+
+  /// Integer field of the error body, also looked up under `details`.
+  int? intField(String name) {
+    final value =
+        body?[name] ?? (details is Map ? (details as Map)[name] : null);
+    return value is num ? value.toInt() : null;
+  }
 
   /// The user has no verification credits left (`402 NO_CREDITS`).
   bool get isNoCredits => kind == AppErrorKind.noCredits;
@@ -76,6 +88,7 @@ class AppException implements Exception {
       code: code,
       serverMessage: message,
       details: details,
+      body: body is Map ? Map<String, dynamic>.from(body) : null,
     );
   }
 

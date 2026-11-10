@@ -40,6 +40,34 @@ class AuthRepositoryImpl implements AuthRepository {
     });
   }
 
+  @override
+  Future<EmailChallenge> startEmailSignIn({
+    required String email,
+    required String locale,
+  }) => guardApi(() async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/auth/email/start',
+      data: {'email': email, 'locale': locale},
+    );
+    final data = res.data ?? const <String, dynamic>{};
+    return EmailChallenge(
+      expiresInSeconds: (data['expiresInSeconds'] as num?)?.toInt() ?? 600,
+      resendAfterSeconds: (data['resendAfterSeconds'] as num?)?.toInt() ?? 60,
+    );
+  });
+
+  @override
+  Future<AppUser> verifyEmailCode({
+    required String email,
+    required String code,
+  }) => _exchange('/auth/email/verify', {'email': email, 'code': code});
+
+  @override
+  Future<AuthProviders> fetchProviders() => guardApi(() async {
+    final res = await _dio.get<Map<String, dynamic>>('/auth/providers');
+    return AuthProviders.fromJson(res.data ?? const {});
+  });
+
   Future<AppUser> _exchange(String path, Map<String, dynamic> body) =>
       guardApi(() async {
         final res = await _dio.post<Map<String, dynamic>>(path, data: body);

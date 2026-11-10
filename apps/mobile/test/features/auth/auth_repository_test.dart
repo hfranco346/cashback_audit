@@ -145,4 +145,113 @@ void main() {
     expect(const AppUser(id: '1', email: 'bob@x.com').firstName, 'bob');
     expect(const AppUser(id: '1').firstName, isNull);
   });
+
+  group('email code', () {
+    test('start posts the address and the app language', () async {
+      adapter = FakeAdapter(
+        (o) => const FakeResponse(202, {
+          'expiresInSeconds': 600,
+          'resendAfterSeconds': 45,
+        }),
+      );
+      final challenge = await build().startEmailSignIn(
+        email: 'ana@example.com',
+        locale: 'en',
+      );
+      expect(
+        challenge,
+        const EmailChallenge(expiresInSeconds: 600, resendAfterSeconds: 45),
+      );
+      expect(adapter.requests.single.path, '/auth/email/start');
+      expect(adapter.requests.single.data, {
+        'email': 'ana@example.com',
+        'locale': 'en',
+      });
+    });
+
+    test('start surfaces the rate limit with retryAfterSeconds', () async {
+      adapter = FakeAdapter(
+        (o) => const FakeResponse(429, {
+          'statusCode': 429,
+          'code': 'TOO_MANY_REQUESTS',
+          'message': 'Too many',
+          'retryAfterSeconds': 42,
+        }),
+      );
+      await expectLater(
+        build().startEmailSignIn(email: 'a@b.co', locale: 'es'),
+        throwsA(
+          isA<AppException>()
+              .having((e) => e.kind, 'kind', AppErrorKind.rateLimited)
+              .having((e) => e.code, 'code', 'TOO_MANY_REQUESTS')
+              .having((e) => e.intField('retryAfterSeconds'), 'retry', 42),
+        ),
+      );
+    });
+
+    test('verify stores tokens and the user like other providers', () async {
+      adapter = FakeAdapter((o) => const FakeResponse(200, _authBody));
+      final repo = build();
+      final user = await repo.verifyEmailCode(
+        email: 'ana@example.com',
+        code: '123456',
+      );
+      expect(user.id, 'u1');
+      expect(adapter.requests.single.path, '/auth/email/verify');
+      expect(adapter.requests.single.data, {
+        'email': 'ana@example.com',
+        'code': '123456',
+      });
+      expect(
+        await tokens.read(),
+        const AuthTokens(accessToken: 'acc', refreshToken: 'ref'),
+      );
+      expect(await repo.cachedUser(), user);
+    });
+
+    test('verify keeps attemptsLeft and the expired code', () async {
+      adapter = FakeAdapter(
+        (o) => const FakeResponse(400, {
+          'statusCode': 400,
+          'code': 'INVALID_CODE',
+          'attemptsLeft': 3,
+        }),
+      );
+      await expectLater(
+        build().verifyEmailCode(email: 'a@b.co', code: '000000'),
+        throwsA(
+          isA<AppException>()
+              .having((e) => e.code, 'code', 'INVALID_CODE')
+              .having((e) => e.intField('attemptsLeft'), 'left', 3),
+        ),
+      );
+      adapter = FakeAdapter(
+        (o) => const FakeResponse(410, {
+          'statusCode': 410,
+          'code': 'CODE_EXPIRED',
+        }),
+      );
+      await expectLater(
+        build().verifyEmailCode(email: 'a@b.co', code: '000000'),
+        throwsA(
+          isA<AppException>().having((e) => e.code, 'code', 'CODE_EXPIRED'),
+        ),
+      );
+      expect(await tokens.read(), isNull);
+    });
+
+    test('providers are read from GET /auth/providers', () async {
+      adapter = FakeAdapter(
+        (o) => const FakeResponse(200, {
+          'email': true,
+          'google': false,
+          'apple': true,
+        }),
+      );
+      final providers = await build().fetchProviders();
+      expect(providers, const AuthProviders(apple: true));
+      expect(adapter.requests.single.path, '/auth/providers');
+      expect(adapter.requests.single.method, 'GET');
+    });
+  });
 }

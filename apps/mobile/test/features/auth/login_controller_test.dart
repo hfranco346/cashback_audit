@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/fakes.dart';
 
-class _Repo implements AuthRepository {
+class _Repo with EmailAuthStub implements AuthRepository {
   _Repo({this.googleResult, this.googleError});
   final AppUser? googleResult;
   final Object? googleError;

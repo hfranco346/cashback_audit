@@ -18,7 +18,7 @@ class AppUser extends Equatable {
   final String? email;
   final String? name;
 
-  /// Sign-in provider (`GOOGLE` | `APPLE`).
+  /// Sign-in provider (`GOOGLE` | `APPLE` | `EMAIL`).
   final String? provider;
 
   /// Language preference stored in the account (`auto` | `es` | `en`).
@@ -143,4 +143,45 @@ class AppleCredential extends Equatable {
 /// The user dismissed the native sign-in sheet. Not an error to display.
 class SignInCancelled implements Exception {
   const SignInCancelled();
+}
+
+/// Answer of `POST /auth/email/start`: when the emailed code stops working and
+/// when another one may be requested.
+class EmailChallenge extends Equatable {
+  const EmailChallenge({
+    required this.expiresInSeconds,
+    required this.resendAfterSeconds,
+  });
+
+  final int expiresInSeconds;
+  final int resendAfterSeconds;
+
+  @override
+  List<Object?> get props => [expiresInSeconds, resendAfterSeconds];
+}
+
+/// Sign-in methods the backend has configured (`GET /auth/providers`).
+class AuthProviders extends Equatable {
+  const AuthProviders({
+    this.email = true,
+    this.google = false,
+    this.apple = false,
+  });
+
+  /// Used until the backend answers (or when it cannot be reached): the email
+  /// code works without any third-party setup.
+  static const emailOnly = AuthProviders();
+
+  factory AuthProviders.fromJson(Map<String, dynamic> json) => AuthProviders(
+    email: json['email'] != false,
+    google: json['google'] == true,
+    apple: json['apple'] == true,
+  );
+
+  final bool email;
+  final bool google;
+  final bool apple;
+
+  @override
+  List<Object?> get props => [email, google, apple];
 }
