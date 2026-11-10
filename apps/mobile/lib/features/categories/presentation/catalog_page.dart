@@ -47,11 +47,12 @@ class CatalogPage extends GetView<CatalogController> {
     return out;
   }
 
-  Future<void> _quickAdd(BuildContext context, String name) async {
+  Future<bool> _quickAdd(BuildContext context, String name) async {
     final error = await controller.createCategory(name, null);
     if (error != null && context.mounted) {
       _notify(context, context.l10n.loadError, error);
     }
+    return error == null;
   }
 
   Future<void> _addCategory(BuildContext context) => showAppBottomSheet<void>(

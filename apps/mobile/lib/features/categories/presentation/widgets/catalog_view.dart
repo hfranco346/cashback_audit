@@ -9,7 +9,7 @@ import 'dashed_suggestion_tile.dart';
 /// Pure presentational "Rubros" tab: a guided empty state while there are no
 /// categories, then a card per category with the cards that reward it and
 /// its (optional) merchants.
-class CatalogView extends StatelessWidget {
+class CatalogView extends StatefulWidget {
   const CatalogView({
     super.key,
     required this.categories,
@@ -40,18 +40,51 @@ class CatalogView extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final VoidCallback onAddCategory;
 
-  /// Creates a suggested category by name (empty state, one tap).
-  final ValueChanged<String>? onQuickAddCategory;
+  /// Creates a suggested category by name (guided state, one tap). Resolves
+  /// to `false` when it could not be created.
+  final Future<bool> Function(String name)? onQuickAddCategory;
   final ValueChanged<Category> onEditCategory;
   final ValueChanged<Category> onDeleteCategory;
   final ValueChanged<Category> onAddMerchant;
   final ValueChanged<Merchant> onEditMerchant;
 
   @override
+  State<CatalogView> createState() => _CatalogViewState();
+}
+
+class _CatalogViewState extends State<CatalogView> {
+  /// The guided view was shown: it stays while the user adds several
+  /// suggestions, until they press "Done".
+  bool _guided = false;
+  bool _guideDone = false;
+  final _pending = <String>{};
+
+  List<Category> get categories => widget.categories;
+
+  bool _has(String name) => categories.any(
+    (c) => c.name.trim().toLowerCase() == name.trim().toLowerCase(),
+  );
+
+  Future<void> _quickAdd(String name) async {
+    final add = widget.onQuickAddCategory;
+    if (add == null || _has(name) || !_pending.add(name)) return;
+    setState(() {});
+    try {
+      await add(name);
+    } finally {
+      if (mounted) setState(() => _pending.remove(name));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final showEmpty = categories.isEmpty && errorMessage == null && !(loading);
+    final loading = widget.loading;
+    final errorMessage = widget.errorMessage;
+    final showEmpty = categories.isEmpty && errorMessage == null && !loading;
+    if (showEmpty) _guided = true;
+    final showGuide = showEmpty || (_guided && !_guideDone);
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -74,10 +107,10 @@ class CatalogView extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (categories.isNotEmpty)
+                  if (categories.isNotEmpty && !showGuide)
                     FilledButton.tonal(
                       key: const Key('add-category'),
-                      onPressed: onAddCategory,
+                      onPressed: widget.onAddCategory,
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(0, 44),
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -89,8 +122,8 @@ class CatalogView extends StatelessWidget {
             ),
             Expanded(
               child: RefreshIndicator(
-                onRefresh: onRefresh,
-                child: loading && categories.isEmpty
+                onRefresh: widget.onRefresh,
+                child: loading && categories.isEmpty && !_guided
                     ? ListView(
                         children: const [
                           SizedBox(height: 120),
@@ -100,7 +133,7 @@ class CatalogView extends StatelessWidget {
                     : ListView(
                         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
                         children: [
-                          if (offline)
+                          if (widget.offline)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: InlineNotice(
@@ -114,11 +147,11 @@ class CatalogView extends StatelessWidget {
                               child: InlineNotice(
                                 message: errorMessage!,
                                 actionLabel: l10n.retry,
-                                onAction: () => onRefresh(),
+                                onAction: () => widget.onRefresh(),
                               ),
                             ),
-                          if (showEmpty)
-                            ..._guided(context)
+                          if (showGuide)
+                            ..._guide(context)
                           else ...[
                             if (categories.isNotEmpty)
                               Padding(
@@ -140,15 +173,16 @@ class CatalogView extends StatelessWidget {
                                   child: _CategoryCard(
                                     key: ValueKey(categories[i].id),
                                     category: categories[i],
-                                    merchants: merchantsOf(categories[i].id),
-                                    tags: ruleTagsOf(categories[i].id),
+                                    merchants: widget.merchantsOf(categories[i].id),
+                                    tags: widget.ruleTagsOf(categories[i].id),
                                     initiallyExpanded: i == 0,
-                                    onEdit: () => onEditCategory(categories[i]),
+                                    onEdit: () =>
+                                        widget.onEditCategory(categories[i]),
                                     onDelete: () =>
-                                        onDeleteCategory(categories[i]),
+                                        widget.onDeleteCategory(categories[i]),
                                     onAddMerchant: () =>
-                                        onAddMerchant(categories[i]),
-                                    onEditMerchant: onEditMerchant,
+                                        widget.onAddMerchant(categories[i]),
+                                    onEditMerchant: widget.onEditMerchant,
                                   ),
                                 ),
                               ),
@@ -163,7 +197,7 @@ class CatalogView extends StatelessWidget {
     );
   }
 
-  List<Widget> _guided(BuildContext context) {
+  List<Widget> _guide(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -224,21 +258,31 @@ class CatalogView extends StatelessWidget {
             child: DashedSuggestionTile(
               key: Key('suggest-$i'),
               label: suggestions[i],
-              onTap: onQuickAddCategory == null
+              added: _has(suggestions[i]),
+              onTap: widget.onQuickAddCategory == null
                   ? null
-                  : () => onQuickAddCategory!(suggestions[i]),
+                  : () => _quickAdd(suggestions[i]),
             ),
           ),
         ),
-      const SizedBox(height: 6),
+      // Design: 14 px column gap + 4 px top margin after the list.
+      const SizedBox(height: 10),
       StaggeredEntrance(
         index: suggestions.length + 2,
         child: AppButton(
           key: const Key('add-category-empty'),
           label: l10n.catalogCreateOther,
-          onPressed: onAddCategory,
+          onPressed: widget.onAddCategory,
         ),
       ),
+      if (categories.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        AppButton.ghost(
+          key: const Key('guide-done'),
+          label: l10n.catalogGuideDone,
+          onPressed: () => setState(() => _guideDone = true),
+        ),
+      ],
     ];
   }
 }

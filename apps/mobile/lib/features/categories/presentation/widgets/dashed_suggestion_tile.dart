@@ -9,10 +9,14 @@ class DashedSuggestionTile extends StatelessWidget {
     super.key,
     required this.label,
     required this.onTap,
+    this.added = false,
   });
 
   final String label;
   final VoidCallback? onTap;
+
+  /// Already created: shows a check instead of the `+` and ignores taps.
+  final bool added;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +32,7 @@ class DashedSuggestionTile extends StatelessWidget {
             radius: AppRadii.field,
           ),
           child: InkWell(
-            onTap: onTap,
+            onTap: added ? null : onTap,
             borderRadius: BorderRadius.circular(AppRadii.field),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 52),
@@ -36,13 +40,16 @@ class DashedSuggestionTile extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: Row(
                   children: [
-                    Text(
-                      '+',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontSize: 18,
-                        color: scheme.primary,
+                    if (added)
+                      Icon(Icons.check_rounded, size: 18, color: scheme.primary)
+                    else
+                      Text(
+                        '+',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: 18,
+                          color: scheme.primary,
+                        ),
                       ),
-                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(

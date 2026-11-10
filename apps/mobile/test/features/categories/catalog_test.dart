@@ -193,7 +193,7 @@ void main() {
       bool loading = false,
       ValueChanged<Category>? onAddMerchant,
       ValueChanged<Merchant>? onEditMerchant,
-      ValueChanged<String>? onQuickAdd,
+      Future<bool> Function(String)? onQuickAdd,
       VoidCallback? onAddCategory,
     }) => CatalogView(
       categories: categories,
@@ -254,7 +254,10 @@ void main() {
         tester,
         view(
           categories: const [],
-          onQuickAdd: (n) => quick = n,
+          onQuickAdd: (n) async {
+            quick = n;
+            return true;
+          },
           onAddCategory: () => created++,
         ),
         size: const Size(390, 1000),
@@ -295,6 +298,7 @@ void main() {
             find.text(lang == 'es' ? 'Supermercados' : 'Supermarkets'),
             findsOneWidget,
           );
+          await pumpUi(tester, const SizedBox(), dark: dark, lang: lang);
           await pumpUi(tester, view(), dark: dark, lang: lang);
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
@@ -508,7 +512,27 @@ void main() {
       await tester.tap(find.byKey(const Key('suggest-1')));
       await tester.pumpAndSettle();
       expect(controller.categories.single.name, 'Farmacia');
-      // Now populated: the guide is gone and the header action appears.
+      // Still guided: the user can keep picking suggestions.
+      expect(find.byKey(const Key('catalog-guide')), findsOneWidget);
+      expect(find.byKey(const Key('add-category')), findsNothing);
+      await tester.tap(find.byKey(const Key('suggest-0')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('suggest-3')));
+      await tester.pumpAndSettle();
+      expect(controller.categories.map((c) => c.name), [
+        'Farmacia',
+        'Supermercados',
+        'Gasolineras',
+      ]);
+      expect(find.byKey(const Key('catalog-guide')), findsOneWidget);
+      expect(find.byIcon(Icons.check_rounded), findsNWidgets(3));
+      // An added suggestion is not created twice.
+      await tester.tap(find.byKey(const Key('suggest-0')));
+      await tester.pumpAndSettle();
+      expect(controller.categories, hasLength(3));
+      // "Done" moves to the populated view.
+      await tester.tap(find.byKey(const Key('guide-done')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('catalog-guide')), findsNothing);
       expect(find.byKey(const Key('add-category')), findsOneWidget);
     });
