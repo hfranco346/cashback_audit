@@ -570,6 +570,7 @@ Card object:
   "rewardProgramName": null,
   "rewardCurrency": null,
   "claimEmail": null,
+  "rewardReporting": "AUTO",
   "rules": [
     { "categoryId": "6f1c...", "ratePercent": "5", "monthlyCap": "500" }
   ],
@@ -593,6 +594,7 @@ Field rules:
 | `rewardProgramName` | string or null | optional, max 80 chars, trimmed, `null`/`""` clears it. Name of the loyalty program to audit when the statement lists several (e.g. `"CASH BAC CREDOMATIC"`). Matched case/accent-insensitively with "contains" against the program names printed on the statement |
 | `rewardCurrency` | string or null | optional ISO 4217 code, `null`/`""` clears it. Currency the **reward is paid in** when it differs from `currency` (spend in `HNL`, cashback in `USD`). Overrides what the statement indicates. Effective reward currency = `rewardCurrency` ?? the chosen program's `currency` ?? `currency`. Ignored for `POINTS` cards (no conversion applies) |
 | `claimEmail` | string or null | optional valid email (max 254), trimmed and lowercased; `null`/`""` clears it. Where claims to the bank are sent (prefilled "To" of the claim email). Always present in card responses (`null` when unset); invalid values are `400` |
+| `rewardReporting` | enum | optional, default `"AUTO"`. How the bank prints the reward figure: `MONTHLY` (what you earned this month), `CUMULATIVE` (an accumulated running balance) or `AUTO` (ask on each confirm). Always present in card responses. Updated from the confirm step with `rewardReporting.rememberForCard`. Invalid values are `400` |
 | `rules` | array | optional, max 50, **one rule per category** |
 
 Rule (`rules[]`):
@@ -951,7 +953,13 @@ Claude, so it can be repeated freely (`200`). Allowed on `AWAITING_RATES` and
   "exchangeRate": "26.35",
   "exchangeRates": { "USD": "25.80", "EUR": "28.10" },
   "rewardExchangeRate": "25.80",
-  "rewardProgramName": "CASH BAC CREDOMATIC"
+  "rewardProgramName": "CASH BAC CREDOMATIC",
+  "rewardReporting": {
+    "mode": "CUMULATIVE",
+    "previousBalance": "100.50",
+    "previousBalanceSource": "USER",
+    "rememberForCard": true
+  }
 }
 ```
 
@@ -965,6 +973,7 @@ Claude, so it can be repeated freely (`200`). Allowed on `AWAITING_RATES` and
 | `exchangeRates` | no | Object `{ "<ISO 4217>": "<rate>" }`, one rate per foreign spend currency. **Direction: units of the primary (card) currency per 1 unit of that currency.** Examples: card `HNL`, `{ "USD": "25.80" }` means 1 USD = 25.80 HNL; card `CRC`, `{ "EUR": "560" }` means 1 EUR = 560 CRC. Each rate must be `> 0` with at most 6 decimals; keys cannot be the primary currency (`400 INVALID_EXCHANGE_RATE`). Merged over the rates sent earlier; a currency without a rate is left out (warning `NO_EXCHANGE_RATE` names only that currency) |
 | `rewardExchangeRate` | when `rewardConversion.required` | Same direction: **primary-currency units per 1 unit of the reward currency** (card `HNL`, reward `USD`: `"25.80"`). If the reward currency is also a foreign spend currency and `exchangeRates` has it, that rate is reused when this field is absent. Without any rate: `422 REWARD_EXCHANGE_RATE_REQUIRED`. Can be changed on every re-confirm (free recalculation) |
 | `rewardProgramName` | no | As in step 1; replaces the one given at upload |
+| `rewardReporting` | no | See "Earned this month or accumulated balance" below. Omitted = keep the choice made earlier on this verification, else the card's `rewardReporting` (`CUMULATIVE` only when the card says so), else `MONTHLY` (the printed figure is the earned amount, as before) |
 
 The confirmed rates **completely replace the card rules for this verification**
 (a category not listed is audited at `baseRatePercent`). Values omitted in a
@@ -1025,8 +1034,155 @@ keep the ones stored earlier. The response is the full verification with
 | 422 | `REWARD_EXCHANGE_RATE_REQUIRED` | The reward currency differs from the primary currency and no rate is known. `details` = `{ fromCurrency, toCurrency }` (primary, reward). Ask for `rewardExchangeRate` and resend |
 | 422 | `REWARD_PROGRAM_AMBIGUOUS` | `details.programs` = names; resend with `rewardProgramName` |
 | 422 | `REPORTED_REWARD_NOT_FOUND` | No usable reward figure for the chosen program (or none at all); resend with `reportedRewardOverride` |
+| 422 | `PREVIOUS_BALANCE_REQUIRED` | `rewardReporting.mode` is `CUMULATIVE` and no previous balance could be resolved (not typed, not printed, no earlier audit). Ask the user for it (or read it with `POST /verifications/:id/previous-statement`) and resend |
 
 A failed confirm leaves the verification untouched.
+
+#### Earned this month or accumulated balance
+
+Some banks print the reward program's **running balance** instead of what was
+earned in the statement month. Auditing that figure against the month's spend
+is wrong, so the earned amount is derived deterministically (exact decimals,
+never by the model):
+
+```
+earned = currentBalance - previousBalance + redeemedInPeriod + expiredInPeriod
+```
+
+`currentBalance` is the program's `accumulated` column (else `available`);
+`redeemedInPeriod` is the "redeemed" column; `expiredInPeriod` is the
+**forfeited / written-off** column (the "expiring soon" column is still part of
+the balance and is not added back). A negative result is kept as is and flagged
+with the warning `REWARD_BALANCE_INCONSISTENT`. With `CUMULATIVE`, the verdict
+audits `earned` (`reported.amount` = `earned`). A manual `reportedRewardOverride`
+always wins (the derivation is then skipped).
+
+Previous balance, in order: what you send (`previousBalance`, source `USER` or
+`PREVIOUS_STATEMENT`), then **B** the statement itself (the program row prints
+its previous balance, source `STATEMENT`; or prints the earned-in-period figure,
+which is used directly), then **A** the closest earlier `COMPLETED` verification
+of the same card whose `rewardReporting.currentBalance` belongs to the same
+program (normalized name) and whose `periodEnd` is within 5 days of this
+statement's `periodStart` (source `PREVIOUS_VERIFICATION`), then **C** ask the
+user (`422 PREVIOUS_BALANCE_REQUIRED`).
+
+`rewardReporting` body object:
+
+| Field | Required | Rules |
+| --- | --- | --- |
+| `mode` | yes | `MONTHLY` or `CUMULATIVE` |
+| `previousBalance` | no | Decimal `>= 0`, max 6 decimals. Only meaningful for `CUMULATIVE`; wins over B and A. Kept for later recalculations |
+| `previousBalanceSource` | no | `USER` (default), `PREVIOUS_STATEMENT`, `STATEMENT`, `PREVIOUS_VERIFICATION` |
+| `rememberForCard` | no | Default `false`. `true` stores `mode` as the card's `rewardReporting` (only after a successful audit) |
+
+Re-confirming can switch the mode at any time (free, no Claude call).
+
+`rewardReportingProposal` (on `AWAITING_RATES` and `COMPLETED` details; `null`
+otherwise) tells the client what to ask:
+
+```json
+{
+  "mode": "CUMULATIVE",
+  "suggestedMode": "CUMULATIVE",
+  "reason": "STATEMENT_HAS_PREVIOUS_BALANCE",
+  "cardSetting": "AUTO",
+  "programName": "CASH BAC CREDOMATIC",
+  "reportedLabel": "Acumulado",
+  "currentBalance": "158",
+  "previousBalance": "100",
+  "previousBalanceSource": "STATEMENT",
+  "previousVerificationId": null,
+  "previousPeriodEnd": null,
+  "redeemedInPeriod": "0",
+  "expiredInPeriod": "0",
+  "earned": "58",
+  "previousBalanceRequired": false
+}
+```
+
+- `mode`: the mode to preselect: the one already used by a `COMPLETED` audit,
+  else the card's explicit setting, else `suggestedMode`.
+- `reason` (why `suggestedMode`): `CARD_SETTING` (the card is `MONTHLY` or
+  `CUMULATIVE`; wins), `STATEMENT_HAS_PREVIOUS_BALANCE` (the program row prints
+  a previous balance or an earned figure), `LABEL_SAYS_ACCUMULATED` (printed
+  label like "Acumulado", "Saldo", "Disponible"), `REPORTED_FAR_ABOVE_EXPECTED`
+  (reported > 3x the reward expected with the proposed rates and above 10, or
+  500 for points), `NONE` (suggests `MONTHLY`).
+- `programName` / `reportedLabel`: the program as printed and the printed label
+  of the audited figure; `null` when unknown or when several programs make the
+  choice ambiguous (then all amounts are `null`/`"0"` and
+  `previousBalanceRequired` is `true`).
+- `currentBalance`, `previousBalance`, `earned`: decimal strings or `null`.
+  `earned` is `null` when the previous balance is unknown.
+  `previousBalance` is `null` when only an earned figure is printed.
+- `previousBalanceSource`: `STATEMENT`, `PREVIOUS_VERIFICATION` or `null`
+  (`USER` / `PREVIOUS_STATEMENT` appear once the user supplied one and the
+  verification is `COMPLETED`). `previousVerificationId` and `previousPeriodEnd`
+  (ISO date) are set only for `PREVIOUS_VERIFICATION`.
+- `previousBalanceRequired`: `true` when choosing `CUMULATIVE` would need the
+  user to provide the previous balance (`earned` is `null`).
+
+Completed detail `rewardReporting` (always present on `COMPLETED`; rows
+written before this feature read as `MONTHLY`):
+
+```json
+{
+  "mode": "CUMULATIVE",
+  "programName": "CASH BAC CREDOMATIC",
+  "reportedLabel": "Acumulado",
+  "currentBalance": "158",
+  "previousBalance": "100",
+  "previousBalanceSource": "STATEMENT",
+  "previousPeriodEnd": null,
+  "redeemedInPeriod": "0",
+  "expiredInPeriod": "0",
+  "earned": "58"
+}
+```
+
+`MONTHLY`: `currentBalance`, `previousBalance` and `previousBalanceSource` are
+`null` and `earned` equals the reported figure. The current balance of a
+`CUMULATIVE` audit is stored so next month can use it (decision A). The
+Spanish `explanation` describes the derivation when the mode is `CUMULATIVE`.
+Loyalty programs (`loyalty.programs[]`, `selectedProgram`) also expose
+`previousBalance`, `earnedInPeriod` and `reportedLabel` (nullable).
+
+### POST /verifications/:id/previous-statement
+
+Reads last month's statement **only to get the program balance**, so the user
+need not type the previous balance. `multipart/form-data`: `file` (PDF, max
+10 MB, same validation as the upload) and optional `rewardProgramName` (picks
+the program when the verification's own is ambiguous). Allowed for
+`AWAITING_RATES` and `COMPLETED` verifications. Synchronous Claude call with a
+small dedicated schema; **no credit is consumed and the PDF is never stored**.
+Throttled per user like the upload (`429 TOO_MANY_REQUESTS`).
+
+`200`:
+
+```json
+{
+  "programs": [
+    { "name": "CASH BAC CREDOMATIC", "balance": "100.5", "periodEnd": "2025-12-31" },
+    { "name": "PUNTOS", "balance": "7", "periodEnd": "2025-12-31" }
+  ],
+  "matchedBalance": "100.5"
+}
+```
+
+`balance` and `matchedBalance` are decimal strings; `periodEnd` is the closing
+date of that statement or `null` (check it is the previous month). Send
+`matchedBalance` as `rewardReporting.previousBalance` with
+`previousBalanceSource: "PREVIOUS_STATEMENT"`. `matchedBalance` is `null` when
+the verification has several candidate programs and none was chosen (pick one
+from `programs`).
+
+| Status | `code` | Meaning |
+| --- | --- | --- |
+| 400 | `FILE_REQUIRED`, `INVALID_PDF` | Missing file / not a PDF |
+| 404 | `VERIFICATION_NOT_FOUND` | Missing or not yours |
+| 409 | `VERIFICATION_NOT_READY` | Verification is `PROCESSING` or `FAILED` |
+| 422 | `NOT_A_STATEMENT` | The file is not a credit card statement |
+| 422 | `PROGRAM_NOT_FOUND` | The verification's program is not on that statement, or it lists no program. `details.programs` = names found |
 
 ### POST /verifications/:id/categories-from-suggestions
 
@@ -1562,6 +1718,7 @@ consumable products in RevenueCat/the stores.
 | 400 | `INVALID_EXCHANGE_RATE` | See verifications |
 | 400 | `INVALID_CURRENCIES` | `PATCH /me/preferences`: repeated currency code or the primary currency in the list |
 | 422 | `REPORTED_REWARD_NOT_FOUND`, `REWARD_PROGRAM_AMBIGUOUS`, `REWARD_EXCHANGE_RATE_REQUIRED` | See verifications |
+| 422 | `PREVIOUS_BALANCE_REQUIRED`, `NOT_A_STATEMENT`, `PROGRAM_NOT_FOUND` | Cumulative reward balance (confirm, previous-statement) |
 | 429 | `TOO_MANY_REQUESTS` | Rate limit (email start: `details.retryAfterSeconds`) |
 | 429 | `TOO_MANY_ATTEMPTS` | 5 wrong email codes: the code is burned |
 | 500 | `INTERNAL_ERROR` | Unexpected; generic message, nothing leaked |
@@ -1572,6 +1729,17 @@ consumable products in RevenueCat/the stores.
 ---
 
 ## 12. Changelog (breaking changes)
+
+### Cumulative reward balance
+
+- Cards gain `rewardReporting` (`AUTO` | `MONTHLY` | `CUMULATIVE`, default `AUTO`).
+- Loyalty programs gain `previousBalance`, `earnedInPeriod`, `reportedLabel`.
+- `AWAITING_RATES`/`COMPLETED` details gain `rewardReportingProposal`;
+  `COMPLETED` details gain `rewardReporting`.
+- `POST /verifications/:id/confirm` accepts `rewardReporting` and can answer
+  `422 PREVIOUS_BALANCE_REQUIRED`; new warning `REWARD_BALANCE_INCONSISTENT`.
+- New `POST /verifications/:id/previous-statement` (free, throttled).
+- Additive only: omitting `rewardReporting` keeps the previous behaviour.
 
 ### Unlimited credits and card claim email
 

@@ -1,3 +1,4 @@
+import type { Decimal } from 'decimal.js';
 import type {
   CategoryCandidate,
   ClassificationResult,
@@ -51,6 +52,20 @@ export interface AuditFacts {
     capped: boolean;
     monthlyCap: string | null;
   }[];
+  /** Set when the printed figure was a running balance (CUMULATIVE). */
+  rewardReporting: {
+    currentBalance: string | null;
+    previousBalance: string | null;
+    previousBalanceSource:
+      | 'STATEMENT'
+      | 'PREVIOUS_VERIFICATION'
+      | 'USER'
+      | 'PREVIOUS_STATEMENT'
+      | null;
+    redeemedInPeriod: string;
+    expiredInPeriod: string;
+    earned: string | null;
+  } | null;
   excludedForeignLines: number;
   warningCodes: string[];
 }
@@ -61,4 +76,24 @@ export interface AuditFacts {
  */
 export abstract class ResultExplainer {
   abstract explain(facts: AuditFacts): Promise<{ text: string; model: string }>;
+}
+
+/** One loyalty-program balance read from a previous statement. */
+export interface PreviousStatementProgram {
+  name: string;
+  /** Running balance of the program at the statement's closing date. */
+  balance: Decimal;
+  /** ISO `YYYY-MM-DD` closing date of that statement, when it can be told. */
+  periodEnd: string | null;
+}
+
+/**
+ * Port: reads ONLY the loyalty-program balances of last month's statement
+ * (in memory; the PDF is never stored). Throws NotAStatementError when the
+ * file is not a credit card statement.
+ */
+export abstract class PreviousStatementReader {
+  abstract read(
+    pdf: Buffer,
+  ): Promise<{ programs: PreviousStatementProgram[]; model: string }>;
 }

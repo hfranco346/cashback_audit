@@ -2,6 +2,7 @@ import type {
   RateProposal,
   RateProposalEntry,
 } from '../domain/rate-proposal.js';
+import type { RewardReportingProposal } from '../domain/reward-reporting.js';
 import {
   creditTypeOf,
   type LoyaltyProgram,
@@ -22,8 +23,60 @@ const presentProgram = (p: LoyaltyProgram) => ({
   redeemedInPeriod: str(p.redeemedInPeriod),
   expiring: str(p.expiring),
   forfeited: str(p.forfeited),
+  previousBalance: str(p.previousBalance),
+  earnedInPeriod: str(p.earnedInPeriod),
+  reportedLabel: p.reportedLabel,
   currency: p.currency,
 });
+
+const presentReportingProposal = (p: RewardReportingProposal) => ({
+  mode: p.mode,
+  suggestedMode: p.suggestedMode,
+  reason: p.reason,
+  cardSetting: p.cardSetting,
+  currentBalance: str(p.currentBalance),
+  previousBalance: str(p.previousBalance),
+  previousBalanceSource: p.previousBalanceSource,
+  previousVerificationId: p.previousVerificationId,
+  previousPeriodEnd: p.previousPeriodEnd,
+  programName: p.programName,
+  reportedLabel: p.reportedLabel,
+  redeemedInPeriod: p.redeemedInPeriod.toString(),
+  expiredInPeriod: p.expiredInPeriod.toString(),
+  earned: str(p.earned),
+  previousBalanceRequired: p.previousBalanceRequired,
+});
+
+/** Block of a COMPLETED audit; rows from before cumulative support read as MONTHLY. */
+function presentReporting(v: Verification) {
+  const r = v.rewardReporting;
+  if (r) {
+    return {
+      mode: r.mode,
+      programName: r.programName,
+      reportedLabel: r.reportedLabel,
+      currentBalance: str(r.currentBalance),
+      previousBalance: str(r.previousBalance),
+      previousBalanceSource: r.previousBalanceSource,
+      previousPeriodEnd: r.previousPeriodEnd,
+      redeemedInPeriod: r.redeemedInPeriod.toString(),
+      expiredInPeriod: r.expiredInPeriod.toString(),
+      earned: str(r.earned),
+    };
+  }
+  return {
+    mode: 'MONTHLY' as const,
+    programName: v.loyalty.selected?.name ?? null,
+    reportedLabel: v.loyalty.selected?.reportedLabel ?? null,
+    currentBalance: null,
+    previousBalance: null,
+    previousBalanceSource: null,
+    previousPeriodEnd: null,
+    redeemedInPeriod: (v.loyalty.selected?.redeemedInPeriod ?? 0).toString(),
+    expiredInPeriod: (v.loyalty.selected?.forfeited ?? 0).toString(),
+    earned: str(v.reportedAmount),
+  };
+}
 
 const presentProposalEntry = (e: RateProposalEntry) => ({
   categoryId: e.categoryId,
@@ -130,6 +183,10 @@ export function presentVerification(v: Verification, proposal: RateProposal) {
     tolerance: str(v.tolerance),
     verdict: v.verdict,
     explanation: v.explanation,
+    rewardReporting: done ? presentReporting(v) : null,
+    rewardReportingProposal: proposal.rewardReporting
+      ? presentReportingProposal(proposal.rewardReporting)
+      : null,
     detectedRates: v.detectedRates.map((r) => ({
       scope: r.scope,
       categoryHint: r.categoryHint,

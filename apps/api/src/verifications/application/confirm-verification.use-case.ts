@@ -27,6 +27,13 @@ import {
 import type { AppliedRates, Verification } from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
 import { RateProposalService } from './rate-proposal.service.js';
+import { RewardReportingService } from './reward-reporting.service.js';
+import { selectLoyaltyProgram } from '../domain/loyalty-program-selector.js';
+import type {
+  PreviousBalance,
+  PreviousBalanceSource,
+  RewardReportingMode,
+} from '../domain/reward-reporting.js';
 
 export interface ConfirmVerificationInput {
   userId: string;
@@ -47,6 +54,13 @@ export interface ConfirmVerificationInput {
   /** Primary-currency units per 1 unit of the reward currency. */
   rewardExchangeRate?: string;
   rewardProgramName?: string;
+  /** How the bank reports the reward; omitted = keep the previous choice. */
+  rewardReporting?: {
+    mode: RewardReportingMode;
+    previousBalance?: string;
+    previousBalanceSource?: PreviousBalanceSource;
+    rememberForCard?: boolean;
+  };
 }
 
 const CURRENCY_CODE = /^[A-Z]{3}$/;
@@ -75,6 +89,7 @@ export class ConfirmVerificationUseCase {
     private readonly proposals: RateProposalService,
     private readonly explainer: ResultExplainer,
     private readonly users: UserRepository,
+    private readonly reporting: RewardReportingService,
   ) {}
 
   async execute(input: ConfirmVerificationInput): Promise<Verification> {
@@ -148,8 +163,37 @@ export class ConfirmVerificationUseCase {
       requestedRates[currency] = parseRate(raw, `exchangeRates.${currency}`);
     }
 
+    // --- how the bank reports the reward (monthly vs accumulated balance) ----
+    const mode =
+      input.rewardReporting?.mode ??
+      this.reporting.defaultMode(verification, card);
+    let previous: PreviousBalance | null = null;
+    if (mode === 'CUMULATIVE') {
+      const selection = selectLoyaltyProgram(
+        verification.loyalty.programs,
+        input.rewardProgramName ?? verification.loyalty.requestedProgramName,
+        card.rewardProgramName,
+      );
+      if (selection.status === 'SELECTED') {
+        const typed = input.rewardReporting?.previousBalance;
+        previous = await this.reporting.resolvePrevious(
+          input.userId,
+          verification,
+          selection.program,
+          typed
+            ? {
+                value: new Decimal(typed),
+                source: input.rewardReporting?.previousBalanceSource ?? 'USER',
+                previousVerificationId: null,
+              }
+            : this.reporting.storedExplicit(verification),
+        );
+      }
+    }
+
     // --- audit with stored data + the new inputs --------------------------
     const audit = computeAudit({
+      rewardReporting: { mode, previous },
       card,
       rates: {
         baseRatePercent: base,
@@ -205,6 +249,11 @@ export class ConfirmVerificationUseCase {
       });
     }
 
+    if (input.rewardReporting?.rememberForCard) {
+      await this.cards.update(input.userId, card.id, {
+        rewardReporting: input.rewardReporting.mode,
+      });
+    }
     if (input.saveToCard) {
       await this.cards.update(input.userId, card.id, {
         baseRatePercent: base,
@@ -236,6 +285,7 @@ export class ConfirmVerificationUseCase {
         appliedRates,
         warnings,
         explanation,
+        rewardReporting: audit.rewardReporting,
         models: { ...verification.models, explanation: explanationModel },
       },
     );

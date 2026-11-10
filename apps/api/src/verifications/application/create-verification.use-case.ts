@@ -97,6 +97,7 @@ export class CreateVerificationUseCase {
         detectedRates: [],
         appliedRates: null,
         explanation: null,
+        rewardReporting: null,
         breakdown: [],
         transactions: [],
         warnings: [],

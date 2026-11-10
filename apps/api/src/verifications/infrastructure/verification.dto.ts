@@ -20,6 +20,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { PREVIOUS_BALANCE_SOURCES } from '../domain/reward-reporting.js';
 import { DecimalField } from '../../shared/http/decimal-validation.js';
 
 export class CreateVerificationDto {
@@ -54,6 +55,43 @@ export class CreateVerificationDto {
   @IsNotEmpty()
   @MaxLength(80)
   rewardProgramName?: string;
+}
+
+export class RewardReportingDto {
+  @ApiProperty({
+    enum: ['MONTHLY', 'CUMULATIVE'],
+    description:
+      'MONTHLY: the printed figure is what was earned this month. CUMULATIVE: it is a running balance; the earned amount is derived from the previous balance.',
+  })
+  @IsEnum(['MONTHLY', 'CUMULATIVE'])
+  mode!: 'MONTHLY' | 'CUMULATIVE';
+
+  @ApiPropertyOptional({
+    example: '120.50',
+    description:
+      'Reward balance at the end of the previous statement (CUMULATIVE). Wins over the statement and the previous audit.',
+  })
+  @IsOptional()
+  @DecimalField({ min: '0', max: '1000000000000', maxDecimals: 6 })
+  previousBalance?: string;
+
+  @ApiPropertyOptional({
+    enum: PREVIOUS_BALANCE_SOURCES,
+    description:
+      'Where previousBalance came from (default USER; use PREVIOUS_STATEMENT when read with POST /verifications/:id/previous-statement)',
+  })
+  @IsOptional()
+  @IsEnum(PREVIOUS_BALANCE_SOURCES)
+  previousBalanceSource?:
+    'STATEMENT' | 'PREVIOUS_VERIFICATION' | 'USER' | 'PREVIOUS_STATEMENT';
+
+  @ApiPropertyOptional({
+    default: false,
+    description: "Also store mode as the card's rewardReporting setting",
+  })
+  @IsOptional()
+  @IsBoolean()
+  rememberForCard?: boolean;
 }
 
 export class ConfirmVerificationDto {
@@ -127,6 +165,32 @@ export class ConfirmVerificationDto {
 
   @ApiPropertyOptional({ example: 'CASH BAC CREDOMATIC' })
   @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  rewardProgramName?: string;
+
+  @ApiPropertyOptional({
+    type: RewardReportingDto,
+    description:
+      'How the bank reports the reward. Omit to keep the previous choice (or the card setting).',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RewardReportingDto)
+  rewardReporting?: RewardReportingDto;
+}
+
+export class PreviousStatementDto {
+  @ApiPropertyOptional({
+    example: 'CASH BAC CREDOMATIC',
+    description:
+      "Program to read when the verification's own program is ambiguous",
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() || undefined : value,
+  )
   @IsString()
   @IsNotEmpty()
   @MaxLength(80)

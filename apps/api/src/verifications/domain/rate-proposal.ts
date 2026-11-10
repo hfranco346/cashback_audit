@@ -1,5 +1,6 @@
 import { Decimal } from 'decimal.js';
 import type { CardRule } from '../../cards/domain/card.js';
+import type { RewardReportingProposal } from './reward-reporting.js';
 import type { DetectedRate } from './statement.js';
 import type { SuggestedCategory } from './statement-hints.js';
 import type {
@@ -35,6 +36,8 @@ export interface RateProposal {
   spendConversions: SpendConversionProposal[];
   /** Statement category rates the user has no category for. */
   suggestedCategories: SuggestedCategory[];
+  /** Null unless the verification is AWAITING_RATES or COMPLETED. */
+  rewardReporting: RewardReportingProposal | null;
 }
 
 export interface RateProposalInput {

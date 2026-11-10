@@ -10,6 +10,14 @@ import {
   convertRewardToCurrency,
   type ConversionRate,
 } from './reward-calculator.js';
+import {
+  deriveEarned,
+  expiredInPeriod,
+  programBalance,
+  type PreviousBalance,
+  type RewardReportingMode,
+  type VerificationRewardReporting,
+} from './reward-reporting.js';
 import { statementRatesToPrimary } from './exchange-rates.js';
 import { resolveRewardCurrency } from './reward-currency.js';
 import type {
@@ -19,6 +27,7 @@ import type {
 import type { LoyaltyProgram, StatementExchangeRate } from './statement.js';
 import type { AuditFacts } from './statement-extractor.js';
 import {
+  PreviousBalanceRequiredError,
   ReportedRewardMissingError,
   RewardExchangeRateRequiredError,
   RewardProgramAmbiguousError,
@@ -39,6 +48,7 @@ export const AUDIT_WARNING_CODES: readonly string[] = [
   'EXCHANGE_RATE_APPLIED_TO_MULTIPLE_CURRENCIES',
   'REPORTED_VALUE_MAY_BE_CUMULATIVE',
   'REPORTED_UNIT_DIFFERS_FROM_CARD',
+  'REWARD_BALANCE_INCONSISTENT',
   'EXPLANATION_UNAVAILABLE',
 ];
 
@@ -66,9 +76,19 @@ export interface AuditInput {
   /** Primary units per 1 reward-currency unit. */
   requestedRewardRate: Decimal | null;
   statementRates: StatementExchangeRate[];
+  /**
+   * How the bank reports the reward. Null / MONTHLY: the printed figure is
+   * what was earned. CUMULATIVE: it is a running balance and the earned amount
+   * is derived from `previous` (or from the statement's own earned figure).
+   */
+  rewardReporting?: {
+    mode: RewardReportingMode;
+    previous: PreviousBalance | null;
+  } | null;
 }
 
 export interface AuditResult {
+  rewardReporting: VerificationRewardReporting;
   /** Currency of reported/expected/difference/tolerance; null for points. */
   rewardCurrency: string | null;
   /** Expected reward in the primary currency (== expectedAmount if no conversion). */
@@ -105,8 +125,10 @@ export function computeAudit(input: AuditInput): AuditResult {
     input.cardProgramName,
   );
   const program = selection.status === 'SELECTED' ? selection.program : null;
+  const cumulative = input.rewardReporting?.mode === 'CUMULATIVE';
   let reportedAmount: Decimal;
   let reportedSource: 'STATEMENT' | 'OVERRIDE';
+  let reporting: VerificationRewardReporting | null = null;
   if (input.reportedOverride) {
     reportedAmount = input.reportedOverride;
     reportedSource = 'OVERRIDE';
@@ -115,8 +137,25 @@ export function computeAudit(input: AuditInput): AuditResult {
       selection.names,
       selection.requestedName,
     );
-  } else if (program?.accumulated) {
-    reportedAmount = program.accumulated;
+  } else if (
+    program &&
+    (cumulative ? programBalance(program) : program.accumulated)
+  ) {
+    if (cumulative) {
+      reporting = deriveCumulative(
+        program,
+        input.rewardReporting?.previous ?? null,
+      );
+      reportedAmount = reporting.earned!;
+      if (reportedAmount.isNegative()) {
+        warnings.push({
+          code: 'REWARD_BALANCE_INCONSISTENT',
+          message: `"${program.name}": current balance ${reporting.currentBalance?.toString()} minus previous balance ${reporting.previousBalance?.toString() ?? '?'} plus redeemed ${reporting.redeemedInPeriod.toString()} plus expired ${reporting.expiredInPeriod.toString()} is negative (${reportedAmount.toString()}). Check the previous balance.`,
+        });
+      }
+    } else {
+      reportedAmount = program.accumulated!;
+    }
     reportedSource = 'STATEMENT';
     const programUnit =
       program.unit === 'UNKNOWN'
@@ -259,6 +298,7 @@ export function computeAudit(input: AuditInput): AuditResult {
   );
   if (
     reportedSource === 'STATEMENT' &&
+    !cumulative &&
     program &&
     looksCumulative(program, expectedAmount)
   ) {
@@ -289,6 +329,19 @@ export function computeAudit(input: AuditInput): AuditResult {
   }));
 
   return {
+    rewardReporting: reporting ?? {
+      mode: 'MONTHLY',
+      programName: program?.name ?? null,
+      reportedLabel: program?.reportedLabel ?? null,
+      currentBalance: null,
+      previousBalance: null,
+      previousBalanceSource: null,
+      previousVerificationId: null,
+      previousPeriodEnd: null,
+      redeemedInPeriod: program?.redeemedInPeriod ?? new Decimal(0),
+      expiredInPeriod: program ? expiredInPeriod(program) : new Decimal(0),
+      earned: reportedAmount,
+    },
     rewardCurrency,
     expectedInPrimary: calculation.expectedTotal,
     rewardExchangeRate: rewardRate,
@@ -325,6 +378,55 @@ export function computeAudit(input: AuditInput): AuditResult {
   };
 }
 
+/**
+ * Derives what was earned from a running balance:
+ * earned = current - previous + redeemed + expired. With no previous balance
+ * the statement's own earned-in-period figure is used; with neither the user
+ * must provide the previous balance.
+ */
+function deriveCumulative(
+  program: LoyaltyProgram,
+  previous: PreviousBalance | null,
+): VerificationRewardReporting {
+  const currentBalance = programBalance(program)!;
+  const redeemed = program.redeemedInPeriod ?? new Decimal(0);
+  const expired = expiredInPeriod(program);
+  const base = {
+    mode: 'CUMULATIVE' as const,
+    programName: program.name,
+    reportedLabel: program.reportedLabel,
+    currentBalance,
+    redeemedInPeriod: redeemed,
+    expiredInPeriod: expired,
+  };
+  if (previous) {
+    return {
+      ...base,
+      previousBalance: previous.value,
+      previousBalanceSource: previous.source,
+      previousVerificationId: previous.previousVerificationId,
+      previousPeriodEnd: previous.previousPeriodEnd ?? null,
+      earned: deriveEarned({
+        currentBalance,
+        previousBalance: previous.value,
+        redeemedInPeriod: redeemed,
+        expiredInPeriod: expired,
+      }),
+    };
+  }
+  if (program.earnedInPeriod) {
+    return {
+      ...base,
+      previousBalance: null,
+      previousBalanceSource: 'STATEMENT',
+      previousVerificationId: null,
+      previousPeriodEnd: null,
+      earned: program.earnedInPeriod,
+    };
+  }
+  throw new PreviousBalanceRequiredError();
+}
+
 /** The numbers of an audit, as strings, for the narrative explainer. */
 export function buildAuditFacts(
   audit: AuditResult,
@@ -355,6 +457,19 @@ export function buildAuditFacts(
       capped: l.capped,
       monthlyCap: l.monthlyCap?.toString() ?? null,
     })),
+    rewardReporting:
+      audit.rewardReporting.mode === 'CUMULATIVE'
+        ? {
+            currentBalance:
+              audit.rewardReporting.currentBalance?.toString() ?? null,
+            previousBalance:
+              audit.rewardReporting.previousBalance?.toString() ?? null,
+            previousBalanceSource: audit.rewardReporting.previousBalanceSource,
+            redeemedInPeriod: audit.rewardReporting.redeemedInPeriod.toString(),
+            expiredInPeriod: audit.rewardReporting.expiredInPeriod.toString(),
+            earned: audit.rewardReporting.earned?.toString() ?? null,
+          }
+        : null,
     excludedForeignLines: audit.conversion.currencies.reduce(
       (n, c) => n + c.excludedCount,
       0,

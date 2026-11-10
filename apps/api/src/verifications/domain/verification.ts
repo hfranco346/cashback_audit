@@ -7,6 +7,7 @@ import type {
 } from './reward-calculator.js';
 import type { ProgramSelectionSource } from './loyalty-program-selector.js';
 import type { AppliedRateSource } from './rate-proposal.js';
+import type { VerificationRewardReporting } from './reward-reporting.js';
 import type {
   CurrencySummary,
   DetectedRate,
@@ -205,6 +206,8 @@ export interface Verification {
   appliedRates: AppliedRates | null;
   /** Short narrative of the result; never used in calculations. */
   explanation: string | null;
+  /** How the reward figure was derived; null until the audit is confirmed. */
+  rewardReporting: VerificationRewardReporting | null;
   summaries: CurrencySummary[];
   conversion: VerificationConversion;
   loyalty: VerificationLoyalty;
@@ -252,4 +255,5 @@ export type VerificationSummary = Omit<
   | 'detectedRates'
   | 'appliedRates'
   | 'explanation'
+  | 'rewardReporting'
 >;

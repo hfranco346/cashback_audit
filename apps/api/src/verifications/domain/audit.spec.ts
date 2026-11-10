@@ -48,6 +48,9 @@ const prog = (
   redeemedInPeriod: null,
   expiring: null,
   forfeited: null,
+  previousBalance: null,
+  earnedInPeriod: null,
+  reportedLabel: null,
   unit: 'CURRENCY',
   currency: null,
   ...over,
@@ -280,5 +283,105 @@ describe('computeAudit: several foreign currencies', () => {
     expect(result.transactions[1]!.rateSource).toBe('STATEMENT');
     expect(result.transactions[2]!.rateSource).toBe('STATEMENT');
     expect(result.transactions[2]!.excludedReason).toBeNull();
+  });
+});
+
+describe('computeAudit: cumulative reporting', () => {
+  const cumulative = (
+    previous: number | null,
+    over: Partial<AuditInput> = {},
+    program: Partial<LoyaltyProgram> = {},
+  ) =>
+    input({
+      programs: [prog('300', { currency: 'USD', ...program })],
+      rewardReporting: {
+        mode: 'CUMULATIVE',
+        previous:
+          previous === null
+            ? null
+            : {
+                value: d(previous),
+                source: 'USER',
+                previousVerificationId: null,
+              },
+      },
+      requestedRewardRate: d('25.80'),
+      ...over,
+    });
+
+  it('audits the derived earned amount, not the running balance', () => {
+    const audit = computeAudit(cumulative(230));
+    expect(audit.reportedAmount.toString()).toBe('70');
+    expect(audit.verdict).toBe('MATCH');
+    expect(audit.rewardReporting).toMatchObject({
+      mode: 'CUMULATIVE',
+      previousBalanceSource: 'USER',
+      programName: 'CASH BACK',
+    });
+    expect(audit.rewardReporting.currentBalance!.toString()).toBe('300');
+    expect(audit.warnings.map((w) => w.code)).not.toContain(
+      'REPORTED_VALUE_MAY_BE_CUMULATIVE',
+    );
+  });
+
+  it('adds back what was redeemed and what expired', () => {
+    const audit = computeAudit(
+      cumulative(
+        250,
+        {},
+        { redeemedInPeriod: d(15), forfeited: d(5), expiring: d(200) },
+      ),
+    );
+    // 300 - 250 + 15 + 5
+    expect(audit.reportedAmount.toString()).toBe('70');
+    expect(audit.rewardReporting.redeemedInPeriod.toString()).toBe('15');
+    expect(audit.rewardReporting.expiredInPeriod.toString()).toBe('5');
+  });
+
+  it('keeps a negative earned amount and warns', () => {
+    const audit = computeAudit(cumulative(400));
+    expect(audit.reportedAmount.toString()).toBe('-100');
+    expect(audit.warnings.map((w) => w.code)).toContain(
+      'REWARD_BALANCE_INCONSISTENT',
+    );
+  });
+
+  it('uses the available column when there is no accumulated one', () => {
+    const audit = computeAudit(
+      cumulative(230, {}, { accumulated: null, available: d(300) }),
+    );
+    expect(audit.reportedAmount.toString()).toBe('70');
+  });
+
+  it('uses the printed earned figure when there is no previous balance', () => {
+    const audit = computeAudit(cumulative(null, {}, { earnedInPeriod: d(70) }));
+    expect(audit.reportedAmount.toString()).toBe('70');
+    expect(audit.rewardReporting).toMatchObject({
+      previousBalance: null,
+      previousBalanceSource: 'STATEMENT',
+    });
+  });
+
+  it('asks for the previous balance when nothing is known', () => {
+    expect(() => computeAudit(cumulative(null))).toThrowError(
+      expect.objectContaining({ code: 'PREVIOUS_BALANCE_REQUIRED' }),
+    );
+  });
+
+  it('a typed reported override skips the derivation', () => {
+    const audit = computeAudit(cumulative(null, { reportedOverride: d(70) }));
+    expect(audit.reportedAmount.toString()).toBe('70');
+    expect(audit.rewardReporting.mode).toBe('MONTHLY');
+  });
+
+  it('MONTHLY records the program and the printed figure as earned', () => {
+    const audit = computeAudit(input({ requestedRewardRate: d('25.80') }));
+    expect(audit.rewardReporting).toMatchObject({
+      mode: 'MONTHLY',
+      currentBalance: null,
+      previousBalance: null,
+      programName: 'CASH BACK',
+    });
+    expect(audit.rewardReporting.earned!.toString()).toBe('70');
   });
 });

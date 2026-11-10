@@ -29,7 +29,7 @@ Owner feedback (2026-11-10): one bank reports the accumulated cashback; the verd
 - RDD off. Local commits on `main`; push after owner approval. Deploy API after both land.
 
 ## Tasks
-- [ ] R1 Backend: extraction fields, card setting, proposal + resolution order, confirm body, previous-statement endpoint, persistence, explanation, tests, contract doc. Route: delegated.
+- [x] R1 Backend: extraction fields, card setting, proposal + resolution order, confirm body, previous-statement endpoint, persistence, explanation, tests, contract doc. Route: delegated.
 - [x] R2 Mobile: Confirm section (question, remembered per card, previous balance field with source label, upload last month's PDF, live breakdown), result breakdown, card form setting (advanced), tests, ES/EN. Route: delegated.
 - [ ] R3 Deploy API, install builds on iPhone and Honor. Route: inline.
 
@@ -37,3 +37,5 @@ Owner feedback (2026-11-10): one bank reports the accumulated cashback; the verd
 - R2 (mobile, delegated writer): confirm section "Reward reported by your bank" (mode question preselected from `mode`/`reason`, remember per card, previous balance with source label, free upload of last month's PDF, live derivation, 422 PREVIOUS_BALANCE_REQUIRED), result derivation (summary + categories), card form "How your bank reports the cashback" (Auto/Monthly/Cumulative), ES/EN. Commits: 9429ad6 (data + card setting + l10n), 3a706b0 (card form), and the commit that adds this note (confirm section + result derivation).
   - `flutter gen-l10n`: ok; `dart format --set-exit-if-changed lib test`: 0 changed; `flutter analyze`: no issues; `flutter test`: all passed (695).
   - Contract assumptions to reconcile with R1 (all optional/tolerant on the mobile side): proposal may carry `programName`, `reportedLabel` (printed label quoted in the card) and `previousPeriodEnd` (month in "From your <month> check"); `previous-statement` returns `programs[].balance`/`matchedBalance` as decimal strings; card create sends `rewardReporting` only when not AUTO, PATCH always.
+
+- R1 (delegated writer, 2026-11-10): done. Migration `20261110130000_reward_reporting` applied to dev DB. apps/api: `pnpm lint` clean, `pnpm build` ok, `pnpm test` 399 passed, `pnpm test:e2e` 187 passed (new `test/reward-reporting.e2e-spec.ts`, 21 tests). Contract in docs/api-contract.md. Deviations: expired = `forfeited` only ("por vencer" is still in the balance); previous-audit window is periodEnd within +/-5 days of periodStart; MONTHLY audits store no currentBalance; explanation is Spanish-only (as before). Extras requested by mobile: proposal/completed expose programName, reportedLabel, previousPeriodEnd.

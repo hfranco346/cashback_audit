@@ -80,6 +80,15 @@ export const extractionOutputSchema = z.object({
           .describe('Redeemed / used during the period'),
         expiring: z.string().describe('Expiring soon'),
         forfeited: z.string().describe('Forfeited / expired / written off'),
+        previousBalance: z
+          .string()
+          .describe('Program balance of the previous statement, if printed'),
+        earnedInPeriod: z
+          .string()
+          .describe('Amount earned during this period, if printed'),
+        reportedLabel: z
+          .string()
+          .describe('Column header printed over the accumulated figure'),
         unit: z.enum(LOYALTY_UNITS),
         currency: z
           .string()
@@ -244,6 +253,14 @@ const strictSchema = extractionOutputSchema.extend({
         redeemedInPeriod: optionalDecimal,
         expiring: optionalDecimal,
         forfeited: optionalDecimal,
+        previousBalance: optionalDecimal.optional().catch(null),
+        earnedInPeriod: optionalDecimal.optional().catch(null),
+        reportedLabel: z
+          .string()
+          .nullable()
+          .optional()
+          .catch(null)
+          .transform((v) => v?.trim().slice(0, 60) || null),
         unit: z.enum(LOYALTY_UNITS).catch('UNKNOWN'),
         currency: optionalCurrency.optional().catch(null),
       }),
@@ -372,6 +389,8 @@ export function parseExtraction(
     exchangeRates,
     loyaltyPrograms: data.loyaltyPrograms.map((p) => ({
       ...p,
+      previousBalance: p.previousBalance ?? null,
+      earnedInPeriod: p.earnedInPeriod ?? null,
       currency:
         p.unit === 'CURRENCY' || p.unit === 'UNKNOWN'
           ? (p.currency ?? null)

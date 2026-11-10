@@ -13,6 +13,7 @@ import {
 import { proposeSuggestedCategories } from '../domain/statement-hints.js';
 import { REWARD_ELIGIBLE_KINDS } from '../domain/statement.js';
 import type { Verification } from '../domain/verification.js';
+import { RewardReportingService } from './reward-reporting.service.js';
 
 /** Builds the rate proposal of a verification from its current data. */
 @Injectable()
@@ -20,6 +21,7 @@ export class RateProposalService {
   constructor(
     private readonly cards: CardRepository,
     private readonly categories: CategoryRepository,
+    private readonly reporting: RewardReportingService,
   ) {}
 
   async forVerification(
@@ -33,6 +35,7 @@ export class RateProposalService {
         rewardConversion: null,
         spendConversions: [],
         suggestedCategories: [],
+        rewardReporting: null,
       };
     }
     const categories = await this.categories.listWithCounts(userId);
@@ -55,22 +58,30 @@ export class RateProposalService {
       programCurrency: verification.loyalty.selected?.currency ?? null,
       primaryCurrency: verification.primaryCurrency,
     });
+    const rewardConversion = proposeRewardConversion({
+      primaryCurrency: verification.primaryCurrency,
+      rewardCurrency,
+      printedRates,
+    });
+    const spendConversions = proposeSpendConversions({
+      primaryCurrency: verification.primaryCurrency,
+      lines: verification.transactions,
+      printedRates,
+    });
     return {
       entries,
-      rewardConversion: proposeRewardConversion({
-        primaryCurrency: verification.primaryCurrency,
-        rewardCurrency,
-        printedRates,
-      }),
+      rewardConversion,
+      rewardReporting: await this.reporting.buildProposal(
+        userId,
+        verification,
+        card,
+        { entries, rewardConversion, spendConversions },
+      ),
       suggestedCategories: proposeSuggestedCategories(
         verification.detectedRates,
         verification.transactions,
       ),
-      spendConversions: proposeSpendConversions({
-        primaryCurrency: verification.primaryCurrency,
-        lines: verification.transactions,
-        printedRates,
-      }),
+      spendConversions,
     };
   }
 }

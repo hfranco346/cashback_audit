@@ -8,7 +8,16 @@ const VERDICT_ES: Record<AuditFacts['verdict'], string> = {
   OVERPAID: 'te pagaron de más',
 };
 
+const BALANCE_SOURCE_ES = {
+  STATEMENT: 'el estado de cuenta',
+  PREVIOUS_VERIFICATION: 'la auditoría del mes anterior',
+  USER: 'el dato que indicó el usuario',
+  PREVIOUS_STATEMENT: 'el estado de cuenta del mes anterior',
+} as const;
+
 const WARNING_ES: Record<string, string> = {
+  REWARD_BALANCE_INCONSISTENT:
+    'el saldo anterior no cuadra con el actual y lo ganado en el mes resultó negativo',
   REPORTED_VALUE_MAY_BE_CUMULATIVE:
     'la cifra reportada parece un saldo acumulado y no lo ganado en el periodo',
   NO_EXCHANGE_RATE:
@@ -76,6 +85,32 @@ export function toExplainerInput(facts: AuditFacts) {
           )
         : null,
     })),
+    derivacionDeLoGanado: facts.rewardReporting
+      ? {
+          explicacion:
+            'el banco informa un saldo acumulado; lo ganado en el mes se calculó como saldo actual menos saldo anterior más lo redimido más lo vencido',
+          saldoActual: facts.rewardReporting.currentBalance
+            ? formatMoney(facts.rewardReporting.currentBalance, rewardCurrency)
+            : null,
+          saldoAnterior: facts.rewardReporting.previousBalance
+            ? formatMoney(facts.rewardReporting.previousBalance, rewardCurrency)
+            : null,
+          origenDelSaldoAnterior: facts.rewardReporting.previousBalanceSource
+            ? BALANCE_SOURCE_ES[facts.rewardReporting.previousBalanceSource]
+            : null,
+          redimidoEnElMes: formatMoney(
+            facts.rewardReporting.redeemedInPeriod,
+            rewardCurrency,
+          ),
+          vencidoEnElMes: formatMoney(
+            facts.rewardReporting.expiredInPeriod,
+            rewardCurrency,
+          ),
+          ganadoEnElMes: facts.rewardReporting.earned
+            ? formatMoney(facts.rewardReporting.earned, rewardCurrency)
+            : null,
+        }
+      : null,
     comprasExcluidasPorFaltaDeTipoDeCambio: facts.excludedForeignLines,
     avisos: facts.warningCodes.flatMap((c) =>
       WARNING_ES[c] ? [WARNING_ES[c]!] : [],

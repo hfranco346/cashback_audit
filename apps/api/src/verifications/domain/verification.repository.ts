@@ -40,6 +40,20 @@ export abstract class VerificationRepository {
   abstract markSeen(userId: string, id: string, at: Date): Promise<boolean>;
   /** Every PROCESSING verification (boot recovery), regardless of owner. */
   abstract listProcessing(): Promise<{ id: string; userId: string }[]>;
+  /**
+   * COMPLETED verifications of a card whose `periodEnd` lies in
+   * [`periodEndFrom`, `periodEndTo`] (ISO dates), latest period first.
+   */
+  abstract listCompletedForCard(
+    userId: string,
+    cardId: string,
+    range: {
+      periodEndFrom: string;
+      periodEndTo: string;
+      excludeId: string;
+      take: number;
+    },
+  ): Promise<Verification[]>;
   abstract delete(userId: string, id: string): Promise<boolean>;
   /** Deletes AWAITING_RATES verifications created before `cutoff`. */
   abstract deleteAwaitingCreatedBefore(cutoff: Date): Promise<number>;

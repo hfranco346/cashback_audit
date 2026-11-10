@@ -28,6 +28,7 @@ const facts = (over: Partial<AuditFacts> = {}): AuditFacts => ({
       monthlyCap: null,
     },
   ],
+  rewardReporting: null,
   excludedForeignLines: 0,
   warningCodes: ['NO_EXCHANGE_RATE', 'EXPLANATION_UNAVAILABLE'],
   ...over,

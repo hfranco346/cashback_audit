@@ -46,6 +46,7 @@ export const card: Card = {
   rewardProgramName: null,
   rewardCurrency: null,
   claimEmail: null,
+  rewardReporting: 'AUTO',
   rules: [{ categoryId: CAT_SUPER, ratePercent: d(5), monthlyCap: null }],
   createdAt: new Date(),
   updatedAt: new Date(),

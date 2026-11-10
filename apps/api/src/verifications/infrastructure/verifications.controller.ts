@@ -26,6 +26,7 @@ import { CategoriesFromSuggestionsUseCase } from '../application/categories-from
 import { UpdateTransactionCategoryUseCase } from '../application/update-transaction.use-case.js';
 import { ConfirmVerificationUseCase } from '../application/confirm-verification.use-case.js';
 import { RateProposalService } from '../application/rate-proposal.service.js';
+import { ReadPreviousStatementUseCase } from '../application/read-previous-statement.use-case.js';
 import { CreateVerificationUseCase } from '../application/create-verification.use-case.js';
 import {
   DeleteVerificationUseCase,
@@ -39,6 +40,7 @@ import {
   ConfirmVerificationDto,
   CreateVerificationDto,
   ListVerificationsQuery,
+  PreviousStatementDto,
   TransactionIndexParam,
   UpdateTransactionDto,
 } from './verification.dto.js';
@@ -87,6 +89,7 @@ export class VerificationsController {
     private readonly deleteVerification: DeleteVerificationUseCase,
     private readonly listAttention: ListAttentionUseCase,
     private readonly markSeen: MarkVerificationSeenUseCase,
+    private readonly readPreviousStatement: ReadPreviousStatementUseCase,
   ) {}
 
   /** Answers 202 at once; the statement is evaluated in the background. */
@@ -154,11 +157,55 @@ export class VerificationsController {
       exchangeRates: dto.exchangeRates,
       rewardExchangeRate: dto.rewardExchangeRate,
       rewardProgramName: dto.rewardProgramName,
+      rewardReporting: dto.rewardReporting,
     });
     return presentVerification(
       verification,
       await this.proposals.forVerification(user.id, verification),
     );
+  }
+
+  /**
+   * Reads last month's loyalty balances (synchronous Claude call, no credit,
+   * the PDF is never stored) so the user need not type the previous balance.
+   */
+  @Post(':id/previous-statement')
+  @HttpCode(200)
+  @StrictThrottle()
+  @UseInterceptors(FileInterceptor('file', pdfUploadOptions))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: "Last month's statement PDF (max 10 MB)",
+        },
+        rewardProgramName: { type: 'string', example: 'CASH BAC CREDOMATIC' },
+      },
+    },
+  })
+  async previousStatement(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() { id }: IdParam,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+    @Body() dto: PreviousStatementDto,
+  ) {
+    if (!file?.buffer?.length) {
+      throw new BadRequestException({
+        code: 'FILE_REQUIRED',
+        message: 'A PDF file is required in the "file" field',
+      });
+    }
+    return this.readPreviousStatement.execute({
+      userId: user.id,
+      verificationId: id,
+      pdf: file.buffer,
+      rewardProgramName: dto.rewardProgramName,
+    });
   }
 
   @Post(':id/categories-from-suggestions')

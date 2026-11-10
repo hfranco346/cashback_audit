@@ -5,6 +5,7 @@ import {
   Prisma,
   type Verification as PrismaVerification,
 } from '../../shared/prisma/generated/client.js';
+import type { VerificationRewardReporting } from '../domain/reward-reporting.js';
 import type { CurrencySubtotal } from '../domain/reward-calculator.js';
 import type { DetectedRate } from '../domain/statement.js';
 import type {
@@ -93,6 +94,9 @@ const serializeProgram = (p: LoyaltyProgram) => ({
   redeemedInPeriod: decStr(p.redeemedInPeriod),
   expiring: decStr(p.expiring),
   forfeited: decStr(p.forfeited),
+  previousBalance: decStr(p.previousBalance),
+  earnedInPeriod: decStr(p.earnedInPeriod),
+  reportedLabel: p.reportedLabel,
   currency: p.currency,
 });
 const deserializeProgram = (j: Json): LoyaltyProgram => ({
@@ -103,6 +107,9 @@ const deserializeProgram = (j: Json): LoyaltyProgram => ({
   redeemedInPeriod: parseDec(j.redeemedInPeriod),
   expiring: parseDec(j.expiring),
   forfeited: parseDec(j.forfeited),
+  previousBalance: parseDec(j.previousBalance),
+  earnedInPeriod: parseDec(j.earnedInPeriod),
+  reportedLabel: (j.reportedLabel as string | null | undefined) ?? null,
   currency: (j.currency as string | null | undefined) ?? null,
 });
 
@@ -191,6 +198,36 @@ const deserializeLoyalty = (j: Json): VerificationLoyalty => ({
   selected: j.selected ? deserializeProgram(j.selected as Json) : null,
   selectedBy: (j.selectedBy as VerificationLoyalty['selectedBy']) ?? null,
   programs: ((j.programs as Json[] | undefined) ?? []).map(deserializeProgram),
+});
+
+const serializeReporting = (r: VerificationRewardReporting) => ({
+  mode: r.mode,
+  programName: r.programName,
+  reportedLabel: r.reportedLabel,
+  previousPeriodEnd: r.previousPeriodEnd,
+  currentBalance: decStr(r.currentBalance),
+  previousBalance: decStr(r.previousBalance),
+  previousBalanceSource: r.previousBalanceSource,
+  previousVerificationId: r.previousVerificationId,
+  redeemedInPeriod: r.redeemedInPeriod.toString(),
+  expiredInPeriod: r.expiredInPeriod.toString(),
+  earned: decStr(r.earned),
+});
+const deserializeReporting = (j: Json): VerificationRewardReporting => ({
+  mode: j.mode as VerificationRewardReporting['mode'],
+  programName: (j.programName as string | null | undefined) ?? null,
+  reportedLabel: (j.reportedLabel as string | null | undefined) ?? null,
+  previousPeriodEnd: (j.previousPeriodEnd as string | null | undefined) ?? null,
+  currentBalance: parseDec(j.currentBalance),
+  previousBalance: parseDec(j.previousBalance),
+  previousBalanceSource:
+    (j.previousBalanceSource as VerificationRewardReporting['previousBalanceSource']) ??
+    null,
+  previousVerificationId:
+    (j.previousVerificationId as string | null | undefined) ?? null,
+  redeemedInPeriod: new Decimal((j.redeemedInPeriod as string) ?? '0'),
+  expiredInPeriod: new Decimal((j.expiredInPeriod as string) ?? '0'),
+  earned: parseDec(j.earned),
 });
 
 const serializeDetected = (r: DetectedRate) => ({
@@ -326,6 +363,9 @@ function toDomain(row: Row): Verification {
       ? deserializeApplied(asRecord(row.appliedRates))
       : null,
     explanation: row.explanation,
+    rewardReporting: row.rewardReporting
+      ? deserializeReporting(asRecord(row.rewardReporting))
+      : null,
   };
 }
 
@@ -369,6 +409,12 @@ function toData(input: VerificationUpdate): Record<string, unknown> {
   set('tolerance', dstr(input.tolerance));
   set('verdict', input.verdict);
   set('explanation', input.explanation);
+  if (input.rewardReporting !== undefined) {
+    out.rewardReporting =
+      input.rewardReporting === null
+        ? Prisma.JsonNull
+        : serializeReporting(input.rewardReporting);
+  }
   set('model', input.model);
   set('models', input.models);
   set('summaries', input.summaries?.map(serializeSummary));
@@ -498,6 +544,34 @@ export class PrismaVerificationRepository extends VerificationRepository {
       where: { status: 'AWAITING_RATES', createdAt: { lt: cutoff } },
     });
     return result.count;
+  }
+
+  async listCompletedForCard(
+    userId: string,
+    cardId: string,
+    range: {
+      periodEndFrom: string;
+      periodEndTo: string;
+      excludeId: string;
+      take: number;
+    },
+  ): Promise<Verification[]> {
+    const rows = await this.prisma.verification.findMany({
+      where: {
+        userId,
+        cardId,
+        status: 'COMPLETED',
+        id: { not: range.excludeId },
+        periodEnd: {
+          gte: new Date(`${range.periodEndFrom}T00:00:00Z`),
+          lte: new Date(`${range.periodEndTo}T00:00:00Z`),
+        },
+      },
+      orderBy: [{ periodEnd: 'desc' }, { createdAt: 'desc' }],
+      take: range.take,
+      include: CARD_REF,
+    });
+    return rows.map(toDomain);
   }
 
   async delete(userId: string, id: string): Promise<boolean> {

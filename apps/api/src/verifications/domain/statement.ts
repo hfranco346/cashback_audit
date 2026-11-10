@@ -91,6 +91,12 @@ export interface LoyaltyProgram {
   expiring: Decimal | null;
   /** "Castigados". */
   forfeited: Decimal | null;
+  /** Balance of the previous statement, when the program row prints it. */
+  previousBalance: Decimal | null;
+  /** Amount earned in the period, when the program row prints it. */
+  earnedInPeriod: Decimal | null;
+  /** Wording of the column header over the audited figure ("Acumulado"). */
+  reportedLabel: string | null;
   unit: LoyaltyUnit;
   /**
    * ISO 4217 code the reward is denominated in, when the statement shows it

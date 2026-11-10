@@ -99,6 +99,51 @@ describe('parseExtraction', () => {
   });
 });
 
+describe('loyalty program reporting fields', () => {
+  const row = (over: Record<string, unknown> = {}) => ({
+    name: 'CASH PROGRAM',
+    accumulated: '1,158',
+    available: '1,100',
+    redeemedInPeriod: '',
+    expiring: '',
+    forfeited: '',
+    previousBalance: '1,000',
+    earnedInPeriod: '',
+    reportedLabel: ' Acumulado ',
+    unit: 'CURRENCY',
+    ...over,
+  });
+
+  it('reads the previous balance, earned figure and printed label', () => {
+    const program = parseExtraction(
+      baseOutput({ loyaltyPrograms: [row({ earnedInPeriod: '58' })] }),
+    )!.loyaltyPrograms[0]!;
+    expect(program.previousBalance?.toString()).toBe('1000');
+    expect(program.earnedInPeriod?.toString()).toBe('58');
+    expect(program.reportedLabel).toBe('Acumulado');
+  });
+
+  it('maps empty sentinels to null and tolerates older outputs', () => {
+    const empty = parseExtraction(
+      baseOutput({
+        loyaltyPrograms: [row({ previousBalance: '', reportedLabel: '' })],
+      }),
+    )!.loyaltyPrograms[0]!;
+    expect(empty.previousBalance).toBeNull();
+    expect(empty.earnedInPeriod).toBeNull();
+    expect(empty.reportedLabel).toBeNull();
+
+    const { previousBalance, earnedInPeriod, reportedLabel, ...legacy } = row();
+    void previousBalance;
+    void earnedInPeriod;
+    void reportedLabel;
+    const old = parseExtraction(baseOutput({ loyaltyPrograms: [legacy] }))!
+      .loyaltyPrograms[0]!;
+    expect(old.previousBalance).toBeNull();
+    expect(old.reportedLabel).toBeNull();
+  });
+});
+
 describe('summary subtotals', () => {
   it('reads purchases and chargesAndInterest, "" meaning unknown', () => {
     const result = parseExtraction(

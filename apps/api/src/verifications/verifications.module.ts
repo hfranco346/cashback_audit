@@ -11,6 +11,8 @@ import { CategoriesFromSuggestionsUseCase } from './application/categories-from-
 import { UpdateTransactionCategoryUseCase } from './application/update-transaction.use-case.js';
 import { ConfirmVerificationUseCase } from './application/confirm-verification.use-case.js';
 import { RateProposalService } from './application/rate-proposal.service.js';
+import { RewardReportingService } from './application/reward-reporting.service.js';
+import { ReadPreviousStatementUseCase } from './application/read-previous-statement.use-case.js';
 import { CreateVerificationUseCase } from './application/create-verification.use-case.js';
 import {
   CLASSIFICATION_MIN_CONFIDENCE,
@@ -26,6 +28,7 @@ import {
 } from './application/verification.use-cases.js';
 import {
   LineClassifier,
+  PreviousStatementReader,
   ResultExplainer,
   StatementExtractor,
 } from './domain/statement-extractor.js';
@@ -36,6 +39,7 @@ import {
 } from './infrastructure/claude/claude-json.client.js';
 import { ClaudeResultExplainer } from './infrastructure/claude/claude-result-explainer.js';
 import { ClaudeLineClassifier } from './infrastructure/claude/claude-line-classifier.js';
+import { ClaudePreviousStatementReader } from './infrastructure/claude/claude-previous-statement-reader.js';
 import { ClaudeStatementExtractor } from './infrastructure/claude/claude-statement-extractor.js';
 import { PrismaVerificationRepository } from './infrastructure/prisma-verification.repository.js';
 import { VerificationsController } from './infrastructure/verifications.controller.js';
@@ -49,6 +53,8 @@ import { VerificationsController } from './infrastructure/verifications.controll
     VerificationProcessingService,
     ConfirmVerificationUseCase,
     RateProposalService,
+    RewardReportingService,
+    ReadPreviousStatementUseCase,
     UpdateTransactionCategoryUseCase,
     CategoriesFromSuggestionsUseCase,
     CleanupAwaitingRatesService,
@@ -73,6 +79,10 @@ import { VerificationsController } from './infrastructure/verifications.controll
     },
     { provide: StatementExtractor, useClass: ClaudeStatementExtractor },
     { provide: LineClassifier, useClass: ClaudeLineClassifier },
+    {
+      provide: PreviousStatementReader,
+      useClass: ClaudePreviousStatementReader,
+    },
     { provide: ResultExplainer, useClass: ClaudeResultExplainer },
     {
       provide: CLASSIFICATION_MIN_CONFIDENCE,

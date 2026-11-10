@@ -115,6 +115,37 @@ export class InvalidExchangeRateError extends DomainError {
   }
 }
 
+export class PreviousBalanceRequiredError extends DomainError {
+  constructor() {
+    super(
+      'UNPROCESSABLE',
+      'PREVIOUS_BALANCE_REQUIRED',
+      "The bank reports an accumulated balance and no previous balance is known. Send rewardReporting.previousBalance, or read it from last month's statement with POST /verifications/:id/previous-statement.",
+    );
+  }
+}
+
+export class NotAStatementError extends DomainError {
+  constructor() {
+    super(
+      'UNPROCESSABLE',
+      'NOT_A_STATEMENT',
+      'The file is not a readable credit card statement.',
+    );
+  }
+}
+
+export class ProgramNotFoundError extends DomainError {
+  constructor(programNames: string[]) {
+    super(
+      'UNPROCESSABLE',
+      'PROGRAM_NOT_FOUND',
+      'The loyalty program of this verification was not found on that statement.',
+      { programs: programNames },
+    );
+  }
+}
+
 export class VerificationNotReadyError extends DomainError {
   constructor() {
     super(

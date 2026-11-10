@@ -353,6 +353,7 @@ export class ProcessVerificationUseCase {
         detectedRates: statement.detectedRates,
         appliedRates: null,
         explanation: null,
+        rewardReporting: null,
         breakdown: [],
         transactions,
         warnings,

@@ -31,6 +31,7 @@ import type { UserRepository } from '../../users/domain/user.repository.js';
 import { ConfirmVerificationUseCase } from './confirm-verification.use-case.js';
 import { ProcessVerificationUseCase } from './process-verification.use-case.js';
 import { RateProposalService } from './rate-proposal.service.js';
+import { RewardReportingService } from './reward-reporting.service.js';
 
 const USER = 'user-1';
 const pdf = Buffer.from('%PDF-1.4 fake');
@@ -60,12 +61,15 @@ function world(
     rewardProgramName: null,
     rewardCurrency: null,
     claimEmail: null,
+    rewardReporting: 'AUTO',
     rules: [{ categoryId: CAT_SUPER, ratePercent: d(5), monthlyCap: null }],
     createdAt: new Date(),
     updatedAt: new Date(),
     ...cardOver,
   };
   const stored = new Map<string, Verification>();
+  const previousRows: Verification[] = [];
+  const listRanges: unknown[] = [];
   const repo = {
     create: async (input: NewVerification) => {
       const v = { ...input, id: 'v-1', createdAt: new Date() } as Verification;
@@ -73,6 +77,10 @@ function world(
       return v;
     },
     findById: async (_u: string, id: string) => stored.get(id) ?? null,
+    listCompletedForCard: async (_u: string, _c: string, range: unknown) => {
+      listRanges.push(range);
+      return previousRows;
+    },
     update: async (_u: string, id: string, patch: VerificationUpdate) => {
       const current = stored.get(id);
       if (!current) return null;
@@ -153,7 +161,11 @@ function world(
     repo,
     cardsRepo,
     categoriesRepo,
-    new RateProposalService(cardsRepo, categoriesRepo),
+    new RateProposalService(
+      cardsRepo,
+      categoriesRepo,
+      new RewardReportingService(repo),
+    ),
     { explain } as unknown as ResultExplainer,
     {
       recordCurrencyRates: async (
@@ -164,10 +176,13 @@ function world(
         recorded.push({ currency, rates });
       },
     } as unknown as UserRepository,
+    new RewardReportingService(repo),
   );
   return {
     card,
     stored,
+    previousRows,
+    listRanges,
     extractions: () => extractions,
     recorded,
     /** Processes the upload as the background processor would. */
@@ -585,6 +600,9 @@ describe('ConfirmVerificationUseCase: reward currency and several rates', () => 
       {
         listWithCounts: async () => [],
       } as unknown as CategoryRepository,
+      new RewardReportingService({
+        listCompletedForCard: async () => [],
+      } as unknown as VerificationRepository),
     ).forVerification(USER, started);
     expect(proposal.rewardConversion).toMatchObject({
       fromCurrency: 'CRC',
@@ -703,5 +721,344 @@ describe('ConfirmVerificationUseCase: reward currency and several rates', () => 
     expect(v.rewardCurrency).toBeNull();
     expect(v.appliedRates!.rewardExchangeRate).toBeNull();
     expect(v.expectedAmount!.toString()).toBe('1360');
+  });
+});
+
+describe('ConfirmVerificationUseCase: cumulative reward balance', () => {
+  const cash = (
+    accumulated: string,
+    over: Parameters<typeof program>[2] = {},
+  ) =>
+    mxnCashbackStatement({
+      loyaltyPrograms: [program('Cashback', accumulated, over)],
+    });
+  const cumulative = (extra: Record<string, unknown> = {}) => ({
+    rewardReporting: { mode: 'CUMULATIVE' as const, ...extra },
+  });
+  const earlier = (
+    over: Partial<Verification['rewardReporting'] & object> = {},
+  ): Verification =>
+    ({
+      id: 'v-prev',
+      cardId: 'card-1',
+      status: 'COMPLETED',
+      periodEnd: '2025-12-31',
+      rewardReporting: {
+        mode: 'CUMULATIVE',
+        programName: 'CASHBACK',
+        currentBalance: d(100),
+        previousBalance: d(40),
+        previousBalanceSource: 'USER',
+        previousVerificationId: null,
+        redeemedInPeriod: d(0),
+        expiredInPeriod: d(0),
+        earned: d(60),
+        ...over,
+      },
+    }) as unknown as Verification;
+
+  it('keeps the legacy behaviour without a choice (MONTHLY)', async () => {
+    const w = world(
+      cash('58'),
+      {},
+      { 'WM SUPERCENTER': { categoryId: CAT_SUPER } },
+    );
+    await w.start();
+    const v = await w.confirm();
+    expect(v.reportedAmount!.toString()).toBe('58');
+    expect(v.rewardReporting).toMatchObject({
+      mode: 'MONTHLY',
+      currentBalance: null,
+    });
+    expect(v.rewardReporting!.earned!.toString()).toBe('58');
+  });
+
+  it('B: uses the previous balance printed on the statement', async () => {
+    const w = world(
+      cash('158', { previousBalance: d(100) }),
+      {},
+      { 'WM SUPERCENTER': { categoryId: CAT_SUPER } },
+    );
+    await w.start();
+    const v = await w.confirm(cumulative());
+    expect(v.reportedAmount!.toString()).toBe('58');
+    expect(v.verdict).toBe('MATCH');
+    expect(v.rewardReporting).toMatchObject({
+      mode: 'CUMULATIVE',
+      previousBalanceSource: 'STATEMENT',
+    });
+    expect(v.rewardReporting!.currentBalance!.toString()).toBe('158');
+    expect(w.listRanges).toHaveLength(0);
+  });
+
+  it('B: uses the earned-in-period figure printed on the statement', async () => {
+    const w = world(
+      cash('900', { earnedInPeriod: d(58) }),
+      {},
+      { 'WM SUPERCENTER': { categoryId: CAT_SUPER } },
+    );
+    await w.start();
+    const v = await w.confirm(cumulative());
+    expect(v.reportedAmount!.toString()).toBe('58');
+    expect(v.verdict).toBe('MATCH');
+    expect(v.rewardReporting).toMatchObject({
+      previousBalance: null,
+      previousBalanceSource: 'STATEMENT',
+    });
+  });
+
+  it('A: takes the previous balance from the closest earlier audit', async () => {
+    const w = world(
+      cash('158'),
+      { rewardReporting: 'CUMULATIVE' },
+      { 'WM SUPERCENTER': { categoryId: CAT_SUPER } },
+    );
+    await w.start();
+    w.previousRows.push(earlier());
+    const v = await w.confirm();
+    expect(v.reportedAmount!.toString()).toBe('58');
+    expect(v.rewardReporting).toMatchObject({
+      previousBalanceSource: 'PREVIOUS_VERIFICATION',
+      previousVerificationId: 'v-prev',
+    });
+    // statement period starts 2026-01-01: window is +/- 5 days around it
+    expect(w.listRanges[0]).toMatchObject({
+      periodEndFrom: '2025-12-27',
+      periodEndTo: '2026-01-06',
+      excludeId: 'v-1',
+    });
+  });
+
+  it('A: ignores an earlier audit of another program', async () => {
+    const w = world(cash('158'), { rewardReporting: 'CUMULATIVE' });
+    await w.start();
+    w.previousRows.push(earlier({ programName: 'Puntos Viajero' }));
+    await expect(w.confirm()).rejects.toMatchObject({
+      code: 'PREVIOUS_BALANCE_REQUIRED',
+    });
+  });
+
+  it('C: asks for the previous balance when nothing resolves it', async () => {
+    const w = world(cash('158'));
+    await w.start();
+    await expect(w.confirm(cumulative())).rejects.toMatchObject({
+      kind: 'UNPROCESSABLE',
+      code: 'PREVIOUS_BALANCE_REQUIRED',
+    });
+    expect(w.stored.get('v-1')!.status).toBe('AWAITING_RATES');
+  });
+
+  it('C: a typed previous balance wins and is labelled USER', async () => {
+    const w = world(
+      cash('158', { previousBalance: d(999) }),
+      {},
+      { 'WM SUPERCENTER': { categoryId: CAT_SUPER } },
+    );
+    await w.start();
+    const v = await w.confirm(cumulative({ previousBalance: '100' }));
+    expect(v.rewardReporting).toMatchObject({ previousBalanceSource: 'USER' });
+    expect(v.reportedAmount!.toString()).toBe('58');
+    const read = await w.confirm(
+      cumulative({
+        previousBalance: '100',
+        previousBalanceSource: 'PREVIOUS_STATEMENT',
+      }),
+    );
+    expect(read.rewardReporting!.previousBalanceSource).toBe(
+      'PREVIOUS_STATEMENT',
+    );
+  });
+
+  it('adds redeemed and expired back and flags a negative result', async () => {
+    const w = world(
+      cash('150', {
+        redeemedInPeriod: d(30),
+        forfeited: d(5),
+        expiring: d(99),
+      }),
+    );
+    await w.start();
+    // 150 - 120 + 30 + 5 (the "expiring soon" 99 is still in the balance)
+    const v = await w.confirm(cumulative({ previousBalance: '120' }));
+    expect(v.rewardReporting!.earned!.toString()).toBe('65');
+    expect(v.rewardReporting!.expiredInPeriod.toString()).toBe('5');
+
+    const negative = await w.confirm(cumulative({ previousBalance: '300' }));
+    expect(negative.reportedAmount!.toString()).toBe('-115');
+    expect(negative.warnings.map((x) => x.code)).toContain(
+      'REWARD_BALANCE_INCONSISTENT',
+    );
+    const fixed = await w.confirm(cumulative({ previousBalance: '120' }));
+    expect(fixed.warnings.map((x) => x.code)).not.toContain(
+      'REWARD_BALANCE_INCONSISTENT',
+    );
+  });
+
+  it('re-confirming can switch the mode and keeps a typed balance', async () => {
+    const w = world(
+      cash('158'),
+      {},
+      { 'WM SUPERCENTER': { categoryId: CAT_SUPER } },
+    );
+    await w.start();
+    const first = await w.confirm(cumulative({ previousBalance: '100' }));
+    expect(first.reportedAmount!.toString()).toBe('58');
+    // no choice sent: the stored one (and its typed balance) is kept
+    const again = await w.confirm();
+    expect(again.rewardReporting).toMatchObject({
+      mode: 'CUMULATIVE',
+      previousBalanceSource: 'USER',
+    });
+    expect(again.reportedAmount!.toString()).toBe('58');
+    const monthly = await w.confirm({ rewardReporting: { mode: 'MONTHLY' } });
+    expect(monthly.reportedAmount!.toString()).toBe('158');
+    expect(monthly.rewardReporting!.mode).toBe('MONTHLY');
+  });
+
+  it('a manual reportedRewardOverride wins over the cumulative derivation', async () => {
+    const w = world(cash('158'));
+    await w.start();
+    const v = await w.confirm({
+      reportedRewardOverride: '58',
+      ...cumulative(),
+    });
+    expect(v.reportedSource).toBe('OVERRIDE');
+    expect(v.reportedAmount!.toString()).toBe('58');
+  });
+
+  it('rememberForCard stores the mode only after a successful audit', async () => {
+    const w = world(cash('158'));
+    await w.start();
+    await expect(
+      w.confirm(cumulative({ rememberForCard: true })),
+    ).rejects.toMatchObject({ code: 'PREVIOUS_BALANCE_REQUIRED' });
+    expect(w.card.rewardReporting).toBe('AUTO');
+    await w.confirm(
+      cumulative({ previousBalance: '100', rememberForCard: true }),
+    );
+    expect(w.card.rewardReporting).toBe('CUMULATIVE');
+    await w.confirm({ rewardReporting: { mode: 'MONTHLY' } });
+    expect(w.card.rewardReporting).toBe('CUMULATIVE');
+    await w.confirm({
+      rewardReporting: { mode: 'MONTHLY', rememberForCard: true },
+    });
+    expect(w.card.rewardReporting).toBe('MONTHLY');
+  });
+
+  it('feeds the explainer the derivation', async () => {
+    const facts: AuditFacts[] = [];
+    const w = world(cash('158'), {}, {}, async (f) => {
+      facts.push(f);
+      return { text: 'x', model: 'm' };
+    });
+    await w.start();
+    await w.confirm(cumulative({ previousBalance: '100' }));
+    expect(facts[0]!.rewardReporting).toMatchObject({
+      currentBalance: '158',
+      previousBalance: '100',
+      previousBalanceSource: 'USER',
+      earned: '58',
+    });
+  });
+});
+
+describe('RateProposalService: reward reporting proposal', () => {
+  const proposalFor = async (
+    statement: ExtractedStatement,
+    cardOver: Partial<Card> = {},
+    previous: Verification[] = [],
+  ) => {
+    const w = world(statement, cardOver);
+    const started = await w.start();
+    w.previousRows.push(...previous);
+    const reporting = new RewardReportingService({
+      listCompletedForCard: async () => previous,
+    } as unknown as VerificationRepository);
+    const service = new RateProposalService(
+      { findById: async () => w.card } as unknown as CardRepository,
+      { listWithCounts: async () => [] } as unknown as CategoryRepository,
+      reporting,
+    );
+    return (await service.forVerification(USER, started)).rewardReporting!;
+  };
+  const cash = (
+    accumulated: string,
+    over: Parameters<typeof program>[2] = {},
+  ) =>
+    mxnCashbackStatement({
+      loyaltyPrograms: [program('Cashback', accumulated, over)],
+    });
+
+  it('suggests CUMULATIVE when the statement prints the previous balance', async () => {
+    const p = await proposalFor(cash('158', { previousBalance: d(100) }));
+    expect(p).toMatchObject({
+      mode: 'CUMULATIVE',
+      suggestedMode: 'CUMULATIVE',
+      reason: 'STATEMENT_HAS_PREVIOUS_BALANCE',
+      cardSetting: 'AUTO',
+      previousBalanceSource: 'STATEMENT',
+      previousBalanceRequired: false,
+    });
+    expect(p.currentBalance!.toString()).toBe('158');
+    expect(p.earned!.toString()).toBe('58');
+  });
+
+  it('follows an explicit card setting', async () => {
+    const p = await proposalFor(cash('58'), { rewardReporting: 'MONTHLY' });
+    expect(p).toMatchObject({
+      mode: 'MONTHLY',
+      suggestedMode: 'MONTHLY',
+      reason: 'CARD_SETTING',
+    });
+  });
+
+  it('suggests from the printed label', async () => {
+    const p = await proposalFor(
+      cash('58', { reportedLabel: 'Saldo acumulado' }),
+    );
+    expect(p).toMatchObject({
+      suggestedMode: 'CUMULATIVE',
+      reason: 'LABEL_SAYS_ACCUMULATED',
+      previousBalanceRequired: true,
+      earned: null,
+    });
+  });
+
+  it('suggests when the reported figure is far above the expected one', async () => {
+    // expected for the fixture is 3 (1% base) to 58 (with rates); 9,000 >> 3x
+    const p = await proposalFor(cash('9000'));
+    expect(p).toMatchObject({
+      suggestedMode: 'CUMULATIVE',
+      reason: 'REPORTED_FAR_ABOVE_EXPECTED',
+    });
+  });
+
+  it('stays MONTHLY with no signal', async () => {
+    // nothing classified: 1,400 of spend at the 1% base rate = 14 expected
+    const p = await proposalFor(cash('14'));
+    expect(p).toMatchObject({ suggestedMode: 'MONTHLY', reason: 'NONE' });
+  });
+
+  it('reports the balance of the earlier audit when it is found', async () => {
+    const p = await proposalFor(
+      cash('158'),
+      { rewardReporting: 'CUMULATIVE' },
+      [
+        {
+          id: 'v-prev',
+          rewardReporting: {
+            mode: 'CUMULATIVE',
+            programName: 'cashback',
+            currentBalance: d(100),
+          },
+        } as unknown as Verification,
+      ],
+    );
+    expect(p).toMatchObject({
+      previousBalanceSource: 'PREVIOUS_VERIFICATION',
+      previousVerificationId: 'v-prev',
+      previousBalanceRequired: false,
+    });
+    expect(p.earned!.toString()).toBe('58');
   });
 });
