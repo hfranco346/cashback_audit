@@ -23,11 +23,23 @@ class AppBottomSheet extends StatelessWidget {
     required this.child,
     this.subtitle,
     this.actions = const [],
+    this.titleStyle,
+    this.subtitleStyle,
+    this.trailing,
+    this.actionsPadding = const EdgeInsets.all(AppSpacing.screen),
   });
 
   final String title;
   final String? subtitle;
   final Widget child;
+
+  /// Overrides of the default title / subtitle styles (Manrope 20 / body).
+  final TextStyle? titleStyle;
+  final TextStyle? subtitleStyle;
+
+  /// Shown at the end of the header row (e.g. an amount).
+  final Widget? trailing;
+  final EdgeInsetsGeometry actionsPadding;
 
   /// Buttons stacked under the body (primary first).
   final List<Widget> actions;
@@ -51,24 +63,41 @@ class AppBottomSheet extends StatelessWidget {
                 AppSpacing.screen,
                 AppSpacing.md,
               ),
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Semantics(
-                    header: true,
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Semantics(
+                          header: true,
+                          child: Text(
+                            title,
+                            style:
+                                titleStyle ??
+                                theme.textTheme.titleLarge?.copyWith(
+                                  fontSize: 20,
+                                ),
+                          ),
+                        ),
+                        if (subtitle != null) ...[
+                          SizedBox(height: subtitleStyle == null ? 4 : 2),
+                          Text(
+                            subtitle!,
+                            style:
+                                subtitleStyle ??
+                                theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                  if (trailing != null) ...[
+                    const SizedBox(width: AppSpacing.md),
+                    trailing!,
                   ],
                 ],
               ),
@@ -83,7 +112,7 @@ class AppBottomSheet extends StatelessWidget {
             ),
             if (actions.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.all(AppSpacing.screen),
+                padding: actionsPadding,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,

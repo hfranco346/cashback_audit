@@ -10,6 +10,7 @@ import 'package:cashback_audit/features/verifications/data/verification_mapper.d
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_page.dart';
+import 'package:cashback_audit/features/verifications/presentation/widgets/change_category_sheet.dart';
 import 'package:cashback_audit/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -506,6 +507,30 @@ void main() {
       await tester.tap(find.byKey(const Key('assign-1')));
       await tester.pumpAndSettle();
     }
+
+    testWidgets('the title is Bodoni Moda 24 / 500 like the design', (
+      tester,
+    ) async {
+      await pumpResult(tester, _bacJson(), tab: ResultTab.movements);
+      await openSheet(tester);
+      final sheet = find.byType(ChangeCategorySheet);
+      final title = tester.widget<Text>(
+        find.descendant(
+          of: find.descendant(
+            of: sheet,
+            matching: find.byWidgetPredicate(
+              (w) => w is Semantics && w.properties.header == true,
+            ),
+          ),
+          matching: find.byType(Text),
+        ),
+      );
+      expect(title.style?.fontFamily, contains('BodoniModa'));
+      expect(title.style?.fontSize, 24);
+      expect(title.style?.fontWeight, FontWeight.w500);
+      // The amount sits at the end of the header row.
+      expect(find.byKey(const Key('change-amount')), findsOneWidget);
+    });
 
     testWidgets('lists the categories with the card rate and a switch', (
       tester,

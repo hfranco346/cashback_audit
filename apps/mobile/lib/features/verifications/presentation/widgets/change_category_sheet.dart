@@ -96,11 +96,40 @@ class _ChangeCategorySheetState extends State<ChangeCategorySheet> {
     final tx = widget.transaction;
     final name = tx.matchedMerchantName ?? displayMerchantName(tx.merchant);
     final remember = _remember && _canRemember;
+    // Design: 14 px between sections and 34 px under the button (the home
+    // indicator inset counts towards it).
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     return AppBottomSheet(
       title: name,
+      // Bodoni Moda 24 / 500 (the theme role is 600 with tighter tracking).
+      titleStyle: theme.textTheme.headlineSmall?.copyWith(
+        fontSize: 24,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0,
+        height: null,
+      ),
       subtitle: tx.merchant.toUpperCase() == name.toUpperCase()
           ? null
           : tx.merchant,
+      subtitleStyle: theme.textTheme.bodySmall?.copyWith(
+        fontSize: 11,
+        color: muted,
+      ),
+      trailing: Text(
+        widget.amountText,
+        key: const Key('change-amount'),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
+          fontFeatures: appFigures,
+        ),
+      ),
+      actionsPadding: EdgeInsets.fromLTRB(
+        AppSpacing.screen,
+        14,
+        AppSpacing.screen,
+        (34 - bottomInset).clamp(12, 34).toDouble(),
+      ),
       actions: [
         AppButton(
           key: const Key('change-apply'),
@@ -119,17 +148,7 @@ class _ChangeCategorySheetState extends State<ChangeCategorySheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              widget.amountText,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                fontFeatures: appFigures,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 2),
           if (widget.categories.isEmpty) ...[
             InlineNotice(
               message: l10n.noCategoriesToAssign,
@@ -148,7 +167,7 @@ class _ChangeCategorySheetState extends State<ChangeCategorySheet> {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
             Semantics(
               container: true,
               child: Column(
@@ -173,7 +192,7 @@ class _ChangeCategorySheetState extends State<ChangeCategorySheet> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: 6), // 8 per option + 6 = 14
             DecoratedBox(
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHigh,
@@ -182,7 +201,7 @@ class _ChangeCategorySheetState extends State<ChangeCategorySheet> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
-                  vertical: 8,
+                  vertical: 12,
                 ),
                 child: Row(
                   children: [
@@ -197,6 +216,7 @@ class _ChangeCategorySheetState extends State<ChangeCategorySheet> {
                               fontSize: 14,
                             ),
                           ),
+                          const SizedBox(height: 2),
                           Text(
                             !_canRemember && _selected == _none
                                 ? l10n.rememberNeedsCategory
@@ -205,6 +225,7 @@ class _ChangeCategorySheetState extends State<ChangeCategorySheet> {
                                 : l10n.rememberOff,
                             key: const Key('remember-help'),
                             style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 12,
                               color: muted,
                               height: 1.4,
                             ),
@@ -212,8 +233,15 @@ class _ChangeCategorySheetState extends State<ChangeCategorySheet> {
                         ],
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Switch(
                       key: const Key('remember-switch'),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      trackOutlineColor: WidgetStateProperty.resolveWith(
+                        (s) => s.contains(WidgetState.selected)
+                            ? Colors.transparent
+                            : scheme.outlineVariant,
+                      ),
                       value: remember,
                       onChanged: _canRemember
                           ? (v) => setState(() => _remember = v)
@@ -223,7 +251,6 @@ class _ChangeCategorySheetState extends State<ChangeCategorySheet> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
           ],
         ],
       ),
@@ -302,7 +329,7 @@ class _Option extends StatelessWidget {
                       trailing,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
-                        fontSize: trailingIsRate ? 13 : 12,
+                        fontSize: trailingIsRate ? 14 : 12,
                         fontFeatures: appFigures,
                       ),
                     ),
