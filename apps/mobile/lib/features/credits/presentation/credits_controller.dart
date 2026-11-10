@@ -38,6 +38,9 @@ class CreditsController extends GetxController {
   /// Known balance, `null` until the first successful fetch.
   int? get total => balance.value?.total;
 
+  /// The account has unlimited credits (shown as "Unlimited").
+  bool get isUnlimited => balance.value?.unlimited ?? false;
+
   /// Refreshes from the backend. Returns the balance, or `null` on failure
   /// (the previous balance is kept).
   Future<CreditBalance?> fetch() async {
@@ -63,7 +66,8 @@ class CreditsController extends GetxController {
 
   static bool _changed(CreditBalance? before, CreditBalance after) {
     if (before == null) return after.total > 0 || after.subscriptionActive;
-    return before.total != after.total ||
+    return before.unlimited != after.unlimited ||
+        before.total != after.total ||
         before.free != after.free ||
         before.plan != after.plan ||
         before.purchased != after.purchased ||

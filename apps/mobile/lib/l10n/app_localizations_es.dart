@@ -2628,4 +2628,169 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get emailVerifying => 'Verificando…';
+
+  @override
+  String get resultClaimCta => 'Reclamar al banco';
+
+  @override
+  String get resultClaimHint =>
+      'Genera un correo listo para enviar con tus números.';
+
+  @override
+  String get claimTitle => 'Reclamo al banco';
+
+  @override
+  String get claimLanguageLabel => 'Idioma del correo';
+
+  @override
+  String get claimToneLabel => 'Tono';
+
+  @override
+  String get claimToneFormal => 'Formal';
+
+  @override
+  String get claimToneFirm => 'Firme';
+
+  @override
+  String get claimLangEs => 'Español';
+
+  @override
+  String get claimLangEn => 'English';
+
+  @override
+  String get claimLanguageHelp =>
+      'Por defecto en el idioma de la app; cámbialo si tu banco atiende en otro idioma.';
+
+  @override
+  String get claimToLabel => 'Para';
+
+  @override
+  String get claimToHint => 'correo de servicio al cliente';
+
+  @override
+  String get claimSubjectLabel => 'Asunto';
+
+  @override
+  String get claimCopy => 'Copiar';
+
+  @override
+  String get claimOpenMail => 'Abrir en Correo';
+
+  @override
+  String get claimCopied => 'Correo copiado al portapapeles.';
+
+  @override
+  String get claimNoMailApp =>
+      'No encontramos una app de correo. Usa Copiar y pégalo en tu correo.';
+
+  @override
+  String get claimInvalidEmail => 'Escribe un correo válido o déjalo vacío.';
+
+  @override
+  String get claimSaveFailed => 'No pudimos guardar el correo en la tarjeta.';
+
+  @override
+  String get claimBaseCategory => 'Tasa base';
+
+  @override
+  String claimGreeting(Object bank) {
+    return 'Estimados señores de $bank:';
+  }
+
+  @override
+  String get claimGreetingGeneric => 'Estimados señores:';
+
+  @override
+  String claimSubject(String kind, Object last4, Object period) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'points': 'Puntos no acreditados',
+      'other': 'Cashback no acreditado',
+    });
+    return '$_temp0 · tarjeta •••• $last4 · $period';
+  }
+
+  @override
+  String claimFormalIntro(
+    String kind,
+    Object last4,
+    Object period,
+    Object reported,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'points': 'de los puntos',
+      'other': 'del cashback',
+    });
+    return 'Solicito la revisión $_temp0 de mi tarjeta terminada en $last4 para el periodo del $period. $reported; según las tasas de mi tarjeta, correspondía:';
+  }
+
+  @override
+  String claimReportsProgram(Object program, Object amount) {
+    return 'El programa $program reporta $amount';
+  }
+
+  @override
+  String claimReportsStatement(Object amount) {
+    return 'Mi estado de cuenta reporta $amount';
+  }
+
+  @override
+  String claimFirmIntro(
+    String kind,
+    Object last4,
+    Object period,
+    Object reported,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'points': 'los puntos',
+      'other': 'el cashback',
+    });
+    return 'Mi estado de cuenta del $period (tarjeta •••• $last4) no acredita $_temp0 que me corresponde por mis compras (reportado: $reported):';
+  }
+
+  @override
+  String claimLine(
+    Object category,
+    Object rate,
+    Object spend,
+    int count,
+    Object reward,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count compras',
+      one: '1 compra',
+    );
+    return '• $category $rate: $spend en $_temp0 → $reward';
+  }
+
+  @override
+  String claimTotalExpected(Object total) {
+    return 'Total esperado: $total.';
+  }
+
+  @override
+  String get claimFormalAsk =>
+      'Agradeceré confirmar la corrección y el número de gestión.';
+
+  @override
+  String claimFirmAsk(Object amount) {
+    return 'Solicito la acreditación de $amount en el próximo corte y un número de gestión para dar seguimiento.';
+  }
+
+  @override
+  String get claimClosing => 'Atentamente,';
+
+  @override
+  String get creditsUnlimited => 'Ilimitados';
+
+  @override
+  String get homeUnlimitedChecks => 'Verificaciones ilimitadas';
+
+  @override
+  String get profileUnlimitedNote =>
+      'Tu cuenta tiene verificaciones ilimitadas.';
+
+  @override
+  String get creditsBalanceUnlimited => 'Saldo actual: ilimitado';
 }

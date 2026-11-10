@@ -45,6 +45,7 @@ class CreditHistoryView extends StatelessWidget {
     required this.onLoadMore,
     required this.onBack,
     this.balance,
+    this.unlimited = false,
     this.errorMessage,
   });
 
@@ -53,6 +54,7 @@ class CreditHistoryView extends StatelessWidget {
   final bool loadingMore;
   final bool hasMore;
   final int? balance;
+  final bool unlimited;
   final String? errorMessage;
   final Future<void> Function() onRefresh;
   final VoidCallback onLoadMore;
@@ -169,7 +171,9 @@ class CreditHistoryView extends StatelessWidget {
                           const SizedBox(height: 12),
                           Center(
                             child: Text(
-                              l10n.creditsBalanceNow(balance!),
+                              unlimited
+                                  ? l10n.creditsBalanceUnlimited
+                                  : l10n.creditsBalanceNow(balance!),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontSize: 12,
                                 color: theme.colorScheme.onSurfaceVariant,

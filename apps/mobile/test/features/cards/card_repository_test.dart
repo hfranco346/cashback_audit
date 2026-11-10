@@ -153,4 +153,47 @@ void main() {
     await r.deleteCard('c2');
     expect(await db.readCards(), isEmpty);
   });
+
+  group('claim email', () {
+    test('the mapper reads claimEmail (absent, blank = null)', () {
+      expect(CardMapper.fromJson(cardJson()).claimEmail, isNull);
+      expect(
+        CardMapper.fromJson({...cardJson(), 'claimEmail': ' a@b.co '})
+            .claimEmail,
+        'a@b.co',
+      );
+      expect(
+        CardMapper.fromJson({...cardJson(), 'claimEmail': ''}).claimEmail,
+        isNull,
+      );
+    });
+
+    test('setClaimEmail sends only that field and caches the answer', () async {
+      adapter = FakeAdapter(
+        (o) => FakeResponse(200, {...cardJson(), 'claimEmail': 'x@bank.com'}),
+      );
+      final card = await repo().setClaimEmail('c1', 'x@bank.com');
+      final req = adapter.requests.single;
+      expect(req.method, 'PATCH');
+      expect(req.path, '/cards/c1');
+      expect(req.data, {'claimEmail': 'x@bank.com'});
+      expect(card.claimEmail, 'x@bank.com');
+      expect((await db.readCards()).single['claimEmail'], 'x@bank.com');
+    });
+
+    test('clearing sends an explicit null', () async {
+      adapter = FakeAdapter((o) => FakeResponse(200, cardJson()));
+      final card = await repo().setClaimEmail('c1', null);
+      expect(adapter.requests.single.data, {'claimEmail': null});
+      expect(card.claimEmail, isNull);
+    });
+
+    test('editing the card form never drops or sends the claim email', () {
+      final card = CardMapper.fromJson({...cardJson(), 'claimEmail': 'x@y.co'});
+      expect(
+        CardMapper.toRequest(card.toDraft(), forUpdate: true),
+        isNot(contains('claimEmail')),
+      );
+    });
+  });
 }

@@ -93,6 +93,7 @@ class CreditCard extends Equatable {
     this.network,
     this.rewardProgramName,
     this.rewardCurrency,
+    this.claimEmail,
     this.rules = const [],
   });
 
@@ -107,6 +108,9 @@ class CreditCard extends Equatable {
   final String currency;
   final String? rewardProgramName;
   final String? rewardCurrency;
+
+  /// Where the claim email for this card's bank goes (optional).
+  final String? claimEmail;
   final List<RewardRule> rules;
 
   bool get isPoints => rewardUnit == RewardUnit.points;
@@ -138,6 +142,7 @@ class CreditCard extends Equatable {
     currency,
     rewardProgramName,
     rewardCurrency,
+    claimEmail,
     rules,
   ];
 }

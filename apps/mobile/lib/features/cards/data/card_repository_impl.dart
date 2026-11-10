@@ -7,7 +7,7 @@ import '../domain/card_entities.dart';
 import '../domain/card_repository.dart';
 import 'card_mapper.dart';
 
-class CardRepositoryImpl implements CardRepository {
+class CardRepositoryImpl implements CardRepository, ClaimEmailRepository {
   CardRepositoryImpl(this._dio, this._db);
 
   final Dio _dio;
@@ -44,6 +44,17 @@ class CardRepositoryImpl implements CardRepository {
         final res = await _dio.patch<JsonMap>(
           '/cards/$id',
           data: CardMapper.toRequest(draft, forUpdate: true),
+        );
+        await _db.upsertCard(res.data!);
+        return CardMapper.fromJson(res.data!);
+      });
+
+  @override
+  Future<CreditCard> setClaimEmail(String id, String? email) =>
+      guardApi(() async {
+        final res = await _dio.patch<JsonMap>(
+          '/cards/$id',
+          data: {'claimEmail': email},
         );
         await _db.upsertCard(res.data!);
         return CardMapper.fromJson(res.data!);

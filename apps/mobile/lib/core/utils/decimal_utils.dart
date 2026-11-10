@@ -62,10 +62,10 @@ int minorUnitsOf(String currency) =>
 /// Formats a monetary amount with its ISO code and the currency's minor
 /// units, e.g. `USD 22.68`, `HNL 589.61`, `JPY 1,500`, `KWD 1.250`. No
 /// symbols: `$` would be ambiguous between USD, MXN, HNL...
-String formatMoney(Decimal value, {required String currency}) {
+String formatMoney(Decimal value, {required String currency, String? locale}) {
   final code = currency.trim().toUpperCase();
   final fmt = NumberFormat.decimalPatternDigits(
-    locale: _locale,
+    locale: locale ?? _locale,
     decimalDigits: minorUnitsOf(code),
   );
   final body = DecimalFormatter(fmt).format(value.abs());
@@ -74,17 +74,17 @@ String formatMoney(Decimal value, {required String currency}) {
 }
 
 /// Formats a points amount, e.g. `12,500 pts`.
-String formatPoints(Decimal value) {
+String formatPoints(Decimal value, {String? locale}) {
   final fmt = NumberFormat.decimalPatternDigits(
-    locale: _locale,
+    locale: locale ?? _locale,
     decimalDigits: value.scale > 0 ? 2 : 0,
   );
   return '${DecimalFormatter(fmt).format(value)} pts';
 }
 
 /// Formats a percent rate, e.g. `5%` or `1.5%`.
-String formatRate(Decimal value) {
-  final fmt = NumberFormat.decimalPattern(_locale)
+String formatRate(Decimal value, {String? locale}) {
+  final fmt = NumberFormat.decimalPattern(locale ?? _locale)
     ..maximumFractionDigits = 4
     ..minimumFractionDigits = 0;
   return '${DecimalFormatter(fmt).format(value)}%';

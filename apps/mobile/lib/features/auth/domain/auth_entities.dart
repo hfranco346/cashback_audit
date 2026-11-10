@@ -11,6 +11,7 @@ class AppUser extends Equatable {
     this.primaryCurrency,
     this.currencies = const [],
     this.currencyRates = const {},
+    this.unlimitedCredits = false,
   });
 
   /// Also the RevenueCat app user id.
@@ -35,6 +36,9 @@ class AppUser extends Equatable {
   /// 1 unit of the code (`lastRateToPrimary`). Only codes with a known rate.
   final Map<String, Decimal> currencyRates;
 
+  /// Operator-granted accounts have no credit limit (`GET /me`).
+  final bool unlimitedCredits;
+
   /// The same user with new preferences (the server answer to a PATCH).
   AppUser withPreferences({
     String? locale,
@@ -50,6 +54,7 @@ class AppUser extends Equatable {
     primaryCurrency: primaryCurrency,
     currencies: currencies,
     currencyRates: currencyRates,
+    unlimitedCredits: unlimitedCredits,
   );
 
   /// First name for greetings; falls back to the e-mail local part.
@@ -68,6 +73,7 @@ class AppUser extends Equatable {
     'provider': provider,
     'locale': locale,
     'primaryCurrency': primaryCurrency,
+    'unlimitedCredits': unlimitedCredits,
     'currencies': [
       for (final c in currencies)
         {
@@ -87,6 +93,7 @@ class AppUser extends Equatable {
     primaryCurrency: json['primaryCurrency'] as String?,
     currencies: _currencyCodes(json['currencies']),
     currencyRates: _currencyRates(json['currencies']),
+    unlimitedCredits: json['unlimitedCredits'] as bool? ?? false,
   );
 
   /// Accepts `[{code: 'USD', ...}]` (API) or `['USD']` (local cache).
@@ -124,6 +131,7 @@ class AppUser extends Equatable {
     primaryCurrency,
     currencies,
     currencyRates,
+    unlimitedCredits,
   ];
 }
 

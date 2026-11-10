@@ -40,10 +40,14 @@ class ProfileCreditsCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  b == null ? '–' : '${b.total}',
+                  b == null
+                      ? '–'
+                      : b.unlimited
+                      ? '∞ ${l10n.creditsUnlimited}'
+                      : '${b.total}',
                   key: const Key('profile-credits-total'),
                   style: theme.textTheme.headlineMedium?.copyWith(
-                    fontSize: 30,
+                    fontSize: b?.unlimited == true ? 24 : 30,
                     fontWeight: FontWeight.w600,
                     fontFeatures: appFigures,
                   ),
@@ -51,33 +55,43 @@ class ProfileCreditsCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                _Bag(
-                  keyName: 'free',
-                  value: b?.free,
-                  label: l10n.profileBagFree,
+            if (b?.unlimited == true)
+              Text(
+                l10n.profileUnlimitedNote,
+                key: const Key('profile-unlimited-note'),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(width: 8),
-                _Bag(
-                  keyName: 'plan',
-                  value: b?.plan,
-                  label: l10n.profileBagPlan,
-                ),
-                const SizedBox(width: 8),
-                _Bag(
-                  keyName: 'purchased',
-                  value: b?.purchased,
-                  label: l10n.profileBagPurchased,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            AppButton(
-              key: const Key('profile-get-more'),
-              label: l10n.profileGetMore,
-              onPressed: onGetMore,
-            ),
+              )
+            else ...[
+              Row(
+                children: [
+                  _Bag(
+                    keyName: 'free',
+                    value: b?.free,
+                    label: l10n.profileBagFree,
+                  ),
+                  const SizedBox(width: 8),
+                  _Bag(
+                    keyName: 'plan',
+                    value: b?.plan,
+                    label: l10n.profileBagPlan,
+                  ),
+                  const SizedBox(width: 8),
+                  _Bag(
+                    keyName: 'purchased',
+                    value: b?.purchased,
+                    label: l10n.profileBagPurchased,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              AppButton(
+                key: const Key('profile-get-more'),
+                label: l10n.profileGetMore,
+                onPressed: onGetMore,
+              ),
+            ],
           ],
         ),
       ),

@@ -88,11 +88,15 @@ class ResultSummaryTab extends StatelessWidget {
     super.key,
     required this.verification,
     this.onRecalculate,
+    this.onClaim,
     this.onReviewProgram,
   });
 
   final Verification verification;
   final VoidCallback? onRecalculate;
+
+  /// "Claim from your bank": only shown when the verdict is underpaid.
+  final VoidCallback? onClaim;
   final VoidCallback? onReviewProgram;
 
   @override
@@ -202,6 +206,25 @@ class ResultSummaryTab extends StatelessWidget {
             equivalence: equivalence,
           ),
         ),
+        if (verdict == Verdict.underpaid && onClaim != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          AppButton(
+            key: const Key('result-claim'),
+            label: l10n.resultClaimCta,
+            icon: Icons.mail_outline_rounded,
+            onPressed: onClaim,
+          ),
+          const SizedBox(height: 6),
+          Center(
+            child: Text(
+              l10n.resultClaimHint,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
         if (bullets.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
           FadeInUp(

@@ -7,6 +7,11 @@ abstract final class CardMapper {
     return s.isEmpty ? null : s;
   }
 
+  static String? _email(Object? v) {
+    final s = v is String ? v.trim() : '';
+    return s.isEmpty ? null : s;
+  }
+
   static CreditCard fromJson(Map<String, dynamic> json) => CreditCard(
     id: json['id'] as String,
     alias: json['alias'] as String,
@@ -19,6 +24,7 @@ abstract final class CardMapper {
     currency: json['currency'] as String,
     rewardProgramName: json['rewardProgramName'] as String?,
     rewardCurrency: _code(json['rewardCurrency']),
+    claimEmail: _email(json['claimEmail']),
     rules: [
       for (final r in (json['rules'] as List<dynamic>? ?? const []))
         RewardRule(

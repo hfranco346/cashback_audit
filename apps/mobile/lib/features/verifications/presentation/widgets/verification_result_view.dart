@@ -25,6 +25,7 @@ class VerificationResultView extends StatelessWidget {
     required this.onBack,
     this.onChangeCategory,
     this.onRecalculate,
+    this.onClaim,
     this.stale = false,
     this.recalculating = false,
     this.onRetryRecalculation,
@@ -48,6 +49,9 @@ class VerificationResultView extends StatelessWidget {
   /// Reopens the rate confirmation ("Recalculate with other %").
   final VoidCallback? onRecalculate;
 
+  /// Opens the claim email (offered for underpaid results only).
+  final VoidCallback? onClaim;
+
   /// A correction was saved but the recalculation failed.
   final bool stale;
   final bool recalculating;
@@ -65,6 +69,7 @@ class VerificationResultView extends StatelessWidget {
       ResultTab.summary => ResultSummaryTab(
         verification: v,
         onRecalculate: onRecalculate,
+        onClaim: onClaim,
         onReviewProgram: () => onTab(ResultTab.categories),
       ),
       ResultTab.categories => ResultCategoriesTab(

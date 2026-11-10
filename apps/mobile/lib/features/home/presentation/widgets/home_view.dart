@@ -38,6 +38,7 @@ class HomeView extends StatelessWidget {
     required this.onGetMore,
     required this.onGuidedSetup,
     this.freeChecks,
+    this.unlimited = false,
     this.totalChecks,
     this.uncategorized = 0,
     this.firstName,
@@ -56,6 +57,9 @@ class HomeView extends StatelessWidget {
   final String Function(String cardId) cardLabel;
   final String Function(String categoryId) categoryName;
   final int? freeChecks;
+
+  /// Unlimited-credits account: shows "Unlimited" instead of the free count.
+  final bool unlimited;
   final int? totalChecks;
   final int uncategorized;
   final bool offline;
@@ -241,7 +245,17 @@ class HomeView extends StatelessWidget {
       ],
     );
     return [
-      if ((freeChecks ?? 0) > 0)
+      if (unlimited)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: StatusPill(
+            key: const Key('home-unlimited'),
+            kind: StatusKind.ok,
+            label: '∞ ${l10n.homeUnlimitedChecks}',
+            icon: Icons.auto_awesome_rounded,
+          ),
+        )
+      else if ((freeChecks ?? 0) > 0)
         Align(
           alignment: Alignment.centerLeft,
           child: StatusPill(

@@ -1,11 +1,13 @@
 import 'package:cashback_audit/core/errors/app_exception.dart';
 import 'package:cashback_audit/core/l10n/active_locale.dart';
 import 'package:cashback_audit/core/l10n/strings.dart';
+import 'package:cashback_audit/core/routing/app_routes.dart';
 import 'package:cashback_audit/core/theme/app_theme.dart';
 import 'package:cashback_audit/core/ui/ui.dart';
 import 'package:cashback_audit/features/categories/domain/catalog_entities.dart';
 import 'package:cashback_audit/features/categories/presentation/catalog_controller.dart';
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
+import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/result_page.dart';
 import 'package:cashback_audit/l10n/app_localizations.dart';
@@ -172,6 +174,34 @@ void main() {
 
   AppLocalizations l10nOf(WidgetTester tester) =>
       AppLocalizations.of(tester.element(find.byType(ResultPage)));
+
+  group('claim entry', () {
+    testWidgets('underpaid offers the claim and opens the claim route', (
+      tester,
+    ) async {
+      await pumpResult(tester, verificationJson());
+      expect(find.byKey(const Key('result-claim')), findsOneWidget);
+      expect(find.text('Reclamar al banco'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('result-claim')));
+      expect(nav.pushed, [Routes.claim]);
+      expect((nav.pushedArgs.single as Verification).id, 'v1');
+    });
+
+    testWidgets('the English label', (tester) async {
+      await pumpResult(tester, verificationJson(), lang: 'en');
+      expect(find.text('Claim from your bank'), findsOneWidget);
+    });
+
+    testWidgets('overpaid and match do not offer it', (tester) async {
+      await pumpResult(tester, ficohsaCompletedJson());
+      expect(find.byKey(const Key('result-claim')), findsNothing);
+      await pumpResult(
+        tester,
+        verificationJson(verdict: 'MATCH')..['difference'] = '0',
+      );
+      expect(find.byKey(const Key('result-claim')), findsNothing);
+    });
+  });
 
   group('verdict variants (light/dark, ES/EN)', () {
     final variants = <String, Map<String, dynamic>>{

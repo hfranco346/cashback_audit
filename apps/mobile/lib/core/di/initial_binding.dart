@@ -92,7 +92,9 @@ class InitialBinding extends Bindings {
     );
     final dio = Get.find<Dio>();
     final db = Get.find<AppDatabase>();
-    Get.put<CardRepository>(CardRepositoryImpl(dio, db), permanent: true);
+    final cardRepository = CardRepositoryImpl(dio, db);
+    Get.put<CardRepository>(cardRepository, permanent: true);
+    Get.put<ClaimEmailRepository>(cardRepository, permanent: true);
     Get.put<CategoryRepository>(
       CategoryRepositoryImpl(dio, db),
       permanent: true,

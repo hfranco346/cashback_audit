@@ -6,12 +6,14 @@ CreditBalance balance({
   int plan = 0,
   int purchased = 0,
   bool subscriptionActive = false,
+  bool unlimited = false,
 }) => CreditBalance(
   free: free,
   plan: plan,
   purchased: purchased,
   total: free + plan + purchased,
   subscriptionActive: subscriptionActive,
+  unlimited: unlimited,
 );
 
 /// Scripted balances: each `getBalance` pops the next one (the last repeats).

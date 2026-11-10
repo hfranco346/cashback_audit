@@ -150,6 +150,13 @@ class ResultController extends GetxController {
     };
   }
 
+  /// Opens the claim-to-the-bank email for an underpaid result.
+  void openClaim() {
+    final v = verification.value;
+    if (v == null || v.verdict != Verdict.underpaid) return;
+    _navigator.push(Routes.claim, arguments: v);
+  }
+
   /// Reopens the rate confirmation prefilled with the applied rates. The
   /// recalculation is free (no credit, no Claude call).
   Future<void> recalculateWithOtherRates() async {

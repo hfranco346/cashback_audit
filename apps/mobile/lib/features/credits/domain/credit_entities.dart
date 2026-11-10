@@ -9,6 +9,7 @@ class CreditBalance extends Equatable {
     required this.total,
     required this.subscriptionActive,
     this.planPeriodEnd,
+    this.unlimited = false,
   });
 
   final int free;
@@ -20,7 +21,10 @@ class CreditBalance extends Equatable {
   final int total;
   final bool subscriptionActive;
 
-  bool get hasCredits => total > 0;
+  /// Operator-granted accounts never run out: the gate never blocks them.
+  final bool unlimited;
+
+  bool get hasCredits => unlimited || total > 0;
 
   factory CreditBalance.fromJson(Map<String, dynamic> j) {
     int n(Object? v) => (v as num?)?.toInt() ?? 0;
@@ -33,6 +37,7 @@ class CreditBalance extends Equatable {
       purchased: purchased,
       total: j['total'] == null ? free + plan + purchased : n(j['total']),
       subscriptionActive: j['subscriptionActive'] as bool? ?? false,
+      unlimited: j['unlimited'] as bool? ?? false,
       planPeriodEnd: j['planPeriodEnd'] is String
           ? DateTime.tryParse(j['planPeriodEnd'] as String)
           : null,
@@ -51,6 +56,7 @@ class CreditBalance extends Equatable {
     purchased,
     total,
     subscriptionActive,
+    unlimited,
   ];
 }
 

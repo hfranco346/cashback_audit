@@ -772,5 +772,101 @@
       }
     }
   },
-  "emailVerifying": "Verifying…"
+  "emailVerifying": "Verifying…",
+  "resultClaimCta": "Claim from your bank",
+  "resultClaimHint": "Get a ready-to-send email with your numbers.",
+  "claimTitle": "Claim to the bank",
+  "claimLanguageLabel": "Email language",
+  "claimToneLabel": "Tone",
+  "claimToneFormal": "Formal",
+  "claimToneFirm": "Firm",
+  "claimLangEs": "Español",
+  "claimLangEn": "English",
+  "claimLanguageHelp": "Defaults to the app language; change it if your bank works in another language.",
+  "claimToLabel": "To",
+  "claimToHint": "customer service email",
+  "claimSubjectLabel": "Subject",
+  "claimCopy": "Copy",
+  "claimOpenMail": "Open in Mail",
+  "claimCopied": "Email copied to the clipboard.",
+  "claimNoMailApp": "We could not find a mail app. Use Copy and paste it into your email.",
+  "claimInvalidEmail": "Enter a valid email or leave it empty.",
+  "claimSaveFailed": "We could not save the email on the card.",
+  "claimBaseCategory": "Base rate",
+  "claimGreeting": "Dear {bank} team,",
+  "@claimGreeting": {
+    "placeholders": {
+      "bank": {}
+    }
+  },
+  "claimGreetingGeneric": "Dear team,",
+  "claimSubject": "{kind, select, points{Uncredited points} other{Uncredited cashback}} · card •••• {last4} · {period}",
+  "@claimSubject": {
+    "placeholders": {
+      "kind": {},
+      "last4": {},
+      "period": {}
+    }
+  },
+  "claimFormalIntro": "I am requesting a review of the {kind, select, points{points} other{cashback}} on my card ending in {last4} for the period {period}. {reported}; based on my card rates, I should have received:",
+  "@claimFormalIntro": {
+    "placeholders": {
+      "kind": {},
+      "last4": {},
+      "period": {},
+      "reported": {}
+    }
+  },
+  "claimReportsProgram": "The {program} program shows {amount}",
+  "@claimReportsProgram": {
+    "placeholders": {
+      "program": {},
+      "amount": {}
+    }
+  },
+  "claimReportsStatement": "My statement shows {amount}",
+  "@claimReportsStatement": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "claimFirmIntro": "My statement for {period} (card •••• {last4}) does not credit the {kind, select, points{points} other{cashback}} I earned on my purchases (reported: {reported}):",
+  "@claimFirmIntro": {
+    "placeholders": {
+      "kind": {},
+      "last4": {},
+      "period": {},
+      "reported": {}
+    }
+  },
+  "claimLine": "• {category} {rate}: {spend} in {count, plural, =1{1 purchase} other{{count} purchases}} → {reward}",
+  "@claimLine": {
+    "placeholders": {
+      "category": {},
+      "rate": {},
+      "spend": {},
+      "count": {
+        "type": "int"
+      },
+      "reward": {}
+    }
+  },
+  "claimTotalExpected": "Total expected: {total}.",
+  "@claimTotalExpected": {
+    "placeholders": {
+      "total": {}
+    }
+  },
+  "claimFormalAsk": "Please confirm the correction and share a case number.",
+  "claimFirmAsk": "I request that {amount} be credited on the next statement, along with a case number for follow-up.",
+  "@claimFirmAsk": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "claimClosing": "Sincerely,",
+  "creditsUnlimited": "Unlimited",
+  "homeUnlimitedChecks": "Unlimited checks",
+  "profileUnlimitedNote": "Your account has unlimited checks.",
+  "creditsBalanceUnlimited": "Current balance: unlimited"
 }

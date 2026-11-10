@@ -8,3 +8,9 @@ abstract class CardRepository {
   Future<CreditCard> updateCard(String id, CardDraft draft);
   Future<void> deleteCard(String id);
 }
+
+/// Saves only the claim email of a card (`PATCH /cards/:id`, `null` clears
+/// it). Kept apart from [CardRepository] because it is a partial update.
+abstract class ClaimEmailRepository {
+  Future<CreditCard> setClaimEmail(String id, String? email);
+}

@@ -14,6 +14,11 @@ import '../../features/cards/presentation/card_form_controller.dart';
 import '../../features/cards/presentation/card_form_page.dart';
 import '../../features/cards/presentation/cards_controller.dart';
 import '../../features/categories/domain/catalog_repositories.dart';
+import '../../features/claim/data/url_launcher_mail_launcher.dart';
+import '../../features/claim/domain/claim_email.dart';
+import '../../features/claim/presentation/claim_controller.dart';
+import '../../features/claim/presentation/claim_page.dart';
+import '../l10n/active_locale.dart';
 import '../../features/categories/presentation/catalog_controller.dart';
 import '../../features/categories/presentation/catalog_page.dart';
 import '../../features/settings/presentation/language_currencies_page.dart';
@@ -250,6 +255,27 @@ abstract final class AppPages {
             attention: Get.find<AttentionController>(),
             initial: args is Verification ? args : null,
             verificationId: args is String ? args : null,
+          ),
+        );
+      }),
+    ),
+    GetPage(
+      name: Routes.claim,
+      page: () => const ClaimPage(),
+      binding: BindingsBuilder(() {
+        final verification = Get.arguments as Verification;
+        final cards = Get.find<CardsController>();
+        Get.lazyPut(
+          () => ClaimController(
+            verification: verification,
+            launcher: const UrlLauncherMailLauncher(),
+            initialLanguage: ClaimLanguage.fromCode(
+              ActiveLocale.locale.languageCode,
+            ),
+            card: cards.byId(verification.cardId),
+            userName: Get.find<SessionController>().user.value?.name,
+            repository: Get.find<ClaimEmailRepository>(),
+            cards: cards,
           ),
         );
       }),

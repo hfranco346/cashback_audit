@@ -19,6 +19,7 @@ class CreditHistoryPage extends GetView<CreditHistoryController> {
         loadingMore: controller.loadingMore.value,
         hasMore: controller.hasMore.value,
         balance: credits.total,
+        unlimited: credits.isUnlimited,
         errorMessage: controller.errorMessage.value,
         onRefresh: controller.load,
         onLoadMore: controller.loadMore,

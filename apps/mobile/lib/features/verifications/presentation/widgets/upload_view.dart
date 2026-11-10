@@ -438,7 +438,10 @@ class _CreditNote extends StatelessWidget {
           children: [
             StatusPill(
               kind: StatusKind.ok,
-              label: l10n.verifyAvailablePill(balance.total),
+              key: const Key('upload-available-pill'),
+              label: balance.unlimited
+                  ? '∞ ${l10n.creditsUnlimited}'
+                  : l10n.verifyAvailablePill(balance.total),
             ),
             const SizedBox(width: 12),
             Expanded(

@@ -4423,6 +4423,238 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Verificando…'**
   String get emailVerifying;
+
+  /// No description provided for @resultClaimCta.
+  ///
+  /// In es, this message translates to:
+  /// **'Reclamar al banco'**
+  String get resultClaimCta;
+
+  /// No description provided for @resultClaimHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Genera un correo listo para enviar con tus números.'**
+  String get resultClaimHint;
+
+  /// No description provided for @claimTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Reclamo al banco'**
+  String get claimTitle;
+
+  /// No description provided for @claimLanguageLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Idioma del correo'**
+  String get claimLanguageLabel;
+
+  /// No description provided for @claimToneLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Tono'**
+  String get claimToneLabel;
+
+  /// No description provided for @claimToneFormal.
+  ///
+  /// In es, this message translates to:
+  /// **'Formal'**
+  String get claimToneFormal;
+
+  /// No description provided for @claimToneFirm.
+  ///
+  /// In es, this message translates to:
+  /// **'Firme'**
+  String get claimToneFirm;
+
+  /// No description provided for @claimLangEs.
+  ///
+  /// In es, this message translates to:
+  /// **'Español'**
+  String get claimLangEs;
+
+  /// No description provided for @claimLangEn.
+  ///
+  /// In es, this message translates to:
+  /// **'English'**
+  String get claimLangEn;
+
+  /// No description provided for @claimLanguageHelp.
+  ///
+  /// In es, this message translates to:
+  /// **'Por defecto en el idioma de la app; cámbialo si tu banco atiende en otro idioma.'**
+  String get claimLanguageHelp;
+
+  /// No description provided for @claimToLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Para'**
+  String get claimToLabel;
+
+  /// No description provided for @claimToHint.
+  ///
+  /// In es, this message translates to:
+  /// **'correo de servicio al cliente'**
+  String get claimToHint;
+
+  /// No description provided for @claimSubjectLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Asunto'**
+  String get claimSubjectLabel;
+
+  /// No description provided for @claimCopy.
+  ///
+  /// In es, this message translates to:
+  /// **'Copiar'**
+  String get claimCopy;
+
+  /// No description provided for @claimOpenMail.
+  ///
+  /// In es, this message translates to:
+  /// **'Abrir en Correo'**
+  String get claimOpenMail;
+
+  /// No description provided for @claimCopied.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo copiado al portapapeles.'**
+  String get claimCopied;
+
+  /// No description provided for @claimNoMailApp.
+  ///
+  /// In es, this message translates to:
+  /// **'No encontramos una app de correo. Usa Copiar y pégalo en tu correo.'**
+  String get claimNoMailApp;
+
+  /// No description provided for @claimInvalidEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe un correo válido o déjalo vacío.'**
+  String get claimInvalidEmail;
+
+  /// No description provided for @claimSaveFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No pudimos guardar el correo en la tarjeta.'**
+  String get claimSaveFailed;
+
+  /// No description provided for @claimBaseCategory.
+  ///
+  /// In es, this message translates to:
+  /// **'Tasa base'**
+  String get claimBaseCategory;
+
+  /// No description provided for @claimGreeting.
+  ///
+  /// In es, this message translates to:
+  /// **'Estimados señores de {bank}:'**
+  String claimGreeting(Object bank);
+
+  /// No description provided for @claimGreetingGeneric.
+  ///
+  /// In es, this message translates to:
+  /// **'Estimados señores:'**
+  String get claimGreetingGeneric;
+
+  /// No description provided for @claimSubject.
+  ///
+  /// In es, this message translates to:
+  /// **'{kind, select, points{Puntos no acreditados} other{Cashback no acreditado}} · tarjeta •••• {last4} · {period}'**
+  String claimSubject(String kind, Object last4, Object period);
+
+  /// No description provided for @claimFormalIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'Solicito la revisión {kind, select, points{de los puntos} other{del cashback}} de mi tarjeta terminada en {last4} para el periodo del {period}. {reported}; según las tasas de mi tarjeta, correspondía:'**
+  String claimFormalIntro(
+    String kind,
+    Object last4,
+    Object period,
+    Object reported,
+  );
+
+  /// No description provided for @claimReportsProgram.
+  ///
+  /// In es, this message translates to:
+  /// **'El programa {program} reporta {amount}'**
+  String claimReportsProgram(Object program, Object amount);
+
+  /// No description provided for @claimReportsStatement.
+  ///
+  /// In es, this message translates to:
+  /// **'Mi estado de cuenta reporta {amount}'**
+  String claimReportsStatement(Object amount);
+
+  /// No description provided for @claimFirmIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'Mi estado de cuenta del {period} (tarjeta •••• {last4}) no acredita {kind, select, points{los puntos} other{el cashback}} que me corresponde por mis compras (reportado: {reported}):'**
+  String claimFirmIntro(
+    String kind,
+    Object last4,
+    Object period,
+    Object reported,
+  );
+
+  /// No description provided for @claimLine.
+  ///
+  /// In es, this message translates to:
+  /// **'• {category} {rate}: {spend} en {count, plural, =1{1 compra} other{{count} compras}} → {reward}'**
+  String claimLine(
+    Object category,
+    Object rate,
+    Object spend,
+    int count,
+    Object reward,
+  );
+
+  /// No description provided for @claimTotalExpected.
+  ///
+  /// In es, this message translates to:
+  /// **'Total esperado: {total}.'**
+  String claimTotalExpected(Object total);
+
+  /// No description provided for @claimFormalAsk.
+  ///
+  /// In es, this message translates to:
+  /// **'Agradeceré confirmar la corrección y el número de gestión.'**
+  String get claimFormalAsk;
+
+  /// No description provided for @claimFirmAsk.
+  ///
+  /// In es, this message translates to:
+  /// **'Solicito la acreditación de {amount} en el próximo corte y un número de gestión para dar seguimiento.'**
+  String claimFirmAsk(Object amount);
+
+  /// No description provided for @claimClosing.
+  ///
+  /// In es, this message translates to:
+  /// **'Atentamente,'**
+  String get claimClosing;
+
+  /// No description provided for @creditsUnlimited.
+  ///
+  /// In es, this message translates to:
+  /// **'Ilimitados'**
+  String get creditsUnlimited;
+
+  /// No description provided for @homeUnlimitedChecks.
+  ///
+  /// In es, this message translates to:
+  /// **'Verificaciones ilimitadas'**
+  String get homeUnlimitedChecks;
+
+  /// No description provided for @profileUnlimitedNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu cuenta tiene verificaciones ilimitadas.'**
+  String get profileUnlimitedNote;
+
+  /// No description provided for @creditsBalanceUnlimited.
+  ///
+  /// In es, this message translates to:
+  /// **'Saldo actual: ilimitado'**
+  String get creditsBalanceUnlimited;
 }
 
 class _AppLocalizationsDelegate

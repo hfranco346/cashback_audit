@@ -8,6 +8,7 @@ String formatReward(
   Decimal value,
   RewardUnit unit, {
   required String currency,
+  String? locale,
 }) => unit == RewardUnit.points
-    ? formatPoints(value)
-    : formatMoney(value, currency: currency);
+    ? formatPoints(value, locale: locale)
+    : formatMoney(value, currency: currency, locale: locale);

@@ -1539,5 +1539,101 @@
       }
     }
   },
-  "emailVerifying": "Verificando…"
+  "emailVerifying": "Verificando…",
+  "resultClaimCta": "Reclamar al banco",
+  "resultClaimHint": "Genera un correo listo para enviar con tus números.",
+  "claimTitle": "Reclamo al banco",
+  "claimLanguageLabel": "Idioma del correo",
+  "claimToneLabel": "Tono",
+  "claimToneFormal": "Formal",
+  "claimToneFirm": "Firme",
+  "claimLangEs": "Español",
+  "claimLangEn": "English",
+  "claimLanguageHelp": "Por defecto en el idioma de la app; cámbialo si tu banco atiende en otro idioma.",
+  "claimToLabel": "Para",
+  "claimToHint": "correo de servicio al cliente",
+  "claimSubjectLabel": "Asunto",
+  "claimCopy": "Copiar",
+  "claimOpenMail": "Abrir en Correo",
+  "claimCopied": "Correo copiado al portapapeles.",
+  "claimNoMailApp": "No encontramos una app de correo. Usa Copiar y pégalo en tu correo.",
+  "claimInvalidEmail": "Escribe un correo válido o déjalo vacío.",
+  "claimSaveFailed": "No pudimos guardar el correo en la tarjeta.",
+  "claimBaseCategory": "Tasa base",
+  "claimGreeting": "Estimados señores de {bank}:",
+  "@claimGreeting": {
+    "placeholders": {
+      "bank": {}
+    }
+  },
+  "claimGreetingGeneric": "Estimados señores:",
+  "claimSubject": "{kind, select, points{Puntos no acreditados} other{Cashback no acreditado}} · tarjeta •••• {last4} · {period}",
+  "@claimSubject": {
+    "placeholders": {
+      "kind": {},
+      "last4": {},
+      "period": {}
+    }
+  },
+  "claimFormalIntro": "Solicito la revisión {kind, select, points{de los puntos} other{del cashback}} de mi tarjeta terminada en {last4} para el periodo del {period}. {reported}; según las tasas de mi tarjeta, correspondía:",
+  "@claimFormalIntro": {
+    "placeholders": {
+      "kind": {},
+      "last4": {},
+      "period": {},
+      "reported": {}
+    }
+  },
+  "claimReportsProgram": "El programa {program} reporta {amount}",
+  "@claimReportsProgram": {
+    "placeholders": {
+      "program": {},
+      "amount": {}
+    }
+  },
+  "claimReportsStatement": "Mi estado de cuenta reporta {amount}",
+  "@claimReportsStatement": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "claimFirmIntro": "Mi estado de cuenta del {period} (tarjeta •••• {last4}) no acredita {kind, select, points{los puntos} other{el cashback}} que me corresponde por mis compras (reportado: {reported}):",
+  "@claimFirmIntro": {
+    "placeholders": {
+      "kind": {},
+      "last4": {},
+      "period": {},
+      "reported": {}
+    }
+  },
+  "claimLine": "• {category} {rate}: {spend} en {count, plural, =1{1 compra} other{{count} compras}} → {reward}",
+  "@claimLine": {
+    "placeholders": {
+      "category": {},
+      "rate": {},
+      "spend": {},
+      "count": {
+        "type": "int"
+      },
+      "reward": {}
+    }
+  },
+  "claimTotalExpected": "Total esperado: {total}.",
+  "@claimTotalExpected": {
+    "placeholders": {
+      "total": {}
+    }
+  },
+  "claimFormalAsk": "Agradeceré confirmar la corrección y el número de gestión.",
+  "claimFirmAsk": "Solicito la acreditación de {amount} en el próximo corte y un número de gestión para dar seguimiento.",
+  "@claimFirmAsk": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "claimClosing": "Atentamente,",
+  "creditsUnlimited": "Ilimitados",
+  "homeUnlimitedChecks": "Verificaciones ilimitadas",
+  "profileUnlimitedNote": "Tu cuenta tiene verificaciones ilimitadas.",
+  "creditsBalanceUnlimited": "Saldo actual: ilimitado"
 }

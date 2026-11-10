@@ -98,6 +98,7 @@ class ResultPage extends GetView<ResultController> {
             onBack: Get.back<void>,
             onChangeCategory: (tx) => _changeCategory(context, tx),
             onRecalculate: controller.recalculateWithOtherRates,
+            onClaim: controller.openClaim,
             stale: controller.stale.value,
             recalculating: controller.recalculating.value,
             onRetryRecalculation: controller.retryRecalculation,

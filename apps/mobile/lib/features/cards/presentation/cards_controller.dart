@@ -43,6 +43,12 @@ class CardsController extends GetxController {
     }
   }
 
+  /// Swaps in a card the backend just returned (e.g. after a partial PATCH).
+  void replace(CreditCard card) {
+    final i = cards.indexWhere((c) => c.id == card.id);
+    if (i >= 0) cards[i] = card;
+  }
+
   /// Returns an error message, or `null` on success.
   Future<String?> delete(CreditCard card) async {
     try {

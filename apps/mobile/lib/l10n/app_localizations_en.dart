@@ -2621,4 +2621,167 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emailVerifying => 'Verifying…';
+
+  @override
+  String get resultClaimCta => 'Claim from your bank';
+
+  @override
+  String get resultClaimHint => 'Get a ready-to-send email with your numbers.';
+
+  @override
+  String get claimTitle => 'Claim to the bank';
+
+  @override
+  String get claimLanguageLabel => 'Email language';
+
+  @override
+  String get claimToneLabel => 'Tone';
+
+  @override
+  String get claimToneFormal => 'Formal';
+
+  @override
+  String get claimToneFirm => 'Firm';
+
+  @override
+  String get claimLangEs => 'Español';
+
+  @override
+  String get claimLangEn => 'English';
+
+  @override
+  String get claimLanguageHelp =>
+      'Defaults to the app language; change it if your bank works in another language.';
+
+  @override
+  String get claimToLabel => 'To';
+
+  @override
+  String get claimToHint => 'customer service email';
+
+  @override
+  String get claimSubjectLabel => 'Subject';
+
+  @override
+  String get claimCopy => 'Copy';
+
+  @override
+  String get claimOpenMail => 'Open in Mail';
+
+  @override
+  String get claimCopied => 'Email copied to the clipboard.';
+
+  @override
+  String get claimNoMailApp =>
+      'We could not find a mail app. Use Copy and paste it into your email.';
+
+  @override
+  String get claimInvalidEmail => 'Enter a valid email or leave it empty.';
+
+  @override
+  String get claimSaveFailed => 'We could not save the email on the card.';
+
+  @override
+  String get claimBaseCategory => 'Base rate';
+
+  @override
+  String claimGreeting(Object bank) {
+    return 'Dear $bank team,';
+  }
+
+  @override
+  String get claimGreetingGeneric => 'Dear team,';
+
+  @override
+  String claimSubject(String kind, Object last4, Object period) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'points': 'Uncredited points',
+      'other': 'Uncredited cashback',
+    });
+    return '$_temp0 · card •••• $last4 · $period';
+  }
+
+  @override
+  String claimFormalIntro(
+    String kind,
+    Object last4,
+    Object period,
+    Object reported,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'points': 'points',
+      'other': 'cashback',
+    });
+    return 'I am requesting a review of the $_temp0 on my card ending in $last4 for the period $period. $reported; based on my card rates, I should have received:';
+  }
+
+  @override
+  String claimReportsProgram(Object program, Object amount) {
+    return 'The $program program shows $amount';
+  }
+
+  @override
+  String claimReportsStatement(Object amount) {
+    return 'My statement shows $amount';
+  }
+
+  @override
+  String claimFirmIntro(
+    String kind,
+    Object last4,
+    Object period,
+    Object reported,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'points': 'points',
+      'other': 'cashback',
+    });
+    return 'My statement for $period (card •••• $last4) does not credit the $_temp0 I earned on my purchases (reported: $reported):';
+  }
+
+  @override
+  String claimLine(
+    Object category,
+    Object rate,
+    Object spend,
+    int count,
+    Object reward,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count purchases',
+      one: '1 purchase',
+    );
+    return '• $category $rate: $spend in $_temp0 → $reward';
+  }
+
+  @override
+  String claimTotalExpected(Object total) {
+    return 'Total expected: $total.';
+  }
+
+  @override
+  String get claimFormalAsk =>
+      'Please confirm the correction and share a case number.';
+
+  @override
+  String claimFirmAsk(Object amount) {
+    return 'I request that $amount be credited on the next statement, along with a case number for follow-up.';
+  }
+
+  @override
+  String get claimClosing => 'Sincerely,';
+
+  @override
+  String get creditsUnlimited => 'Unlimited';
+
+  @override
+  String get homeUnlimitedChecks => 'Unlimited checks';
+
+  @override
+  String get profileUnlimitedNote => 'Your account has unlimited checks.';
+
+  @override
+  String get creditsBalanceUnlimited => 'Current balance: unlimited';
 }
