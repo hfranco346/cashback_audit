@@ -145,7 +145,7 @@ class _CatalogViewState extends State<CatalogView> {
                             Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: InlineNotice(
-                                message: errorMessage!,
+                                message: errorMessage,
                                 actionLabel: l10n.retry,
                                 onAction: () => widget.onRefresh(),
                               ),
@@ -173,7 +173,9 @@ class _CatalogViewState extends State<CatalogView> {
                                   child: _CategoryCard(
                                     key: ValueKey(categories[i].id),
                                     category: categories[i],
-                                    merchants: widget.merchantsOf(categories[i].id),
+                                    merchants: widget.merchantsOf(
+                                      categories[i].id,
+                                    ),
                                     tags: widget.ruleTagsOf(categories[i].id),
                                     initiallyExpanded: i == 0,
                                     onEdit: () =>

@@ -1421,7 +1421,7 @@ abstract class AppLocalizations {
   /// No description provided for @noCategoryOption.
   ///
   /// In es, this message translates to:
-  /// **'Sin rubro'**
+  /// **'Ningún rubro'**
   String get noCategoryOption;
 
   /// No description provided for @categoryChanged.
@@ -3857,7 +3857,7 @@ abstract class AppLocalizations {
   /// No description provided for @rememberOff.
   ///
   /// In es, this message translates to:
-  /// **'Apagado: solo cambia esta verificación.'**
+  /// **'Apagado: solo cambia en esta verificación.'**
   String get rememberOff;
 
   /// No description provided for @rememberOn.
@@ -3917,7 +3917,7 @@ abstract class AppLocalizations {
   /// No description provided for @historyPending.
   ///
   /// In es, this message translates to:
-  /// **'Pendientes'**
+  /// **'Pendiente'**
   String get historyPending;
 
   /// No description provided for @historyCompleted.
@@ -3925,6 +3925,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Completadas'**
   String get historyCompleted;
+
+  /// No description provided for @historyPillUnderpaid.
+  ///
+  /// In es, this message translates to:
+  /// **'↓ De menos'**
+  String get historyPillUnderpaid;
+
+  /// No description provided for @historyPillOverpaid.
+  ///
+  /// In es, this message translates to:
+  /// **'↑ De más'**
+  String get historyPillOverpaid;
 
   /// No description provided for @historyPillConfirm.
   ///

@@ -155,7 +155,9 @@ class HistoryView extends StatelessWidget {
                             kind: StatusKind.neutral,
                             message: cachedAt == null
                                 ? l10n.historyOfflineUndated
-                                : l10n.historyOffline(_when(context, cachedAt!)),
+                                : l10n.historyOffline(
+                                    _when(context, cachedAt!),
+                                  ),
                           ),
                           const SizedBox(height: 14),
                         ],
@@ -206,23 +208,22 @@ class HistoryView extends StatelessWidget {
                             title: l10n.historyPending,
                             caption: true,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 14),
                           for (final (i, item) in pending.indexed)
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.only(bottom: 14),
                               child: StaggeredEntrance(
                                 index: i,
                                 child: _row(context, item, boxed: true),
                               ),
                             ),
-                          const SizedBox(height: 6),
                         ],
                         if (done.isNotEmpty) ...[
                           SectionHeader(
                             title: l10n.historyCompleted,
                             caption: true,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 14),
                           Card(
                             clipBehavior: Clip.antiAlias,
                             child: Column(

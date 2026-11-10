@@ -44,10 +44,18 @@ class StatusPill extends StatelessWidget {
     required this.kind,
     required this.label,
     this.icon,
+    this.compact = false,
+    this.showIcon = true,
   });
 
   final StatusKind kind;
   final String label;
+
+  /// Dense variant (11 px text, 2 × 8 padding) used in list rows.
+  final bool compact;
+
+  /// `false` when the label carries its own marker (arrows).
+  final bool showIcon;
 
   /// Overrides the default icon of [kind].
   final IconData? icon;
@@ -61,12 +69,17 @@ class StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadii.pill),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 10,
+          vertical: compact ? 2 : 4,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon ?? kind.icon, size: 13, color: tone.fg),
-            const SizedBox(width: 4),
+            if (showIcon) ...[
+              Icon(icon ?? kind.icon, size: compact ? 10 : 13, color: tone.fg),
+              const SizedBox(width: 4),
+            ],
             Flexible(
               child: Text(
                 label,
@@ -74,7 +87,7 @@ class StatusPill extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: tone.fg,
-                  fontSize: 12,
+                  fontSize: compact ? 11 : 12,
                   fontWeight: FontWeight.w700,
                 ),
               ),

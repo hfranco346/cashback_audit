@@ -75,9 +75,17 @@ class OnboardingFrame extends StatelessWidget {
 
 /// Screen title (Bodoni) with an optional subtitle, entering from below.
 class OnboardingTitle extends StatelessWidget {
-  const OnboardingTitle({super.key, required this.title, this.subtitle});
+  const OnboardingTitle({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.gap = AppSpacing.sm,
+  });
 
   final String title;
+
+  /// Space between the title and the subtitle.
+  final double gap;
   final String? subtitle;
 
   @override
@@ -94,7 +102,7 @@ class OnboardingTitle extends StatelessWidget {
             child: Text(title, style: theme.textTheme.headlineLarge),
           ),
           if (subtitle != null) ...[
-            const SizedBox(height: AppSpacing.sm),
+            SizedBox(height: gap),
             Text(
               subtitle!,
               style: theme.textTheme.bodyLarge?.copyWith(

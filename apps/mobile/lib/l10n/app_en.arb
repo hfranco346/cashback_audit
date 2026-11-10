@@ -653,6 +653,8 @@
   "historyOfflineUndated": "Offline · showing what was saved. You need internet to run a check.",
   "historyPending": "Pending",
   "historyCompleted": "Completed",
+  "historyPillUnderpaid": "↓ Underpaid",
+  "historyPillOverpaid": "↑ Overpaid",
   "historyPillConfirm": "Confirm %",
   "historyCardUnknown": "Card",
   "paywallTitleFree": "Check every month without a second thought",

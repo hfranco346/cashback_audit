@@ -163,9 +163,7 @@ class AppDatabase extends _$AppDatabase {
     if (cardId != null) query.where((t) => t.cardId.equals(cardId));
     final rows = await query.get();
     if (rows.isEmpty || rows.any((r) => r.cachedAt == null)) return null;
-    return rows
-        .map((r) => r.cachedAt!)
-        .reduce((a, b) => a.isBefore(b) ? a : b);
+    return rows.map((r) => r.cachedAt!).reduce((a, b) => a.isBefore(b) ? a : b);
   }
 
   /// Upserts summaries. When [replaceScopeCardId] is given (or [replaceAll]),

@@ -2334,6 +2334,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyCompleted => 'Completed';
 
   @override
+  String get historyPillUnderpaid => '↓ Underpaid';
+
+  @override
+  String get historyPillOverpaid => '↑ Overpaid';
+
+  @override
   String get historyPillConfirm => 'Confirm %';
 
   @override

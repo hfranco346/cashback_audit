@@ -1,15 +1,13 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/l10n/active_locale.dart';
 import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/ui/ui.dart';
 import '../../domain/verification_entities.dart';
 
-import 'package:intl/intl.dart';
-
 import '../../../../core/theme/app_theme.dart';
 import '../format_reward.dart';
+import '../period_label.dart';
 
 /// One history entry: card + period on the left, and either the difference
 /// with its verdict pill (finished audits) or a status pill (processing,
@@ -37,14 +35,8 @@ class HistoryRow extends StatelessWidget {
   final bool boxed;
   final VoidCallback onTap;
 
-  String get _period {
-    final f = DateFormat.yMMMd(ActiveLocale.intlName);
-    final s = summary.statement;
-    if (s.periodStart != null && s.periodEnd != null) {
-      return '${f.format(s.periodStart!)} – ${f.format(s.periodEnd!)}';
-    }
-    return f.format(summary.createdAt.toLocal());
-  }
+  String get _period =>
+      statementPeriodLabel(summary.statement, summary.createdAt);
 
   @override
   Widget build(BuildContext context) {
@@ -113,8 +105,8 @@ class HistoryRow extends StatelessWidget {
     final verdict = summary.verdict;
     if (summary.isCompleted && verdict != null) {
       final (kind, label) = switch (verdict) {
-        Verdict.underpaid => (StatusKind.error, l10n.verdictPillUnderpaid),
-        Verdict.overpaid => (StatusKind.overpaid, l10n.verdictPillOverpaid),
+        Verdict.underpaid => (StatusKind.error, l10n.historyPillUnderpaid),
+        Verdict.overpaid => (StatusKind.overpaid, l10n.historyPillOverpaid),
         Verdict.match => (StatusKind.ok, l10n.verdictPillMatch),
       };
       final diff = summary.difference;
@@ -138,7 +130,7 @@ class HistoryRow extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 4),
-          StatusPill(kind: kind, label: label),
+          StatusPill(kind: kind, label: label, compact: true, showIcon: false),
         ],
       );
     }
@@ -164,6 +156,7 @@ class HistoryRow extends StatelessWidget {
       kind: kind,
       label: label,
       icon: icon,
+      compact: true,
     );
   }
 }

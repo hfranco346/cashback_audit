@@ -87,11 +87,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('PENDIENTES'), findsOneWidget);
+    expect(find.text('PENDIENTE'), findsOneWidget);
     expect(find.text('COMPLETADAS'), findsOneWidget);
     expect(find.text('Confirmar %'), findsOneWidget);
-    expect(find.text('Pagaron de menos'), findsOneWidget);
-    expect(find.text('Pagaron de más'), findsOneWidget);
+    expect(find.text('↓ De menos'), findsOneWidget);
+    expect(find.text('↑ De más'), findsOneWidget);
     expect(find.text('–MXN 18.00'), findsOneWidget);
     expect(find.textContaining('Daily · 4321'), findsWidgets);
     expect(find.byKey(const Key('history-offline')), findsNothing);

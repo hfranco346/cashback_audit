@@ -416,7 +416,7 @@ class _CategoriesStepState extends State<CategoriesStep> {
       ValueChanged<String> onChanged,
       Key key,
     ) => SizedBox(
-      width: 84,
+      width: 76,
       child: TextField(
         key: key,
         controller: t,
@@ -429,6 +429,8 @@ class _CategoriesStepState extends State<CategoriesStep> {
         ),
         decoration: InputDecoration(
           isDense: true,
+          filled: true,
+          fillColor: Theme.of(context).scaffoldBackgroundColor,
           suffixText: '%',
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 8,
@@ -448,8 +450,12 @@ class _CategoriesStepState extends State<CategoriesStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          OnboardingTitle(title: l10n.onbCatsTitle, subtitle: l10n.onbCatsSub),
-          const SizedBox(height: AppSpacing.lg),
+          OnboardingTitle(
+            title: l10n.onbCatsTitle,
+            subtitle: l10n.onbCatsSub,
+            gap: 14,
+          ),
+          const SizedBox(height: 14),
           Obx(() {
             // Rebuild on any draft change (selection and typed rates).
             c.draft.value;
@@ -489,7 +495,7 @@ class _CategoriesStepState extends State<CategoriesStep> {
               label: Text(l10n.onbCatOther),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 14),
           Card(
             child: Padding(
               padding: const EdgeInsets.symmetric(

@@ -719,7 +719,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get changeCategoryTitle => 'Cambiar el rubro de este movimiento';
 
   @override
-  String get noCategoryOption => 'Sin rubro';
+  String get noCategoryOption => 'Ningún rubro';
 
   @override
   String get categoryChanged => 'Rubro actualizado y resultado recalculado';
@@ -2299,7 +2299,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get rememberTitle => 'Recordar para próximas verificaciones';
 
   @override
-  String get rememberOff => 'Apagado: solo cambia esta verificación.';
+  String get rememberOff => 'Apagado: solo cambia en esta verificación.';
 
   @override
   String get rememberOn =>
@@ -2336,10 +2336,16 @@ class AppLocalizationsEs extends AppLocalizations {
       'Sin conexión · mostrando lo guardado. Para verificar necesitas internet.';
 
   @override
-  String get historyPending => 'Pendientes';
+  String get historyPending => 'Pendiente';
 
   @override
   String get historyCompleted => 'Completadas';
+
+  @override
+  String get historyPillUnderpaid => '↓ De menos';
+
+  @override
+  String get historyPillOverpaid => '↑ De más';
 
   @override
   String get historyPillConfirm => 'Confirmar %';
