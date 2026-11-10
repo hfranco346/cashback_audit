@@ -18,6 +18,7 @@ class HistoryRow extends StatelessWidget {
     required this.summary,
     required this.cardName,
     required this.onTap,
+    this.onLongPress,
     this.cardLast4,
     this.cardDeleted = false,
     this.boxed = false,
@@ -34,6 +35,9 @@ class HistoryRow extends StatelessWidget {
   /// one card and only draw dividers.
   final bool boxed;
   final VoidCallback onTap;
+
+  /// Long press (delete) shortcut; the swipe offers the same action.
+  final VoidCallback? onLongPress;
 
   String get _period =>
       statementPeriodLabel(summary.statement, summary.createdAt);
@@ -93,6 +97,7 @@ class HistoryRow extends StatelessWidget {
       child: InkWell(
         key: Key('history-row-${summary.id}'),
         onTap: onTap,
+        onLongPress: onLongPress,
         child: padded,
       ),
     );

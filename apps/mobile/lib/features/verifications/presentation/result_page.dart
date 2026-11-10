@@ -10,6 +10,7 @@ import 'package:decimal/decimal.dart';
 
 import '../domain/verification_entities.dart';
 import 'result_controller.dart';
+import 'widgets/delete_verification_dialog.dart';
 import 'widgets/change_category_sheet.dart';
 import 'widgets/verification_result_view.dart';
 
@@ -49,6 +50,17 @@ class ResultPage extends GetView<ResultController> {
     );
   }
 
+  Future<void> _delete(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await confirmDeleteVerification(
+      context,
+      creditLost: controller.deleteLosesCreditNote,
+    );
+    if (!ok) return;
+    final error = await controller.deleteVerification();
+    if (error != null) messenger.showSnackBar(SnackBar(content: Text(error)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -71,6 +83,7 @@ class ResultPage extends GetView<ResultController> {
           if (!v.isCompleted || v.verdict == null || v.reported == null) {
             return _Message(
               back: Get.back<void>,
+              onDelete: () => _delete(context),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -98,6 +111,7 @@ class ResultPage extends GetView<ResultController> {
             onBack: Get.back<void>,
             onChangeCategory: (tx) => _changeCategory(context, tx),
             onRecalculate: controller.recalculateWithOtherRates,
+            onDelete: () => _delete(context),
             onClaim: controller.openClaim,
             stale: controller.stale.value,
             recalculating: controller.recalculating.value,
@@ -112,9 +126,10 @@ class ResultPage extends GetView<ResultController> {
 }
 
 class _Message extends StatelessWidget {
-  const _Message({required this.back, required this.child});
+  const _Message({required this.back, required this.child, this.onDelete});
 
   final VoidCallback back;
+  final VoidCallback? onDelete;
   final Widget child;
 
   @override
@@ -122,13 +137,16 @@ class _Message extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: IconButton(
-            tooltip: context.l10n.back,
-            onPressed: back,
-            icon: const Icon(Icons.arrow_back_rounded),
-          ),
+        Row(
+          children: [
+            IconButton(
+              tooltip: context.l10n.back,
+              onPressed: back,
+              icon: const Icon(Icons.arrow_back_rounded),
+            ),
+            const Spacer(),
+            if (onDelete != null) DeleteVerificationMenu(onDelete: onDelete!),
+          ],
         ),
         Expanded(
           child: Padding(padding: const EdgeInsets.all(20), child: child),

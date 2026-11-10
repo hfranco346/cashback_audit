@@ -871,7 +871,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteVerification => 'Delete check';
 
   @override
-  String get deleteVerificationBody => 'Delete this check from your history?';
+  String get deleteVerificationBody =>
+      'This permanently deletes the check and its results. It cannot be undone.';
+
+  @override
+  String get deleteVerificationCreditNote =>
+      'The check you used is not returned.';
+
+  @override
+  String get deleteVerificationDone => 'Check deleted';
+
+  @override
+  String get moreOptions => 'More options';
 
   @override
   String get awaitingRatesChip => 'Waiting for % confirmation';

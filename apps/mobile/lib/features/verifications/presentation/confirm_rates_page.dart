@@ -8,10 +8,22 @@ import '../../cards/domain/card_entities.dart';
 import 'confirm_rates_controller.dart';
 import 'period_label.dart';
 import 'widgets/confirm_rates_view.dart';
+import 'widgets/delete_verification_dialog.dart';
 
 /// Container: wires [ConfirmRatesController] to [ConfirmRatesView].
 class ConfirmRatesPage extends GetView<ConfirmRatesController> {
   const ConfirmRatesPage({super.key});
+
+  Future<void> _delete(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await confirmDeleteVerification(
+      context,
+      creditLost: controller.deleteLosesCreditNote,
+    );
+    if (!ok) return;
+    final error = await controller.deleteVerification();
+    if (error != null) messenger.showSnackBar(SnackBar(content: Text(error)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,6 +100,7 @@ class ConfirmRatesPage extends GetView<ConfirmRatesController> {
             : null,
         onRewardRateTouched: controller.touchRewardRate,
         foreignRates: controller.foreignRates.toList(),
+        onDelete: controller.canDelete ? () => _delete(context) : null,
         suggestions: controller.suggestions.toList(),
         selectedSuggestions: controller.selectedSuggestions.toSet(),
         onToggleSuggestion: controller.toggleSuggestion,

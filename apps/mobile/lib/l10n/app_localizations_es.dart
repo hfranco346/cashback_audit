@@ -873,7 +873,17 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get deleteVerificationBody =>
-      '¿Eliminar esta verificación del historial?';
+      'Se eliminará la verificación y sus resultados de forma permanente. No se puede deshacer.';
+
+  @override
+  String get deleteVerificationCreditNote =>
+      'La verificación que usaste no se devuelve.';
+
+  @override
+  String get deleteVerificationDone => 'Verificación eliminada';
+
+  @override
+  String get moreOptions => 'Más opciones';
 
   @override
   String get awaitingRatesChip => 'Pendiente de confirmar %';

@@ -1703,8 +1703,26 @@ abstract class AppLocalizations {
   /// No description provided for @deleteVerificationBody.
   ///
   /// In es, this message translates to:
-  /// **'¿Eliminar esta verificación del historial?'**
+  /// **'Se eliminará la verificación y sus resultados de forma permanente. No se puede deshacer.'**
   String get deleteVerificationBody;
+
+  /// No description provided for @deleteVerificationCreditNote.
+  ///
+  /// In es, this message translates to:
+  /// **'La verificación que usaste no se devuelve.'**
+  String get deleteVerificationCreditNote;
+
+  /// No description provided for @deleteVerificationDone.
+  ///
+  /// In es, this message translates to:
+  /// **'Verificación eliminada'**
+  String get deleteVerificationDone;
+
+  /// No description provided for @moreOptions.
+  ///
+  /// In es, this message translates to:
+  /// **'Más opciones'**
+  String get moreOptions;
 
   /// No description provided for @awaitingRatesChip.
   ///

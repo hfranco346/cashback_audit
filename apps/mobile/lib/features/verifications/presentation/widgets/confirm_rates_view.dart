@@ -8,6 +8,7 @@ import '../../../../core/ui/ui.dart';
 import '../../domain/verification_entities.dart'
     show RewardConversion, SuggestedCategory;
 import '../confirm_rates_controller.dart';
+import 'delete_verification_dialog.dart';
 import 'exchange_rate_card.dart';
 import 'rate_entry_card.dart';
 import 'suggested_categories_card.dart';
@@ -47,6 +48,7 @@ class ConfirmRatesView extends StatelessWidget {
     this.rewardRateError,
     this.onRewardRateTouched,
     this.foreignRates = const [],
+    this.onDelete,
     this.suggestions = const [],
     this.selectedSuggestions = const {},
     this.onToggleSuggestion,
@@ -112,6 +114,9 @@ class ConfirmRatesView extends StatelessWidget {
   /// Optional rate per foreign spend currency.
   final List<ForeignRateDraft> foreignRates;
 
+  /// Opens the delete confirmation (⋮ menu); hidden when null.
+  final VoidCallback? onDelete;
+
   /// Statement categories the user lacks.
   final List<SuggestedCategory> suggestions;
   final Set<String> selectedSuggestions;
@@ -147,6 +152,9 @@ class ConfirmRatesView extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_rounded),
         ),
         titleSpacing: 0,
+        actions: [
+          if (onDelete != null) DeleteVerificationMenu(onDelete: onDelete!),
+        ],
         title: headerLine == null
             ? null
             : Text(

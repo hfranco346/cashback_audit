@@ -32,6 +32,7 @@ class FakeVerificationRepository implements VerificationRepository {
   final confirmedIds = <String>[];
   final corrections = <({String id, int index, String? categoryId})>[];
   final deleted = <String>[];
+  Object? deleteError;
   final suggestionRequests = <({String id, List<String> names})>[];
 
   /// What `createCategoriesFromSuggestions` returns.
@@ -135,5 +136,8 @@ class FakeVerificationRepository implements VerificationRepository {
   }
 
   @override
-  Future<void> delete(String id) async => deleted.add(id);
+  Future<void> delete(String id) async {
+    if (deleteError != null) throw deleteError!;
+    deleted.add(id);
+  }
 }

@@ -8,6 +8,7 @@ import '../../../core/ui/ui.dart';
 import '../domain/verification_entities.dart';
 import 'failure_text.dart';
 import 'verification_progress_controller.dart';
+import 'widgets/delete_verification_dialog.dart';
 import 'widgets/processing_panel.dart';
 
 /// "Reading your statement": shown right after an upload, and when the user
@@ -16,6 +17,17 @@ import 'widgets/processing_panel.dart';
 /// retry.
 class VerificationProgressPage extends GetView<VerificationProgressController> {
   const VerificationProgressPage({super.key});
+
+  Future<void> _delete(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await confirmDeleteVerification(
+      context,
+      creditLost: controller.deleteLosesCreditNote,
+    );
+    if (!ok) return;
+    final error = await controller.deleteVerification();
+    if (error != null) messenger.showSnackBar(SnackBar(content: Text(error)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +40,7 @@ class VerificationProgressPage extends GetView<VerificationProgressController> {
           onPressed: controller.leave,
           icon: const Icon(Icons.close_rounded),
         ),
+        actions: [DeleteVerificationMenu(onDelete: () => _delete(context))],
       ),
       body: SafeArea(
         child: Obx(() {

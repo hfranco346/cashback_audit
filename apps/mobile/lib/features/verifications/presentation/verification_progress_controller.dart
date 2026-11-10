@@ -3,11 +3,14 @@ import 'package:get/get.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/routing/app_navigator.dart';
 import '../../../core/routing/app_routes.dart';
+import '../../../core/l10n/strings.dart';
 import '../../cards/presentation/cards_controller.dart';
+import '../../credits/presentation/credits_controller.dart';
 import '../domain/verification_entities.dart';
 import '../domain/verification_repository.dart';
 import 'attention_controller.dart';
 import 'confirm_rates_controller.dart';
+import 'delete_verification.dart';
 import 'verification_poller.dart';
 
 /// Route arguments of the progress page. The bare id (from Home or History)
@@ -37,6 +40,7 @@ class VerificationProgressController extends GetxController {
     VerificationPoller? poller,
     this.attention,
     this.cards,
+    this.credits,
     this.fileName,
   }) : poller = poller ?? VerificationPoller(repository: _repository);
 
@@ -46,6 +50,7 @@ class VerificationProgressController extends GetxController {
   final VerificationPoller poller;
   final AttentionController? attention;
   final CardsController? cards;
+  final CreditsController? credits;
 
   /// Name of the PDF just uploaded (unknown when reopened from Home).
   final String? fileName;
@@ -123,6 +128,33 @@ class VerificationProgressController extends GetxController {
   Future<void> dismissFailure() async {
     await attention?.markSeen(verificationId);
     _navigator.pop();
+  }
+
+  bool get deleteLosesCreditNote =>
+      deleteLosesCredit(credits: credits, status: verification.value?.status);
+
+  bool _deleting = false;
+
+  /// Discards this verification (already confirmed by the user), whether it
+  /// is still analyzing or failed. Goes back with a snackbar on success;
+  /// returns the error message otherwise.
+  Future<String?> deleteVerification() async {
+    if (_deleting) return null;
+    _deleting = true;
+    poller.stop();
+    try {
+      final error = await deleteVerificationById(_repository, verificationId);
+      if (error != null) {
+        if (verification.value?.isProcessing ?? true) _startPolling();
+        return error;
+      }
+      attention?.reload();
+      _navigator.pop();
+      _navigator.showNotice(S.current.deleteVerificationDone, '');
+      return null;
+    } finally {
+      _deleting = false;
+    }
   }
 
   @override

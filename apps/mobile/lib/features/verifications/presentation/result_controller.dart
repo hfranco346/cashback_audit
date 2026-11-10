@@ -6,9 +6,11 @@ import '../../../core/l10n/strings.dart';
 import '../../../core/routing/app_navigator.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../cards/presentation/cards_controller.dart';
+import '../../credits/presentation/credits_controller.dart';
 import '../../categories/presentation/catalog_controller.dart';
 import 'attention_controller.dart';
 import 'confirm_rates_controller.dart';
+import 'delete_verification.dart';
 import '../domain/verification_entities.dart';
 import '../domain/verification_repository.dart';
 
@@ -58,6 +60,7 @@ class ResultController extends GetxController {
     this.verificationId,
     this.cards,
     this.attention,
+    this.credits,
   });
 
   final VerificationRepository _repository;
@@ -67,6 +70,7 @@ class ResultController extends GetxController {
   final String? verificationId;
   final CardsController? cards;
   final AttentionController? attention;
+  final CreditsController? credits;
 
   final verification = Rxn<Verification>();
   final loading = false.obs;
@@ -118,6 +122,32 @@ class ResultController extends GetxController {
   }
 
   void setTab(ResultTab t) => tab.value = t;
+
+  /// The confirmation must say the check used is not returned.
+  bool get deleteLosesCreditNote =>
+      deleteLosesCredit(credits: credits, status: verification.value?.status);
+
+  final deleting = false.obs;
+
+  /// Deletes this verification (already confirmed by the user). On success it
+  /// goes back to where the user came from with a snackbar; the lists refresh
+  /// through the repository's change events. Returns the error message, or
+  /// `null` when it worked.
+  Future<String?> deleteVerification() async {
+    final id = verification.value?.id ?? verificationId;
+    if (id == null || deleting.value) return null;
+    deleting.value = true;
+    try {
+      final error = await deleteVerificationById(_repository, id);
+      if (error != null) return error;
+      attention?.reload();
+      _navigator.pop();
+      _navigator.showNotice(S.current.deleteVerificationDone, '');
+      return null;
+    } finally {
+      deleting.value = false;
+    }
+  }
 
   @override
   void onReady() {

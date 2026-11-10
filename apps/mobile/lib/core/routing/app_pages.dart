@@ -134,6 +134,7 @@ abstract final class AppPages {
           () => HistoryController(
             repository: Get.find<VerificationRepository>(),
             navigator: Get.find<AppNavigator>(),
+            credits: Get.find<CreditsController>(),
             events: events,
             shell: shell.tab,
             isRouteOnTop: homeOnTop,
@@ -221,6 +222,7 @@ abstract final class AppPages {
             repository: Get.find<VerificationRepository>(),
             navigator: Get.find<AppNavigator>(),
             attention: Get.find<AttentionController>(),
+            credits: Get.find<CreditsController>(),
           ),
         );
       }),
@@ -237,6 +239,7 @@ abstract final class AppPages {
             cards: Get.find<CardsController>(),
             navigator: Get.find<AppNavigator>(),
             catalog: Get.find<CatalogController>(),
+            credits: Get.find<CreditsController>(),
             savedRates:
                 Get.find<SessionController>().user.value?.currencyRates ??
                 const {},
@@ -262,6 +265,7 @@ abstract final class AppPages {
             navigator: Get.find<AppNavigator>(),
             cards: Get.find<CardsController>(),
             attention: Get.find<AttentionController>(),
+            credits: Get.find<CreditsController>(),
             initial: args is Verification ? args : null,
             verificationId: args is String ? args : null,
           ),

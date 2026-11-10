@@ -87,7 +87,20 @@ class HistoryView extends StatelessWidget {
           color: scheme.error,
           borderRadius: BorderRadius.circular(boxed ? 18 : 0),
         ),
-        child: Icon(Icons.delete_outline_rounded, color: scheme.onError),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              context.l10n.delete,
+              style: TextStyle(
+                color: scheme.onError,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.delete_outline_rounded, color: scheme.onError),
+          ],
+        ),
       ),
       child: HistoryRow(
         summary: item,
@@ -96,6 +109,7 @@ class HistoryView extends StatelessWidget {
         cardDeleted: card.deleted,
         boxed: boxed,
         onTap: () => onOpen(item),
+        onLongPress: () => confirmDelete(item),
       ),
     );
   }

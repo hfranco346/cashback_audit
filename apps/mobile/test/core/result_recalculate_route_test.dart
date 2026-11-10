@@ -14,6 +14,7 @@ import 'package:cashback_audit/features/cards/domain/card_entities.dart';
 import 'package:cashback_audit/features/cards/domain/card_repository.dart';
 import 'package:cashback_audit/features/cards/presentation/cards_controller.dart';
 import 'package:cashback_audit/features/categories/presentation/catalog_controller.dart';
+import 'package:cashback_audit/features/credits/presentation/credits_controller.dart';
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_repository.dart';
 import 'package:cashback_audit/features/verifications/presentation/attention_controller.dart';
@@ -27,6 +28,7 @@ import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import '../features/categories/fake_catalog.dart';
+import '../support/fake_credits_repository.dart';
 import '../support/fake_verification_repository.dart';
 import '../support/fixtures.dart';
 
@@ -71,6 +73,7 @@ void main() {
     Get.put<AppNavigator>(navigator);
     Get.put<VerificationRepository>(repo);
     Get.put(CardsController(_CardRepo()));
+    Get.put(CreditsController(repository: FakeCreditsRepository([balance()])));
     Get.put(
       CatalogController(
         categories: FakeCategoryRepository(const []),

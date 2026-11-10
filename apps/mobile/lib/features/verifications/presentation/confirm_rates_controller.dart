@@ -12,8 +12,10 @@ import '../../cards/domain/card_entities.dart';
 import '../../cards/domain/card_validator.dart';
 import '../../cards/presentation/cards_controller.dart';
 import '../../categories/presentation/catalog_controller.dart';
+import '../../credits/presentation/credits_controller.dart';
 import '../domain/verification_entities.dart';
 import '../domain/verification_repository.dart';
+import 'delete_verification.dart';
 
 /// Where the confirmation screen gets its verification from and where it
 /// goes afterwards.
@@ -135,6 +137,7 @@ class ConfirmRatesController extends GetxController {
     required this._navigator,
     required this.args,
     this._catalog,
+    this.credits,
     this.savedRates = const {},
     this.savedRatesPrimary,
   });
@@ -143,6 +146,7 @@ class ConfirmRatesController extends GetxController {
   final CardsController _cards;
   final AppNavigator _navigator;
   final CatalogController? _catalog;
+  final CreditsController? credits;
   final ConfirmRatesArgs args;
 
   /// The user's last rate per currency (`AppUser.currencyRates`), expressed
@@ -605,6 +609,30 @@ class ConfirmRatesController extends GetxController {
           : CardValidator.parse(rewardRate.text),
       rewardProgramName: selectedProgram.value,
     );
+  }
+
+  /// Deleting is offered for a statement still waiting for its rates (the
+  /// user abandons it); a recalculation is deleted from the result screen.
+  bool get canDelete => !args.returnToResult && verification.value != null;
+
+  bool get deleteLosesCreditNote =>
+      deleteLosesCredit(credits: credits, status: verification.value?.status);
+
+  /// Deletes this verification (already confirmed by the user) and goes
+  /// back with a snackbar. Returns the error message, or `null` on success.
+  Future<String?> deleteVerification() async {
+    final id = verification.value?.id ?? args.verificationId;
+    if (id == null || submitting.value) return null;
+    submitting.value = true;
+    try {
+      final error = await deleteVerificationById(_repository, id);
+      if (error != null) return error;
+      _navigator.pop();
+      _navigator.showNotice(S.current.deleteVerificationDone, '');
+      return null;
+    } finally {
+      submitting.value = false;
+    }
   }
 
   Future<void> confirm() async {

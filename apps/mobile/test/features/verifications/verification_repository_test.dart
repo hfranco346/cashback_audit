@@ -506,6 +506,41 @@ void main() {
       expect(emitted, 4);
     });
 
+    test(
+      'delete of a verification already gone still clears and announces',
+      () async {
+        adapter = FakeAdapter(
+          (o) => o.method == 'DELETE'
+              ? const FakeResponse(404, {
+                  'statusCode': 404,
+                  'code': 'VERIFICATION_NOT_FOUND',
+                  'message': 'gone',
+                })
+              : FakeResponse(200, verificationJson()),
+        );
+        final r = withEvents();
+        await r.detail('v1');
+        await r.delete('v1');
+        await settle();
+        expect(await db.readVerificationDetail('v1'), isNull);
+        expect(emitted, 1);
+      },
+    );
+
+    test('a failed delete keeps the cache and stays silent', () async {
+      adapter = FakeAdapter(
+        (o) => o.method == 'DELETE'
+            ? const FakeResponse(500, {'statusCode': 500, 'code': 'X'})
+            : FakeResponse(200, verificationJson()),
+      );
+      final r = withEvents();
+      await r.detail('v1');
+      await expectLater(r.delete('v1'), throwsA(isA<AppException>()));
+      await settle();
+      expect(await db.readVerificationDetail('v1'), isNotNull);
+      expect(emitted, 0);
+    });
+
     test('get announces only once the analysis left PROCESSING', () async {
       adapter = FakeAdapter(
         (o) => FakeResponse(200, processingVerificationJson()),

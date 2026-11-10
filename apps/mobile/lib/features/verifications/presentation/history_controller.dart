@@ -1,12 +1,13 @@
 import 'package:get/get.dart';
 
-import '../../../core/errors/app_exception.dart';
 import '../../../core/errors/error_messages.dart';
 import '../../../core/routing/app_navigator.dart';
 import '../domain/verification_entities.dart';
 import '../domain/verification_events.dart';
 import '../domain/verification_repository.dart';
+import '../../credits/presentation/credits_controller.dart';
 import 'auto_refresh.dart';
+import 'delete_verification.dart';
 import 'verification_navigation.dart';
 
 class HistoryController extends GetxController {
@@ -14,6 +15,7 @@ class HistoryController extends GetxController {
     required this._repository,
     required this._navigator,
     this.initialCardId,
+    this.credits,
     this.pageSize = 20,
     this.events,
     this.shell,
@@ -24,6 +26,7 @@ class HistoryController extends GetxController {
   final VerificationRepository _repository;
   final AppNavigator _navigator;
   final String? initialCardId;
+  final CreditsController? credits;
   final int pageSize;
 
   /// Wiring of the automatic refresh (all optional so the controller stays
@@ -154,14 +157,17 @@ class HistoryController extends GetxController {
     super.onClose();
   }
 
+  /// The confirmation must say the check used is not returned.
+  bool deleteLosesCreditNote(VerificationSummary summary) =>
+      deleteLosesCredit(credits: credits, status: summary.status);
+
+  /// Deletes [summary] (already confirmed). Returns the error message, or
+  /// `null` when it is gone (a 404 counts as gone). The row leaves the list
+  /// right away; other lists refresh through the repository's events.
   Future<String?> delete(VerificationSummary summary) async {
-    try {
-      await _repository.delete(summary.id);
-      items.removeWhere((i) => i.id == summary.id);
-      return null;
-    } on AppException catch (e) {
-      return userMessageFor(e);
-    }
+    final error = await deleteVerificationById(_repository, summary.id);
+    if (error == null) items.removeWhere((i) => i.id == summary.id);
+    return error;
   }
 }
 

@@ -5,6 +5,7 @@ import '../../../core/l10n/l10n_context.dart';
 import '../../cards/presentation/cards_controller.dart';
 import '../domain/verification_entities.dart';
 import 'history_controller.dart';
+import 'widgets/delete_verification_dialog.dart';
 import 'widgets/history_view.dart';
 
 class HistoryPage extends GetView<HistoryController> {
@@ -14,29 +15,17 @@ class HistoryPage extends GetView<HistoryController> {
     BuildContext context,
     VerificationSummary item,
   ) async {
-    final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.deleteVerification),
-        content: Text(l10n.deleteVerificationBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(minimumSize: const Size(100, 44)),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
+    final l10n = context.l10n;
+    final ok = await confirmDeleteVerification(
+      context,
+      creditLost: controller.deleteLosesCreditNote(item),
     );
-    if (ok != true) return false;
+    if (!ok) return false;
     final error = await controller.delete(item);
-    if (error != null) messenger.showSnackBar(SnackBar(content: Text(error)));
+    messenger.showSnackBar(
+      SnackBar(content: Text(error ?? l10n.deleteVerificationDone)),
+    );
     return error == null;
   }
 

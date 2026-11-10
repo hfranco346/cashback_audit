@@ -202,9 +202,15 @@ class VerificationRepositoryImpl implements VerificationRepository {
       );
 
   @override
-  Future<void> delete(String id) => guardApi(() async {
-    await _dio.delete<void>('/verifications/$id');
+  Future<void> delete(String id) async {
+    try {
+      await guardApi(() => _dio.delete<void>('/verifications/$id'));
+    } on AppException catch (e) {
+      // Already gone on the server (another device, or the 7-day cleanup):
+      // the goal is reached, so only the local copy needs to go.
+      if (e.code != 'VERIFICATION_NOT_FOUND') rethrow;
+    }
     await _db.removeVerification(id);
     _events?.notify();
-  });
+  }
 }

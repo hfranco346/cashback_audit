@@ -7,6 +7,7 @@ import '../../domain/verification_entities.dart';
 import '../period_label.dart';
 import '../result_controller.dart'
     show ResultNotice, ResultTab, TransactionFilter;
+import 'delete_verification_dialog.dart';
 import 'result_categories_tab.dart';
 import 'result_movements_tab.dart';
 import 'result_summary_tab.dart';
@@ -25,6 +26,7 @@ class VerificationResultView extends StatelessWidget {
     required this.onBack,
     this.onChangeCategory,
     this.onRecalculate,
+    this.onDelete,
     this.onClaim,
     this.stale = false,
     this.recalculating = false,
@@ -48,6 +50,9 @@ class VerificationResultView extends StatelessWidget {
 
   /// Reopens the rate confirmation ("Recalculate with other %").
   final VoidCallback? onRecalculate;
+
+  /// Opens the delete confirmation (⋮ menu); hidden when null.
+  final VoidCallback? onDelete;
 
   /// Opens the claim email (offered for underpaid results only).
   final VoidCallback? onClaim;
@@ -129,6 +134,8 @@ class VerificationResultView extends StatelessWidget {
                       onPressed: onRecalculate,
                       icon: const Icon(Icons.percent_rounded),
                     ),
+                  if (onDelete != null)
+                    DeleteVerificationMenu(onDelete: onDelete!),
                 ],
               ),
             ),
