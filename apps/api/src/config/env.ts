@@ -92,8 +92,10 @@ const baseSchema = z.object({
     .string()
     .min(3)
     .default('Cashback Audit <no-reply@neargps.net>'),
-  /** Email delivery adapter. Only `log` exists until a provider is chosen. */
-  EMAIL_PROVIDER: z.enum(['log']).default('log'),
+  /** Email delivery adapter: `log` (dev/test) or `resend` (production). */
+  EMAIL_PROVIDER: z.enum(['log', 'resend']).default('log'),
+  /** Resend API key (the same key works for its SMTP relay). */
+  RESEND_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
   /** App Store / Play review account: fixed code for this one address. */
   REVIEW_LOGIN_EMAIL: z.preprocess(
     emptyToUndefined,
@@ -160,6 +162,13 @@ export const envSchema = baseSchema
         code: 'custom',
         path: ['OTP_HMAC_SECRET'],
         message: 'OTP_HMAC_SECRET is required in production (>= 32 chars)',
+      });
+    }
+    if (env.EMAIL_PROVIDER === 'resend' && !env.RESEND_API_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['RESEND_API_KEY'],
+        message: 'RESEND_API_KEY is required when EMAIL_PROVIDER=resend',
       });
     }
     if (Boolean(env.REVIEW_LOGIN_EMAIL) !== Boolean(env.REVIEW_LOGIN_CODE)) {

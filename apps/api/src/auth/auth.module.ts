@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Env } from '../config/env.js';
 import { CreditsModule } from '../credits/credits.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AuthSessionService } from './application/auth-session.service.js';
@@ -27,6 +29,7 @@ import { JoseAppleIdTokenVerifier } from './infrastructure/apple-id-token.verifi
 import { AuthController } from './infrastructure/auth.controller.js';
 import { GoogleOAuthIdTokenVerifier } from './infrastructure/google-id-token.verifier.js';
 import { LogEmailSender } from './infrastructure/log-email.sender.js';
+import { ResendEmailSender } from './infrastructure/resend-email.sender.js';
 import { PrismaEmailLoginCodeRepository } from './infrastructure/prisma-email-login-code.repository.js';
 import { JoseTokenService } from './infrastructure/jose-token.service.js';
 import { JwtAuthGuard } from './infrastructure/jwt-auth.guard.js';
@@ -45,8 +48,14 @@ import { PrismaRefreshTokenRepository } from './infrastructure/prisma-refresh-to
     RefreshTokensUseCase,
     LogoutUseCase,
     JwtAuthGuard,
-    // EMAIL_PROVIDER only has `log` for now; a real adapter replaces it here.
-    { provide: EmailSender, useClass: LogEmailSender },
+    {
+      provide: EmailSender,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) =>
+        config.get('EMAIL_PROVIDER', { infer: true }) === 'resend'
+          ? new ResendEmailSender(config)
+          : new LogEmailSender(config),
+    },
     {
       provide: EmailLoginCodeRepository,
       useClass: PrismaEmailLoginCodeRepository,
