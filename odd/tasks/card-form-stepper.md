@@ -16,8 +16,9 @@ Owner feedback (2026-11-10): the card form is long and confusing. Rebuild it as 
 
 ## Tasks
 - [x] S1 Backend: card rewardCap + calculator + detail/explanation; program choice proposal + confirm + remember; tests; contract. Route: delegated.
-- [ ] S2 Mobile: Stepper card form, category sheet picker (3 places), cap field, program choice in Confirm, tests, ES/EN. Route: delegated.
+- [x] S2 Mobile: Stepper card form, category sheet picker (3 places), cap field, program choice in Confirm, tests, ES/EN. Route: delegated.
 - [ ] S3 Deploy API; install iOS + Android builds on the owner's devices (production API). Route: inline.
 
 ## Progress / evidence
 - S1 (delegated, backend writer): migration `20261110140000_card_reward_cap` applied to dev DB; commits: feat(api) cap + program choice, docs(api) contract. apps/api: `pnpm lint` clean, `pnpm build` ok, `pnpm test` 418/418, `pnpm test:e2e` 201/201 (incl. 14 new in card-cap-program.e2e-spec.ts). Contract: `docs/api-contract.md` sections 7, 8, 12.
+- S2 (mobile) done: commits 6babf66 (category picker), 4d1624e (stepper + rewardCap), plus the program-choice/cap-result commit. Checks in apps/mobile: `flutter gen-l10n` ok, `dart format --set-exit-if-changed lib test` 0 changed, `flutter analyze` no issues, `flutter test` 732 passed. Cap is expressed in the card currency (pts for points).
