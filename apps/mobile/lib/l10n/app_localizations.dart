@@ -3368,6 +3368,12 @@ abstract class AppLocalizations {
   /// **'Crear otro rubro'**
   String get catalogCreateOther;
 
+  /// No description provided for @catalogGuideDone.
+  ///
+  /// In es, this message translates to:
+  /// **'Listo'**
+  String get catalogGuideDone;
+
   /// No description provided for @catalogOptionalNote.
   ///
   /// In es, this message translates to:

@@ -237,6 +237,31 @@ void main() {
       expect(h.dataChanged, 1);
     });
 
+    test('prefilled categories sync exactly what is selected', () async {
+      final h = Harness();
+      await h.c.load();
+      await h.c.start();
+      h.c.selectBank('BAC Credomatic');
+      await h.c.next();
+      h.c.setLast4('4821');
+      await h.c.next();
+      h.c.seedCategories(['Supermercados', 'Farmacia']);
+      h.c.seedCategories(['Otra']); // seeding happens once
+      expect(h.c.draft.value.categories.map((e) => '${e.name} ${e.rate}'), [
+        'Supermercados 7',
+        'Farmacia 7',
+      ]);
+      h.c.toggleCategory('Farmacia'); // the user unticks one
+      await h.c.next();
+      await h.c.afterSignIn(const AppUser(id: 'u1', name: 'Ana'));
+      final card = h.cards.created.single;
+      expect(card.baseRatePercent, Decimal.zero);
+      expect(card.rules.map((r) => r.categoryId), ['new-Supermercados']);
+      expect(card.rules.single.ratePercent, Decimal.fromInt(7));
+      // Only the ticked one gets a rule; the unticked is never created.
+      expect(h.categories.items.map((e) => e.name), contains('Supermercados'));
+    });
+
     test('a failed sync keeps the draft and retry never duplicates', () async {
       final h = Harness();
       await h.fillSetup();

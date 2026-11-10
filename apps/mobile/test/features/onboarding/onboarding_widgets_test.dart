@@ -10,6 +10,7 @@ import 'package:cashback_audit/features/onboarding/presentation/widgets/demo_ste
 import 'package:cashback_audit/features/onboarding/presentation/widgets/first_pdf_step.dart';
 import 'package:cashback_audit/features/onboarding/presentation/widgets/setup_steps.dart';
 import 'package:cashback_audit/features/onboarding/presentation/widgets/verdict_step.dart';
+import 'package:cashback_audit/features/onboarding/domain/onboarding_draft.dart';
 import 'package:cashback_audit/features/onboarding/presentation/onboarding_controller.dart';
 import 'package:cashback_audit/features/settings/data/locale_preference_repository_impl.dart';
 import 'package:cashback_audit/features/settings/domain/locale_preference.dart';
@@ -215,6 +216,38 @@ void main() {
       expect(h.c.draft.value.currency, isNull);
     });
 
+    for (final lang in ['es', 'en']) {
+      testWidgets('categories are prefilled like the design ($lang)', (
+        tester,
+      ) async {
+        final h = Harness();
+        await h.c.load();
+        await pumpUi(tester, CategoriesStep(controller: h.c), lang: lang);
+        await tester.pump(const Duration(seconds: 1));
+        final names = lang == 'es'
+            ? ['Supermercados', 'Farmacia']
+            : ['Supermarkets', 'Pharmacy'];
+        expect(h.c.draft.value.categories.map((e) => e.name), names);
+        expect(h.c.draft.value.categories.map((e) => e.rate), ['7', '7']);
+        for (final n in names) {
+          expect(h.c.isSelected(n), isTrue);
+          final field = tester.widget<TextField>(
+            find.byKey(Key('cat-rate-$n')),
+          );
+          expect(field.controller?.text, '7');
+        }
+        expect(h.c.draft.value.baseRate, '0');
+        // Deselecting sticks: coming back never restores the suggestion.
+        await tester.tap(find.byKey(Key('cat-${names.first}')));
+        await tester.pump();
+        expect(h.c.isSelected(names.first), isFalse);
+        await pumpUi(tester, CategoriesStep(controller: h.c), lang: lang);
+        await tester.pump(const Duration(seconds: 1));
+        expect(h.c.isSelected(names.first), isFalse);
+        expect(h.c.isSelected(names.last), isTrue);
+      });
+    }
+
     testWidgets('categories: tick, set % and add another category', (
       tester,
     ) async {
@@ -222,13 +255,16 @@ void main() {
       await h.c.load();
       await pumpUi(tester, CategoriesStep(controller: h.c));
       await tester.pump(const Duration(seconds: 1));
-      await tester.tap(find.byKey(const Key('cat-Supermercados')));
+      await tester.tap(find.byKey(const Key('cat-Gasolineras')));
       await tester.pump();
       await tester.enterText(
-        find.byKey(const Key('cat-rate-Supermercados')),
-        '7',
+        find.byKey(const Key('cat-rate-Gasolineras')),
+        '3',
       );
-      expect(h.c.draft.value.categories.single.rate, '7');
+      expect(
+        h.c.draft.value.categories.last,
+        const DraftCategory(name: 'Gasolineras', rate: '3'),
+      );
       await tester.ensureVisible(find.byKey(const Key('onb-add-category')));
       await tester.tap(find.byKey(const Key('onb-add-category')));
       await tester.pumpAndSettle();

@@ -1047,6 +1047,7 @@
   "catalogIntroBody": "Por ejemplo, 7% en supermercados. Créalos una vez y los usamos en todas tus tarjetas. No necesitas registrar comercios: la IA reconoce que «Farmacia Kielsa 61» es una farmacia.",
   "catalogQuickAdd": "Agrega con un toque",
   "catalogCreateOther": "Crear otro rubro",
+  "catalogGuideDone": "Listo",
   "catalogOptionalNote": "Registrar comercios es opcional; sirve para que una compra siempre caiga en el rubro correcto.",
   "catalogByAi": "Por IA",
   "catalogAddMerchant": "+ Agregar comercio",

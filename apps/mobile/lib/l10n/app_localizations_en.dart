@@ -1486,11 +1486,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onbRewardLabelPoints => 'POINTS';
 
   @override
-  String get onbCatsTitle => 'Where does your card give you more?';
+  String get onbCatsTitle => 'Where does it pay you more?';
 
   @override
   String get onbCatsSub =>
-      'Check the categories of your card and their percentage. If you do not know it, leave it empty: we look for it in your statement.';
+      'Pick your card\'s categories and their rate. Not sure? Leave it blank and we\'ll find it in your statement.';
 
   @override
   String get onbCatSupermarkets => 'Supermarkets';
@@ -1521,7 +1521,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onbBaseSub =>
-      'What a purchase earns outside these categories (base rate)';
+      'What a purchase outside these categories earns (base rate)';
 
   @override
   String get onbAccountTitle => 'Save what you set up';
@@ -1968,6 +1968,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get catalogCreateOther => 'Create another category';
+
+  @override
+  String get catalogGuideDone => 'Done';
 
   @override
   String get catalogOptionalNote =>

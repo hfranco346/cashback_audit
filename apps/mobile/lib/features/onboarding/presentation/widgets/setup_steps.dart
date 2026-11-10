@@ -347,6 +347,13 @@ class _CategoriesStepState extends State<CategoriesStep> {
     for (final cat in c.draft.value.categories) {
       _rates[cat.name] = TextEditingController(text: cat.rate);
     }
+    // The design prefills the common categories; done after the first frame
+    // because it changes observable state.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final l10n = context.l10n;
+      c.seedCategories([l10n.onbCatSupermarkets, l10n.onbCatPharmacy]);
+    });
   }
 
   @override
@@ -358,8 +365,15 @@ class _CategoriesStepState extends State<CategoriesStep> {
     super.dispose();
   }
 
-  TextEditingController _rateField(String name) =>
-      _rates.putIfAbsent(name, TextEditingController.new);
+  TextEditingController _rateField(String name) => _rates.putIfAbsent(
+    name,
+    () => TextEditingController(
+      text: c.draft.value.categories
+          .where((x) => x.name == name)
+          .map((x) => x.rate)
+          .firstOrNull,
+    ),
+  );
 
   Future<void> _addOther() async {
     final l10n = context.l10n;
@@ -448,7 +462,11 @@ class _CategoriesStepState extends State<CategoriesStep> {
                     label: name,
                     checkbox: true,
                     selected: c.isSelected(name),
-                    onTap: () => c.toggleCategory(name),
+                    onTap: () {
+                      // A re-ticked category starts blank, like its draft.
+                      if (!c.isSelected(name)) _rates[name]?.clear();
+                      c.toggleCategory(name);
+                    },
                     trailing: c.isSelected(name)
                         ? pct(
                             _rateField(name),

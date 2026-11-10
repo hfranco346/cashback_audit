@@ -40,6 +40,7 @@ class OnboardingDraft extends Equatable {
     this.categories = const [],
     this.baseRate = '0',
     this.cardId,
+    this.categoriesSeeded = false,
   });
 
   final OnboardingStep step;
@@ -58,6 +59,10 @@ class OnboardingDraft extends Equatable {
   /// Set once the card exists in the backend (makes the sync idempotent).
   final String? cardId;
 
+  /// The common categories were offered already (prefilled once), so going
+  /// back to the step never restores what the user cleared.
+  final bool categoriesSeeded;
+
   bool get isSynced => cardId != null;
 
   OnboardingDraft copyWith({
@@ -70,6 +75,7 @@ class OnboardingDraft extends Equatable {
     List<DraftCategory>? categories,
     String? baseRate,
     String? cardId,
+    bool? categoriesSeeded,
   }) => OnboardingDraft(
     step: step ?? this.step,
     bank: bank ?? this.bank,
@@ -80,6 +86,7 @@ class OnboardingDraft extends Equatable {
     categories: categories ?? this.categories,
     baseRate: baseRate ?? this.baseRate,
     cardId: cardId ?? this.cardId,
+    categoriesSeeded: categoriesSeeded ?? this.categoriesSeeded,
   );
 
   Map<String, dynamic> toJson() => {
@@ -92,6 +99,7 @@ class OnboardingDraft extends Equatable {
     'categories': [for (final c in categories) c.toJson()],
     'baseRate': baseRate,
     'cardId': cardId,
+    'categoriesSeeded': categoriesSeeded,
   };
 
   factory OnboardingDraft.fromJson(Map<String, dynamic> j) => OnboardingDraft(
@@ -113,6 +121,7 @@ class OnboardingDraft extends Equatable {
     ],
     baseRate: (j['baseRate'] as String?) ?? '0',
     cardId: j['cardId'] as String?,
+    categoriesSeeded: (j['categoriesSeeded'] as bool?) ?? false,
   );
 
   @override
@@ -126,6 +135,7 @@ class OnboardingDraft extends Equatable {
     categories,
     baseRate,
     cardId,
+    categoriesSeeded,
   ];
 }
 

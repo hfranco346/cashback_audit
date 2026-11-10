@@ -219,6 +219,22 @@ class OnboardingController extends GetxController {
     (c) => c.name.toLowerCase() == name.toLowerCase(),
   );
 
+  /// Common rate the design prefills for the first categories.
+  static const seedRate = '7';
+
+  /// Offers the common categories once (selected at [seedRate]%), as the
+  /// design does. Never overrides what the user already ticked or cleared.
+  void seedCategories(List<String> names) {
+    final d = draft.value;
+    if (d.categoriesSeeded) return;
+    draft.value = d.copyWith(
+      categoriesSeeded: true,
+      categories: d.categories.isNotEmpty
+          ? null
+          : [for (final n in names) DraftCategory(name: n, rate: seedRate)],
+    );
+  }
+
   void toggleCategory(String name) {
     final list = [...draft.value.categories];
     final i = list.indexWhere(
@@ -229,7 +245,10 @@ class OnboardingController extends GetxController {
     } else {
       list.add(DraftCategory(name: name));
     }
-    draft.value = draft.value.copyWith(categories: list);
+    draft.value = draft.value.copyWith(
+      categories: list,
+      categoriesSeeded: true,
+    );
   }
 
   void setCategoryRate(String name, String rate) {

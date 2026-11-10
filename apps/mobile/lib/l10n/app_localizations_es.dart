@@ -1972,6 +1972,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get catalogCreateOther => 'Crear otro rubro';
 
   @override
+  String get catalogGuideDone => 'Listo';
+
+  @override
   String get catalogOptionalNote =>
       'Registrar comercios es opcional; sirve para que una compra siempre caiga en el rubro correcto.';
 
