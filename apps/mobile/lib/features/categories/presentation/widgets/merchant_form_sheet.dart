@@ -4,6 +4,7 @@ import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/ui/ui.dart';
 import '../../domain/catalog_entities.dart';
 import '../catalog_controller.dart' show parseKeywords;
+import 'category_picker_sheet.dart';
 
 /// Bottom-sheet form to create, edit or reassign a merchant. Reused by the
 /// verification result screen to assign an unmatched statement line.
@@ -22,6 +23,7 @@ class MerchantFormSheet extends StatefulWidget {
     this.initialName = '',
     this.initialKeywords = const [],
     this.initialCategoryId,
+    this.onCreateCategory,
   });
 
   final List<Category> categories;
@@ -29,6 +31,9 @@ class MerchantFormSheet extends StatefulWidget {
   final String initialName;
   final List<String> initialKeywords;
   final String? initialCategoryId;
+
+  /// Lets the category picker create a category inline.
+  final CreateCategory? onCreateCategory;
   final Future<String?> Function(
     String name,
     List<String> keywords,
@@ -48,6 +53,8 @@ class _MerchantFormSheetState extends State<MerchantFormSheet> {
     text: widget.initialKeywords.join(', '),
   );
   String? _categoryId;
+  String? _categoryError;
+  final _created = <Category>[];
   String? _error;
   bool _busy = false;
 
@@ -81,8 +88,36 @@ class _MerchantFormSheetState extends State<MerchantFormSheet> {
     }
   }
 
+  List<Category> get _allCategories => [...widget.categories, ..._created];
+
+  Future<void> _pickCategory() async {
+    final id = await showCategoryPicker(
+      context: context,
+      categories: _allCategories,
+      selectedId: _categoryId,
+      onCreate: widget.onCreateCategory == null
+          ? null
+          : (name) async {
+              final c = await widget.onCreateCategory!(name);
+              _created.add(c);
+              return c;
+            },
+    );
+    if (id != null && mounted) {
+      setState(() {
+        _categoryId = id;
+        _categoryError = null;
+      });
+    }
+  }
+
   Future<void> _submit() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final formOk = _formKey.currentState?.validate() ?? false;
+    if (_categoryId == null) {
+      setState(() => _categoryError = context.l10n.fieldRequired);
+      return;
+    }
+    if (!formOk) return;
     await _run(
       () => widget.onSubmit(
         _name.text.trim(),
@@ -177,17 +212,15 @@ class _MerchantFormSheetState extends State<MerchantFormSheet> {
             const SizedBox(height: 14),
             AppField(
               label: l10n.merchantCategory,
-              child: DropdownButtonFormField<String>(
+              child: CategoryPickerField(
                 key: const Key('merchant-category'),
-                initialValue: _categoryId,
-                isExpanded: true,
-                decoration: AppField.decoration(),
-                items: [
-                  for (final c in widget.categories)
-                    DropdownMenuItem(value: c.id, child: Text(c.name)),
-                ],
-                onChanged: (v) => setState(() => _categoryId = v),
-                validator: (v) => v == null ? l10n.fieldRequired : null,
+                name: _allCategories
+                    .where((c) => c.id == _categoryId)
+                    .map((c) => c.name)
+                    .firstOrNull,
+                hint: l10n.ruleCategory,
+                errorText: _categoryError,
+                onTap: _pickCategory,
               ),
             ),
             if (_error != null) ...[

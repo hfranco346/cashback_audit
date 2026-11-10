@@ -5021,6 +5021,36 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Lo ganado salió negativo con el saldo anterior indicado. Revisa el saldo y recalcula.'**
   String get warnBalanceInconsistent;
+
+  /// No description provided for @categoryPickerTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Elige un rubro'**
+  String get categoryPickerTitle;
+
+  /// No description provided for @categoryPickerSearch.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar rubro'**
+  String get categoryPickerSearch;
+
+  /// No description provided for @categoryPickerEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Ningún rubro coincide con tu búsqueda.'**
+  String get categoryPickerEmpty;
+
+  /// No description provided for @categoryPickerCreate.
+  ///
+  /// In es, this message translates to:
+  /// **'Crear rubro'**
+  String get categoryPickerCreate;
+
+  /// No description provided for @categoryPickerCreateConfirm.
+  ///
+  /// In es, this message translates to:
+  /// **'Crear y elegir'**
+  String get categoryPickerCreateConfirm;
 }
 
 class _AppLocalizationsDelegate

@@ -946,5 +946,10 @@
   "reportingNegativeWarning": "That comes out negative: check the previous balance. You can still continue.",
   "reportingResultTitle": "How the reported amount was worked out",
   "reportedDerivedNote": "from the accumulated balance",
-  "warnBalanceInconsistent": "Earned came out negative with the previous balance given. Check the balance and recalculate."
+  "warnBalanceInconsistent": "Earned came out negative with the previous balance given. Check the balance and recalculate.",
+  "categoryPickerTitle": "Choose a category",
+  "categoryPickerSearch": "Search categories",
+  "categoryPickerEmpty": "No category matches your search.",
+  "categoryPickerCreate": "Create category",
+  "categoryPickerCreateConfirm": "Create and choose"
 }

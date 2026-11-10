@@ -3002,4 +3002,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get warnBalanceInconsistent =>
       'Earned came out negative with the previous balance given. Check the balance and recalculate.';
+
+  @override
+  String get categoryPickerTitle => 'Choose a category';
+
+  @override
+  String get categoryPickerSearch => 'Search categories';
+
+  @override
+  String get categoryPickerEmpty => 'No category matches your search.';
+
+  @override
+  String get categoryPickerCreate => 'Create category';
+
+  @override
+  String get categoryPickerCreateConfirm => 'Create and choose';
 }

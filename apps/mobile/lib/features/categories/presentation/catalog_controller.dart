@@ -89,6 +89,14 @@ class CatalogController extends GetxController {
     () => _categories.createCategory(name: name, description: description),
   );
 
+  /// Creates a category and returns it (for inline "create and select").
+  /// Throws [AppException] on failure; the list is refreshed on success.
+  Future<Category> createCategoryReturning(String name) async {
+    final created = await _categories.createCategory(name: name);
+    await load();
+    return categoryById(created.id) ?? created;
+  }
+
   Future<String?> updateCategory(
     String id, {
     required String name,

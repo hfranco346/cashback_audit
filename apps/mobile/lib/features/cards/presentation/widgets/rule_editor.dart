@@ -5,6 +5,7 @@ import '../../../../core/l10n/l10n_context.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/ui.dart';
 import '../../../categories/domain/catalog_entities.dart';
+import '../../../categories/presentation/widgets/category_picker_sheet.dart';
 import '../card_form_controller.dart';
 
 /// Pure presentational editor for the per-category reward rules of a card:
@@ -19,6 +20,7 @@ class RuleEditor extends StatelessWidget {
     required this.onAdd,
     required this.onRemove,
     required this.onCategoryChanged,
+    this.onCreateCategory,
     this.errors = const {},
   });
 
@@ -32,6 +34,9 @@ class RuleEditor extends StatelessWidget {
   final void Function(int index, String? categoryId) onCategoryChanged;
   final Map<int, String> errors;
 
+  /// Lets the picker create a category inline (and select it).
+  final CreateCategory? onCreateCategory;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -42,8 +47,7 @@ class RuleEditor extends StatelessWidget {
         if (j != i && rules[j].categoryId != null) rules[j].categoryId!,
     };
     final canAdd =
-        categories.isNotEmpty &&
-        rules.length < categories.length &&
+        (onCreateCategory != null || rules.length < categories.length) &&
         rules.length < 50;
     return AppField(
       label: l10n.cardRulesTitle,
@@ -56,7 +60,7 @@ class RuleEditor extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (categories.isEmpty)
+            if (categories.isEmpty && onCreateCategory == null)
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Text(
@@ -72,10 +76,9 @@ class RuleEditor extends StatelessWidget {
                 key: ObjectKey(rules[i]),
                 index: i,
                 draft: rules[i],
-                categories: [
-                  for (final c in categories)
-                    if (!usedByOthers(i).contains(c.id)) c,
-                ],
+                categories: categories,
+                excludedIds: usedByOthers(i),
+                onCreateCategory: onCreateCategory,
                 capSuffix: capSuffix,
                 error: errors[i],
                 onRemove: () => onRemove(i),
@@ -103,15 +106,19 @@ class _RuleRow extends StatefulWidget {
     required this.index,
     required this.draft,
     required this.categories,
+    required this.excludedIds,
     required this.capSuffix,
     required this.onRemove,
     required this.onCategoryChanged,
+    this.onCreateCategory,
     this.error,
   });
 
   final int index;
   final RuleDraft draft;
   final List<Category> categories;
+  final Set<String> excludedIds;
+  final CreateCategory? onCreateCategory;
   final String capSuffix;
   final String? error;
   final VoidCallback onRemove;
@@ -125,6 +132,17 @@ class _RuleRowState extends State<_RuleRow> {
   static final _decimal = FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'));
 
   late bool _showCap = widget.draft.cap.text.isNotEmpty;
+
+  Future<void> _pickCategory() async {
+    final id = await showCategoryPicker(
+      context: context,
+      categories: widget.categories,
+      selectedId: widget.draft.categoryId,
+      excludedIds: widget.excludedIds,
+      onCreate: widget.onCreateCategory,
+    );
+    if (id != null) widget.onCategoryChanged(id);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -149,28 +167,15 @@ class _RuleRowState extends State<_RuleRow> {
           Row(
             children: [
               Expanded(
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    key: Key('rule-category-$i'),
-                    value:
-                        widget.categories.any(
-                          (c) => c.id == widget.draft.categoryId,
-                        )
-                        ? widget.draft.categoryId
-                        : null,
-                    isExpanded: true,
-                    hint: Text(l10n.ruleCategory),
-                    borderRadius: BorderRadius.circular(AppRadii.field),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: scheme.onSurface,
-                    ),
-                    items: [
-                      for (final c in widget.categories)
-                        DropdownMenuItem(value: c.id, child: Text(c.name)),
-                    ],
-                    onChanged: widget.onCategoryChanged,
-                  ),
+                child: CategoryPickerField(
+                  key: Key('rule-category-$i'),
+                  compact: true,
+                  name: widget.categories
+                      .where((c) => c.id == widget.draft.categoryId)
+                      .map((c) => c.name)
+                      .firstOrNull,
+                  hint: l10n.ruleCategory,
+                  onTap: _pickCategory,
                 ),
               ),
               const SizedBox(width: 10),

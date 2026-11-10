@@ -3008,4 +3008,19 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get warnBalanceInconsistent =>
       'Lo ganado salió negativo con el saldo anterior indicado. Revisa el saldo y recalcula.';
+
+  @override
+  String get categoryPickerTitle => 'Elige un rubro';
+
+  @override
+  String get categoryPickerSearch => 'Buscar rubro';
+
+  @override
+  String get categoryPickerEmpty => 'Ningún rubro coincide con tu búsqueda.';
+
+  @override
+  String get categoryPickerCreate => 'Crear rubro';
+
+  @override
+  String get categoryPickerCreateConfirm => 'Crear y elegir';
 }

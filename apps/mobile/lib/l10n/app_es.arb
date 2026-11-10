@@ -1776,5 +1776,10 @@
   "reportingNegativeWarning": "Sale negativo: revisa el saldo anterior. Puedes continuar de todos modos.",
   "reportingResultTitle": "Cómo se calculó lo reportado",
   "reportedDerivedNote": "del saldo acumulado",
-  "warnBalanceInconsistent": "Lo ganado salió negativo con el saldo anterior indicado. Revisa el saldo y recalcula."
+  "warnBalanceInconsistent": "Lo ganado salió negativo con el saldo anterior indicado. Revisa el saldo y recalcula.",
+  "categoryPickerTitle": "Elige un rubro",
+  "categoryPickerSearch": "Buscar rubro",
+  "categoryPickerEmpty": "Ningún rubro coincide con tu búsqueda.",
+  "categoryPickerCreate": "Crear rubro",
+  "categoryPickerCreateConfirm": "Crear y elegir"
 }

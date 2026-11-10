@@ -79,6 +79,7 @@ class CatalogPage extends GetView<CatalogController> {
         context: context,
         builder: (_) => MerchantFormSheet(
           categories: controller.categories.toList(),
+          onCreateCategory: controller.createCategoryReturning,
           initialCategoryId: c.id,
           onSubmit: (name, keywords, categoryId) => controller.createMerchant(
             name: name,
@@ -94,6 +95,7 @@ class CatalogPage extends GetView<CatalogController> {
         builder: (_) => MerchantFormSheet(
           title: context.l10n.editMerchant,
           categories: controller.categories.toList(),
+          onCreateCategory: controller.createCategoryReturning,
           initialName: m.name,
           initialKeywords: m.keywords,
           initialCategoryId: m.categoryId,
@@ -171,6 +173,7 @@ class CatalogPage extends GetView<CatalogController> {
       context: context,
       builder: (_) => CategoryReassignDialog(
         others: others,
+        onCreateCategory: controller.createCategoryReturning,
         message: l10n.reassignBody(
           l10n.merchantCount(merchants),
           l10n.ruleCountPlain(rules),

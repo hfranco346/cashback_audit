@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/l10n/l10n_context.dart';
+import '../../../../core/ui/ui.dart';
 import '../../domain/catalog_entities.dart';
+import 'category_picker_sheet.dart';
 
 /// Asks which category to move a category's merchants and card rules to
 /// before deleting it (`CATEGORY_IN_USE`). Pops the chosen category id, or
@@ -11,9 +13,13 @@ class CategoryReassignDialog extends StatefulWidget {
     super.key,
     required this.others,
     required this.message,
+    this.onCreateCategory,
   });
 
   final List<Category> others;
+
+  /// Lets the picker create the destination category inline.
+  final CreateCategory? onCreateCategory;
   final String message;
 
   @override
@@ -22,6 +28,25 @@ class CategoryReassignDialog extends StatefulWidget {
 
 class _CategoryReassignDialogState extends State<CategoryReassignDialog> {
   late String _target = widget.others.first.id;
+  final _created = <Category>[];
+
+  List<Category> get _all => [...widget.others, ..._created];
+
+  Future<void> _pick() async {
+    final id = await showCategoryPicker(
+      context: context,
+      categories: _all,
+      selectedId: _target,
+      onCreate: widget.onCreateCategory == null
+          ? null
+          : (name) async {
+              final c = await widget.onCreateCategory!(name);
+              _created.add(c);
+              return c;
+            },
+    );
+    if (id != null && mounted) setState(() => _target = id);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,16 +59,17 @@ class _CategoryReassignDialogState extends State<CategoryReassignDialog> {
         children: [
           Text(widget.message),
           const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            key: const Key('reassign-target'),
-            initialValue: _target,
-            isExpanded: true,
-            decoration: InputDecoration(labelText: l10n.reassignTo),
-            items: [
-              for (final c in widget.others)
-                DropdownMenuItem(value: c.id, child: Text(c.name)),
-            ],
-            onChanged: (v) => setState(() => _target = v ?? _target),
+          AppField(
+            label: l10n.reassignTo,
+            child: CategoryPickerField(
+              key: const Key('reassign-target'),
+              name: _all
+                  .where((c) => c.id == _target)
+                  .map((c) => c.name)
+                  .firstOrNull,
+              hint: l10n.ruleCategory,
+              onTap: _pick,
+            ),
           ),
         ],
       ),
