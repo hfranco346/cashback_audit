@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CardRepository } from '../../cards/domain/card.repository.js';
 import { CategoryRepository } from '../../categories/domain/category.repository.js';
+import { proposeProgramChoice } from '../domain/loyalty-program-selector.js';
 import {
   buildRateProposal,
   type RateProposal,
@@ -36,6 +37,7 @@ export class RateProposalService {
         spendConversions: [],
         suggestedCategories: [],
         rewardReporting: null,
+        rewardProgramChoice: null,
       };
     }
     const categories = await this.categories.listWithCounts(userId);
@@ -70,6 +72,14 @@ export class RateProposalService {
     });
     return {
       entries,
+      rewardProgramChoice:
+        verification.status === 'AWAITING_RATES'
+          ? proposeProgramChoice(
+              verification.loyalty.programs,
+              verification.loyalty.requestedProgramName,
+              card.rewardProgramName,
+            )
+          : null,
       rewardConversion,
       rewardReporting: await this.reporting.buildProposal(
         userId,

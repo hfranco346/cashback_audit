@@ -115,6 +115,17 @@ export class InvalidExchangeRateError extends DomainError {
   }
 }
 
+export class InvalidRewardProgramError extends DomainError {
+  constructor(programNames: string[]) {
+    super(
+      'VALIDATION',
+      'INVALID_REWARD_PROGRAM',
+      'rewardProgramName does not match any loyalty program of this statement. Send one of the names in rewardProgramChoice.options (or loyalty.programs).',
+      { programs: programNames },
+    );
+  }
+}
+
 export class PreviousBalanceRequiredError extends DomainError {
   constructor() {
     super(

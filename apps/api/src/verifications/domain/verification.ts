@@ -3,6 +3,7 @@ import type { RewardUnit } from '../../cards/domain/card.js';
 import type {
   CurrencySubtotal,
   ExcludedReason,
+  RewardCapApplied,
   Verdict,
 } from './reward-calculator.js';
 import type { ProgramSelectionSource } from './loyalty-program-selector.js';
@@ -132,6 +133,8 @@ export interface VerificationConversion {
   /** Every rate printed on the statement. */
   statementRates: StatementExchangeRate[];
   currencies: CurrencySubtotal[];
+  /** Card-wide reward cap that reduced the expected total; null if it did not. */
+  rewardCapApplied: RewardCapApplied | null;
   /** Reward-currency conversion of the last audit; null if none was needed. */
   reward: {
     fromCurrency: string;

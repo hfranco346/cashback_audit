@@ -332,6 +332,7 @@ export class ProcessVerificationUseCase {
           requestedRewardRate: null,
           statementRates: statement.exchangeRates,
           currencies: [],
+          rewardCapApplied: null,
           reward: null,
         },
         loyalty: {

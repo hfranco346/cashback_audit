@@ -20,6 +20,7 @@ export interface NewCard {
   rewardCurrency: string | null;
   claimEmail: string | null;
   rewardReporting: RewardReportingSetting;
+  rewardCap: Decimal | null;
   rules: CardRule[];
 }
 

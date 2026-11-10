@@ -167,6 +167,16 @@ export class CreateCardDto {
   @IsEnum(['AUTO', 'MONTHLY', 'CUMULATIVE'])
   rewardReporting?: 'AUTO' | 'MONTHLY' | 'CUMULATIVE';
 
+  @ApiPropertyOptional({
+    example: '1500',
+    nullable: true,
+    description:
+      'Max reward per statement period for the whole card, in the card reward unit (> 0, 2 decimals). Applied after summing all categories and per-rule caps; null = no card cap.',
+  })
+  @IsOptional()
+  @DecimalField(CAP)
+  rewardCap?: string | null;
+
   @ApiPropertyOptional({ type: [CardRuleDto] })
   @IsOptional()
   @IsArray()
@@ -264,6 +274,16 @@ export class UpdateCardDto {
   @IsOptional()
   @IsEnum(['AUTO', 'MONTHLY', 'CUMULATIVE'])
   rewardReporting?: 'AUTO' | 'MONTHLY' | 'CUMULATIVE';
+
+  @ApiPropertyOptional({
+    example: '1500',
+    nullable: true,
+    description:
+      'Max reward per statement period for the whole card, in the card reward unit (> 0, 2 decimals). Applied after summing all categories and per-rule caps; null = no card cap.',
+  })
+  @IsOptional()
+  @DecimalField(CAP)
+  rewardCap?: string | null;
 
   @ApiPropertyOptional({
     type: [CardRuleDto],

@@ -18,6 +18,20 @@ export interface RewardCardConfig {
   pointsPerCurrencyUnit: Decimal;
   baseRatePercent: Decimal;
   rules: RewardRuleConfig[];
+  /**
+   * Max reward per statement for the whole card, in the same units as the
+   * per-rule caps. Applied to the total after the per-rule caps; null = none.
+   */
+  rewardCap?: Decimal | null;
+}
+
+/** Card-wide cap that reduced the expected reward. */
+export interface RewardCapApplied {
+  cap: Decimal;
+  /** Expected total before the card cap (after per-rule caps). */
+  uncapped: Decimal;
+  /** Expected total after the card cap (== cap). */
+  capped: Decimal;
 }
 
 /** Conversion factor into the card currency: 1 `from` = `rate` card units. */
@@ -100,6 +114,8 @@ export interface RewardCalculation {
   expectedTotal: Decimal;
   /** Same figure before rounding (input to the reward-currency conversion). */
   expectedTotalExact: Decimal;
+  /** Set only when the card-wide cap reduced the total; null otherwise. */
+  rewardCapApplied: RewardCapApplied | null;
   breakdown: BreakdownLine[];
   transactions: TransactionReward[];
   currencies: CurrencySubtotal[];
@@ -291,6 +307,18 @@ export function calculateExpectedReward(
     return b.expectedReward.comparedTo(a.expectedReward);
   });
 
+  // Card-wide cap: after summing every category (per-rule caps included).
+  let rewardCapApplied: RewardCapApplied | null = null;
+  const cardCap = card.rewardCap ?? null;
+  if (cardCap && total.gt(cardCap)) {
+    rewardCapApplied = {
+      cap: roundReward(cardCap),
+      uncapped: roundReward(total),
+      capped: roundReward(cardCap),
+    };
+    total = cardCap;
+  }
+
   const currencies = [...subtotals.values()]
     .map((sub) => ({
       ...sub,
@@ -304,6 +332,7 @@ export function calculateExpectedReward(
   return {
     expectedTotal: roundReward(total),
     expectedTotalExact: total,
+    rewardCapApplied,
     breakdown,
     transactions: details,
     currencies,

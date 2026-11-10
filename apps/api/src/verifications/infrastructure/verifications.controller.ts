@@ -157,6 +157,7 @@ export class VerificationsController {
       exchangeRates: dto.exchangeRates,
       rewardExchangeRate: dto.rewardExchangeRate,
       rewardProgramName: dto.rewardProgramName,
+      rememberProgramForCard: dto.rememberProgramForCard,
       rewardReporting: dto.rewardReporting,
     });
     return presentVerification(

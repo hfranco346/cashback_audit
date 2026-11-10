@@ -9,6 +9,7 @@ import {
   compareReward,
   convertRewardToCurrency,
   type ConversionRate,
+  type RewardCapApplied,
 } from './reward-calculator.js';
 import {
   deriveEarned,
@@ -59,6 +60,8 @@ export interface AuditInput {
     pointsPerCurrencyUnit: Decimal;
     /** Explicit reward currency; wins over the program's currency. */
     rewardCurrency: string | null;
+    /** Card-wide reward cap per statement; null = none. */
+    rewardCap?: Decimal | null;
   };
   /** Rates to audit with; they replace the card rules entirely. */
   rates: { baseRatePercent: Decimal; rules: RewardRuleConfig[] };
@@ -93,6 +96,8 @@ export interface AuditResult {
   rewardCurrency: string | null;
   /** Expected reward in the primary currency (== expectedAmount if no conversion). */
   expectedInPrimary: Decimal;
+  /** Card-wide cap that reduced the expected total; null if it did not apply. */
+  rewardCapApplied: RewardCapApplied | null;
   rewardExchangeRate: AppliedRewardRate | null;
   reportedAmount: Decimal;
   reportedLabel: string | null;
@@ -254,6 +259,7 @@ export function computeAudit(input: AuditInput): AuditResult {
       pointsPerCurrencyUnit: card.pointsPerCurrencyUnit,
       baseRatePercent: input.rates.baseRatePercent,
       rules: input.rates.rules,
+      rewardCap: card.rewardCap ?? null,
     },
     input.transactions.map((tx) => ({
       index: tx.index,
@@ -344,6 +350,7 @@ export function computeAudit(input: AuditInput): AuditResult {
     },
     rewardCurrency,
     expectedInPrimary: calculation.expectedTotal,
+    rewardCapApplied: calculation.rewardCapApplied,
     rewardExchangeRate: rewardRate,
     reportedAmount,
     reportedLabel: program?.name ?? null,
@@ -360,6 +367,7 @@ export function computeAudit(input: AuditInput): AuditResult {
       requestedRewardRate: input.requestedRewardRate,
       statementRates: input.statementRates,
       currencies: calculation.currencies,
+      rewardCapApplied: calculation.rewardCapApplied,
       reward: rewardRate
         ? {
             ...rewardRate,
@@ -470,6 +478,13 @@ export function buildAuditFacts(
             earned: audit.rewardReporting.earned?.toString() ?? null,
           }
         : null,
+    rewardCap: audit.rewardCapApplied
+      ? {
+          cap: audit.rewardCapApplied.cap.toString(),
+          uncapped: audit.rewardCapApplied.uncapped.toString(),
+          capped: audit.rewardCapApplied.capped.toString(),
+        }
+      : null,
     excludedForeignLines: audit.conversion.currencies.reduce(
       (n, c) => n + c.excludedCount,
       0,

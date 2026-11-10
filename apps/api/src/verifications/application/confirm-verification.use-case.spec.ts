@@ -62,6 +62,7 @@ function world(
     rewardCurrency: null,
     claimEmail: null,
     rewardReporting: 'AUTO',
+    rewardCap: null,
     rules: [{ categoryId: CAT_SUPER, ratePercent: d(5), monthlyCap: null }],
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -1060,5 +1061,205 @@ describe('RateProposalService: reward reporting proposal', () => {
       previousBalanceRequired: false,
     });
     expect(p.earned!.toString()).toBe('58');
+  });
+});
+
+describe('ConfirmVerificationUseCase: card reward cap', () => {
+  const sup = { 'WM SUPERCENTER': { categoryId: CAT_SUPER } };
+  // uncapped expected reward of mxnCashbackStatement with these rates: 58
+
+  it('caps the expected total, flags the verdict and tells the explainer', async () => {
+    let facts: AuditFacts | undefined;
+    const w = world(
+      mxnCashbackStatement(),
+      { rewardCap: d(40) },
+      sup,
+      async (f) => {
+        facts = f;
+        return { text: 'x', model: 'm' };
+      },
+    );
+    await w.start();
+    const v = await w.confirm();
+    expect(v.expectedAmount!.toString()).toBe('40');
+    expect(v.conversion.rewardCapApplied).toEqual({
+      cap: d(40),
+      uncapped: d(58),
+      capped: d(40),
+    });
+    // bank reported 58 against a capped 40
+    expect(v.verdict).toBe('OVERPAID');
+    expect(v.difference!.toString()).toBe('18');
+    expect(facts!.rewardCap).toEqual({
+      cap: '40',
+      uncapped: '58',
+      capped: '40',
+    });
+  });
+
+  it('leaves the audit untouched when the cap is not reached or is absent', async () => {
+    for (const rewardCap of [d(100), null]) {
+      const w = world(mxnCashbackStatement(), { rewardCap }, sup);
+      await w.start();
+      const v = await w.confirm();
+      expect(v.expectedAmount!.toString()).toBe('58');
+      expect(v.conversion.rewardCapApplied).toBeNull();
+      expect(v.verdict).toBe('MATCH');
+    }
+  });
+
+  it('cumulative reporting compares the earned figure with the capped expected', async () => {
+    const w = world(
+      mxnCashbackStatement({
+        loyaltyPrograms: [
+          program('Cashback', '158', { previousBalance: d(100) }),
+        ],
+      }),
+      { rewardCap: d(40) },
+      sup,
+    );
+    await w.start();
+    const v = await w.confirm({ rewardReporting: { mode: 'CUMULATIVE' } });
+    expect(v.reportedAmount!.toString()).toBe('58');
+    expect(v.expectedAmount!.toString()).toBe('40');
+    expect(v.verdict).toBe('OVERPAID');
+    expect(v.conversion.rewardCapApplied).not.toBeNull();
+  });
+
+  it('applies after the per-rule caps', async () => {
+    const w = world(mxnCashbackStatement(), { rewardCap: d(45) }, sup);
+    await w.start();
+    // super: 1100 * 5% = 55 capped to 50 ; base 3 -> 53 ; card cap 45
+    const v = await w.confirm({
+      categoryRates: [
+        { categoryId: CAT_SUPER, ratePercent: '5', monthlyCap: '50' },
+      ],
+    });
+    expect(v.expectedAmount!.toString()).toBe('45');
+    expect(v.conversion.rewardCapApplied).toMatchObject({
+      uncapped: d(53),
+      capped: d(45),
+    });
+  });
+});
+
+describe('ConfirmVerificationUseCase: reward program choice', () => {
+  const hnl = { currency: 'HNL' };
+  const CASH = 'CASH BAC CREDOMATIC';
+  const PUNTOS = 'PUNTOS BAC CREDOMATIC';
+
+  const proposalOf = async (
+    w: ReturnType<typeof world>,
+    verification: Verification,
+  ) =>
+    new RateProposalService(
+      { findById: async () => w.card } as unknown as CardRepository,
+      { listWithCounts: async () => [] } as unknown as CategoryRepository,
+      new RewardReportingService({
+        listCompletedForCard: async () => [],
+      } as unknown as VerificationRepository),
+    ).forVerification(USER, verification);
+
+  it('requires a choice when several programs are listed and nothing resolves it', async () => {
+    const w = world(hnlUsdTwoProgramsStatement(), hnl);
+    const started = await w.start();
+    const { rewardProgramChoice } = await proposalOf(w, started);
+    expect(rewardProgramChoice?.required).toBe(true);
+    expect(rewardProgramChoice?.options.map((o) => o.name)).toEqual([
+      PUNTOS,
+      CASH,
+    ]);
+    expect(rewardProgramChoice?.options[0]).toEqual({
+      name: PUNTOS,
+      unit: 'POINTS',
+      currency: null,
+      reportedLabel: null,
+    });
+  });
+
+  it('needs no choice when the card program resolves it', async () => {
+    const w = world(hnlUsdTwoProgramsStatement(), {
+      ...hnl,
+      rewardProgramName: 'cash',
+    });
+    const started = await w.start();
+    expect((await proposalOf(w, started)).rewardProgramChoice).toBeNull();
+  });
+
+  it('needs no choice with a single program (chosen automatically)', async () => {
+    const w = world(mxnCashbackStatement());
+    const started = await w.start();
+    expect((await proposalOf(w, started)).rewardProgramChoice).toBeNull();
+    const v = await w.confirm();
+    expect(v.loyalty.selectedBy).toBe('ONLY_PROGRAM');
+  });
+
+  it('is no longer offered once the verification is completed', async () => {
+    const w = world(hnlUsdTwoProgramsStatement(), hnl);
+    await w.start();
+    const done = await w.confirm({ rewardProgramName: 'cash' });
+    expect((await proposalOf(w, done)).rewardProgramChoice).toBeNull();
+  });
+
+  it('rejects a name that matches no program with INVALID_REWARD_PROGRAM', async () => {
+    const w = world(hnlUsdTwoProgramsStatement(), hnl);
+    await w.start();
+    await expect(
+      w.confirm({
+        rewardProgramName: 'Visa Signature',
+        rememberProgramForCard: true,
+      }),
+    ).rejects.toMatchObject({
+      kind: 'VALIDATION',
+      code: 'INVALID_REWARD_PROGRAM',
+      details: { programs: [PUNTOS, CASH] },
+    });
+    expect(w.card.rewardProgramName).toBeNull();
+  });
+
+  it('rejects a name matching several programs', async () => {
+    const w = world(hnlUsdTwoProgramsStatement(), hnl);
+    await w.start();
+    await expect(w.confirm({ rewardProgramName: 'bac' })).rejects.toMatchObject(
+      { code: 'INVALID_REWARD_PROGRAM' },
+    );
+  });
+
+  it('stores the canonical name and remembers it on the card only when asked', async () => {
+    const w = world(hnlUsdTwoProgramsStatement(), hnl);
+    await w.start();
+    const v = await w.confirm({ rewardProgramName: 'cash' });
+    expect(v.loyalty.requestedProgramName).toBe(CASH);
+    expect(w.card.rewardProgramName).toBeNull();
+    await w.confirm({
+      rewardProgramName: 'cash',
+      rememberProgramForCard: true,
+    });
+    expect(w.card.rewardProgramName).toBe(CASH);
+  });
+
+  it('re-confirm can change the program for free', async () => {
+    const w = world(hnlUsdTwoProgramsStatement(), hnl);
+    await w.start();
+    const first = await w.confirm({ rewardProgramName: 'cash' });
+    expect(first.reportedLabel).toBe(CASH);
+    expect((await w.confirm()).reportedLabel).toBe(CASH);
+    const second = await w.confirm({ rewardProgramName: PUNTOS });
+    expect(second.reportedLabel).toBe(PUNTOS);
+    expect(second.loyalty.selectedBy).toBe('REQUEST');
+  });
+
+  it('uses the chosen program for the cumulative derivation', async () => {
+    const w = world(hnlUsdTwoProgramsStatement(), hnl);
+    await w.start();
+    const v = await w.confirm({
+      rewardProgramName: 'cash',
+      rewardReporting: { mode: 'CUMULATIVE', previousBalance: '100' },
+    });
+    expect(v.rewardReporting).toMatchObject({
+      mode: 'CUMULATIVE',
+      programName: CASH,
+    });
+    expect(v.reportedAmount!.toString()).toBe('34.5');
   });
 });

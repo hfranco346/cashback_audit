@@ -53,6 +53,7 @@ export function toExplainerInput(facts: AuditFacts) {
       ? null
       : (facts.rewardCurrency ?? facts.primaryCurrency);
   const primary = facts.primaryCurrency;
+  const capCurrency = facts.rewardUnit === 'POINTS' ? null : primary;
   return {
     resultado: VERDICT_ES[facts.verdict],
     recompensa: facts.rewardUnit === 'POINTS' ? 'puntos' : 'dinero',
@@ -85,6 +86,15 @@ export function toExplainerInput(facts: AuditFacts) {
           )
         : null,
     })),
+    topeDeLaTarjeta: facts.rewardCap
+      ? {
+          explicacion:
+            'la tarjeta tiene un tope de recompensa por estado de cuenta y se alcanzó: lo esperado se limitó a ese tope',
+          tope: formatMoney(facts.rewardCap.cap, capCurrency),
+          esperadoSinTope: formatMoney(facts.rewardCap.uncapped, capCurrency),
+          esperadoConTope: formatMoney(facts.rewardCap.capped, capCurrency),
+        }
+      : null,
     derivacionDeLoGanado: facts.rewardReporting
       ? {
           explicacion:

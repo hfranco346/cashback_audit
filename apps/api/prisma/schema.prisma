@@ -107,6 +107,8 @@ model Card {
   claimEmail            String?
   /// How the bank prints the reward: this month's earnings, an accumulated balance, or decide per statement.
   rewardReporting       RewardReporting @default(AUTO)
+  /// Max reward per statement for the whole card, after per-rule caps (null = no card cap).
+  rewardCap             Decimal?   @db.Decimal(14, 2)
   /// Soft delete: a deleted card is hidden but keeps its verification history.
   deletedAt             DateTime?
   createdAt             DateTime   @default(now())

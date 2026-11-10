@@ -32,6 +32,7 @@ export function toDomainCard(row: Row): Card {
     rewardCurrency: row.rewardCurrency,
     claimEmail: row.claimEmail,
     rewardReporting: row.rewardReporting,
+    rewardCap: row.rewardCap ? dec(row.rewardCap) : null,
     rules: row.rules.map((r) => ({
       categoryId: r.categoryId,
       ratePercent: dec(r.ratePercent),
@@ -61,6 +62,7 @@ export class PrismaCardRepository extends CardRepository {
         ...card,
         pointsPerCurrencyUnit: card.pointsPerCurrencyUnit.toString(),
         baseRatePercent: card.baseRatePercent.toString(),
+        rewardCap: card.rewardCap?.toString() ?? null,
         rules: { create: rules.map(ruleData) },
       },
       include: { rules: { orderBy: { id: 'asc' } } },
@@ -90,7 +92,13 @@ export class PrismaCardRepository extends CardRepository {
     id: string,
     patch: CardPatch,
   ): Promise<Card | null> {
-    const { rules, pointsPerCurrencyUnit, baseRatePercent, ...rest } = patch;
+    const {
+      rules,
+      pointsPerCurrencyUnit,
+      baseRatePercent,
+      rewardCap,
+      ...rest
+    } = patch;
     return this.prisma.$transaction(async (tx) => {
       const owned = await tx.card.findFirst({
         where: { id, userId, deletedAt: null },
@@ -106,6 +114,9 @@ export class PrismaCardRepository extends CardRepository {
           }),
           ...(baseRatePercent && {
             baseRatePercent: baseRatePercent.toString(),
+          }),
+          ...(rewardCap !== undefined && {
+            rewardCap: rewardCap?.toString() ?? null,
           }),
           ...(rules && {
             rules: { deleteMany: {}, create: rules.map(ruleData) },

@@ -29,6 +29,7 @@ const facts = (over: Partial<AuditFacts> = {}): AuditFacts => ({
     },
   ],
   rewardReporting: null,
+  rewardCap: null,
   excludedForeignLines: 0,
   warningCodes: ['NO_EXCHANGE_RATE', 'EXPLANATION_UNAVAILABLE'],
   ...over,
@@ -67,6 +68,19 @@ describe('toExplainerInput', () => {
     );
     expect(input.reportadoPorElBanco).toBe('USD 2.60');
     expect(input.esperadoEnMonedaDeLaTarjeta).toBe('HNL 1,360.00');
+  });
+
+  it('describes the card cap in Spanish only when it was hit', () => {
+    expect(toExplainerInput(facts()).topeDeLaTarjeta).toBeNull();
+    const input = toExplainerInput(
+      facts({ rewardCap: { cap: '1500', uncapped: '2100', capped: '1500' } }),
+    );
+    expect(input.topeDeLaTarjeta).toMatchObject({
+      tope: 'HNL 1,500.00',
+      esperadoSinTope: 'HNL 2,100.00',
+      esperadoConTope: 'HNL 1,500.00',
+    });
+    expect(JSON.stringify(input)).not.toMatch(/rewardCap|capped|uncapped/);
   });
 
   it('formats points and zero-decimal currencies', () => {

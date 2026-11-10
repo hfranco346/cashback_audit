@@ -20,6 +20,7 @@ import { UserRepository } from '../../users/domain/user.repository.js';
 import { ResultExplainer } from '../domain/statement-extractor.js';
 import {
   InvalidExchangeRateError,
+  InvalidRewardProgramError,
   RatesRequiredError,
   VerificationNotFoundError,
   VerificationNotReadyError,
@@ -28,7 +29,10 @@ import type { AppliedRates, Verification } from '../domain/verification.js';
 import { VerificationRepository } from '../domain/verification.repository.js';
 import { RateProposalService } from './rate-proposal.service.js';
 import { RewardReportingService } from './reward-reporting.service.js';
-import { selectLoyaltyProgram } from '../domain/loyalty-program-selector.js';
+import {
+  matchProgramOption,
+  selectLoyaltyProgram,
+} from '../domain/loyalty-program-selector.js';
 import type {
   PreviousBalance,
   PreviousBalanceSource,
@@ -53,7 +57,10 @@ export interface ConfirmVerificationInput {
   exchangeRates?: Record<string, string>;
   /** Primary-currency units per 1 unit of the reward currency. */
   rewardExchangeRate?: string;
+  /** Loyalty program to audit; must match one of the statement's programs. */
   rewardProgramName?: string;
+  /** Also save the chosen program name on the card. */
+  rememberProgramForCard?: boolean;
   /** How the bank reports the reward; omitted = keep the previous choice. */
   rewardReporting?: {
     mode: RewardReportingMode;
@@ -105,6 +112,23 @@ export class ConfirmVerificationUseCase {
       throw new VerificationNotReadyError();
     const card = await this.cards.findById(input.userId, verification.cardId);
     if (!card) throw new CardNotFoundError();
+
+    // --- loyalty program chosen by the user ------------------------------
+    // It must resolve to one of the statement's programs; the canonical name
+    // is what gets stored (so a later re-confirm keeps it).
+    let programName: string | null = input.rewardProgramName?.trim() || null;
+    if (programName && verification.loyalty.programs.length > 0) {
+      const match = matchProgramOption(
+        verification.loyalty.programs,
+        programName,
+      );
+      if (!match) {
+        throw new InvalidRewardProgramError(
+          verification.loyalty.programs.map((p) => p.name),
+        );
+      }
+      programName = match.name;
+    }
 
     // --- validate the confirmed rates ----------------------------------
     const seen = new Set<string>();
@@ -171,7 +195,7 @@ export class ConfirmVerificationUseCase {
     if (mode === 'CUMULATIVE') {
       const selection = selectLoyaltyProgram(
         verification.loyalty.programs,
-        input.rewardProgramName ?? verification.loyalty.requestedProgramName,
+        programName ?? verification.loyalty.requestedProgramName,
         card.rewardProgramName,
       );
       if (selection.status === 'SELECTED') {
@@ -207,7 +231,7 @@ export class ConfirmVerificationUseCase {
       categoryNames,
       programs: verification.loyalty.programs,
       requestedProgramName:
-        input.rewardProgramName ?? verification.loyalty.requestedProgramName,
+        programName ?? verification.loyalty.requestedProgramName,
       cardProgramName: card.rewardProgramName,
       reportedOverride: input.reportedRewardOverride
         ? new Decimal(input.reportedRewardOverride)
@@ -249,6 +273,11 @@ export class ConfirmVerificationUseCase {
       });
     }
 
+    if (input.rememberProgramForCard && programName) {
+      await this.cards.update(input.userId, card.id, {
+        rewardProgramName: programName,
+      });
+    }
     if (input.rewardReporting?.rememberForCard) {
       await this.cards.update(input.userId, card.id, {
         rewardReporting: input.rewardReporting.mode,

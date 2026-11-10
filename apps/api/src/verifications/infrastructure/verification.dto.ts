@@ -163,12 +163,24 @@ export class ConfirmVerificationDto {
   })
   rewardExchangeRate?: string;
 
-  @ApiPropertyOptional({ example: 'CASH BAC CREDOMATIC' })
+  @ApiPropertyOptional({
+    example: 'CASH BAC CREDOMATIC',
+    description:
+      'Loyalty program to audit. Must match a program of the statement (one of rewardProgramChoice.options), else 400 INVALID_REWARD_PROGRAM. Can be changed on a re-confirm.',
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   @MaxLength(80)
   rewardProgramName?: string;
+
+  @ApiPropertyOptional({
+    default: false,
+    description: "Also save rewardProgramName as the card's program",
+  })
+  @IsOptional()
+  @IsBoolean()
+  rememberProgramForCard?: boolean;
 
   @ApiPropertyOptional({
     type: RewardReportingDto,

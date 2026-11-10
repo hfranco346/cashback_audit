@@ -146,6 +146,13 @@ const serializeConversion = (c: VerificationConversion) => ({
   requestedRewardRate: decStr(c.requestedRewardRate),
   statementRates: c.statementRates.map(serializeStatementRate),
   currencies: c.currencies.map(serializeSubtotal),
+  rewardCapApplied: c.rewardCapApplied
+    ? {
+        cap: c.rewardCapApplied.cap.toString(),
+        uncapped: c.rewardCapApplied.uncapped.toString(),
+        capped: c.rewardCapApplied.capped.toString(),
+      }
+    : null,
   reward: c.reward
     ? {
         ...c.reward,
@@ -158,6 +165,7 @@ const deserializeConversion = (j: Json): VerificationConversion => {
   // Rows written before multi-rate support carry a single `statementRate`.
   const legacy = j.statementRate as Json | null | undefined;
   const reward = j.reward as Json | null | undefined;
+  const cap = j.rewardCapApplied as Json | null | undefined;
   return {
     requestedRate: parseDec(j.requestedRate),
     requestedRates: Object.fromEntries(
@@ -175,6 +183,13 @@ const deserializeConversion = (j: Json): VerificationConversion => {
     currencies: ((j.currencies as Json[] | undefined) ?? []).map(
       deserializeSubtotal,
     ),
+    rewardCapApplied: cap
+      ? {
+          cap: new Decimal(cap.cap as string),
+          uncapped: new Decimal(cap.uncapped as string),
+          capped: new Decimal(cap.capped as string),
+        }
+      : null,
     reward: reward
       ? ({
           ...reward,

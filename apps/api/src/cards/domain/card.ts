@@ -43,6 +43,11 @@ export interface Card {
   claimEmail: string | null;
   /** Whether the bank prints this month's reward or an accumulated balance. */
   rewardReporting: RewardReportingSetting;
+  /**
+   * Max reward per statement period for the whole card, applied after the
+   * per-rule caps (same space as `CardRule.monthlyCap`); null = no card cap.
+   */
+  rewardCap: Decimal | null;
   rules: CardRule[];
   createdAt: Date;
   updatedAt: Date;

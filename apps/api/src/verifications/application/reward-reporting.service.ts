@@ -231,6 +231,7 @@ export class RewardReportingService {
           rewardUnit: card.rewardUnit,
           pointsPerCurrencyUnit: card.pointsPerCurrencyUnit,
           baseRatePercent: base?.ratePercent ?? zero,
+          rewardCap: card.rewardCap,
           rules: context.entries.flatMap((e) =>
             e.categoryId && e.ratePercent
               ? [

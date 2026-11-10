@@ -183,6 +183,15 @@ export function presentVerification(v: Verification, proposal: RateProposal) {
     tolerance: str(v.tolerance),
     verdict: v.verdict,
     explanation: v.explanation,
+    rewardCapApplied:
+      done && v.conversion.rewardCapApplied
+        ? {
+            cap: v.conversion.rewardCapApplied.cap.toString(),
+            uncapped: v.conversion.rewardCapApplied.uncapped.toString(),
+            capped: v.conversion.rewardCapApplied.capped.toString(),
+          }
+        : null,
+    rewardProgramChoice: proposal.rewardProgramChoice,
     rewardReporting: done ? presentReporting(v) : null,
     rewardReportingProposal: proposal.rewardReporting
       ? presentReportingProposal(proposal.rewardReporting)

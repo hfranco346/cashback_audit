@@ -76,6 +76,7 @@ export class CreateVerificationUseCase {
           requestedRewardRate: null,
           statementRates: [],
           currencies: [],
+          rewardCapApplied: null,
           reward: null,
         },
         loyalty: {

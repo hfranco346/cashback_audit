@@ -83,3 +83,61 @@ export function looksCumulative(
   if (accumulated.minus(balance).abs().gt(tolerance)) return false;
   return accumulated.gt(expected.abs().mul(3));
 }
+
+export interface RewardProgramOption {
+  name: string;
+  unit: LoyaltyProgram['unit'];
+  currency: string | null;
+  reportedLabel: string | null;
+}
+
+/** Programs the user must choose from; only present while a choice is needed. */
+export interface RewardProgramChoice {
+  required: true;
+  options: RewardProgramOption[];
+}
+
+/**
+ * The user must pick a program only when the statement lists several and
+ * neither the upload/earlier confirm name nor the card's program resolves one.
+ * With a single program it is chosen automatically (no choice).
+ */
+export function proposeProgramChoice(
+  programs: LoyaltyProgram[],
+  requestedName: string | null | undefined,
+  cardProgramName: string | null | undefined,
+): RewardProgramChoice | null {
+  if (programs.length < 2) return null;
+  const selection = selectLoyaltyProgram(
+    programs,
+    requestedName,
+    cardProgramName,
+  );
+  if (selection.status !== 'AMBIGUOUS') return null;
+  return {
+    required: true,
+    options: programs.map((p) => ({
+      name: p.name,
+      unit: p.unit,
+      currency: p.currency,
+      reportedLabel: p.reportedLabel,
+    })),
+  };
+}
+
+/**
+ * Resolves a program name sent by the user to exactly one of the statement's
+ * programs (accent/case-insensitive; exact name wins over "contains").
+ * Null when it matches none or several.
+ */
+export function matchProgramOption(
+  programs: LoyaltyProgram[],
+  name: string,
+): LoyaltyProgram | null {
+  const needle = normalizeText(name);
+  if (!needle) return null;
+  const hits = programs.filter((p) => normalizeText(p.name).includes(needle));
+  const exact = hits.filter((p) => normalizeText(p.name) === needle);
+  const pick = exact.length === 1 ? exact : hits;
+  return pick.length === 1 ? pick[0]! : null;
+}

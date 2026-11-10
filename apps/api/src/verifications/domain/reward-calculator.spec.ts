@@ -428,6 +428,75 @@ describe('compareReward', () => {
   });
 });
 
+describe('card-wide reward cap', () => {
+  // super 1000 * 5% = 50 ; gas 1000 * 3% = 30 ; base 1000 * 1% = 10 -> 90
+  const spend = () => [tx(1000, SUPER), tx(1000, GAS), tx(1000)];
+
+  it('limits the total and reports uncapped / capped when it is hit', () => {
+    const r = calculateExpectedReward(card({ rewardCap: d(60) }), spend());
+    expect(r.expectedTotal.toString()).toBe('60');
+    expect(r.expectedTotalExact.toString()).toBe('60');
+    expect(r.rewardCapApplied).toEqual({
+      cap: d(60),
+      uncapped: d(90),
+      capped: d(60),
+    });
+  });
+
+  it('does nothing when the total is under the cap or equal to it', () => {
+    for (const cap of ['90', '500']) {
+      const r = calculateExpectedReward(card({ rewardCap: d(cap) }), spend());
+      expect(r.expectedTotal.toString()).toBe('90');
+      expect(r.rewardCapApplied).toBeNull();
+    }
+  });
+
+  it('has no cap by default (null or omitted)', () => {
+    for (const rewardCap of [null, undefined]) {
+      const r = calculateExpectedReward(card({ rewardCap }), spend());
+      expect(r.expectedTotal.toString()).toBe('90');
+      expect(r.rewardCapApplied).toBeNull();
+    }
+  });
+
+  it('applies after the per-rule caps', () => {
+    const rules = [
+      { categoryId: SUPER, ratePercent: d(5), monthlyCap: d(20) },
+      { categoryId: GAS, ratePercent: d(3), monthlyCap: null },
+    ];
+    // after rule caps: 20 + 30 + 10 = 60
+    const under = calculateExpectedReward(
+      card({ rules, rewardCap: d(80) }),
+      spend(),
+    );
+    expect(under.expectedTotal.toString()).toBe('60');
+    expect(under.rewardCapApplied).toBeNull();
+    const hit = calculateExpectedReward(
+      card({ rules, rewardCap: d(50) }),
+      spend(),
+    );
+    expect(hit.expectedTotal.toString()).toBe('50');
+    expect(hit.rewardCapApplied).toMatchObject({
+      uncapped: d(60),
+      capped: d(50),
+    });
+    // The lines keep their own (per-rule capped) rewards; only the total shrinks.
+    expect(hit.breakdown.find((l) => l.categoryId === SUPER)).toMatchObject({
+      capped: true,
+      expectedReward: d(20),
+    });
+  });
+
+  it('keeps per-transaction rewards uncapped', () => {
+    const r = calculateExpectedReward(card({ rewardCap: d(60) }), spend());
+    expect(r.transactions.map((t) => t.expectedReward.toString())).toEqual([
+      '50',
+      '30',
+      '10',
+    ]);
+  });
+});
+
 describe('minor units of the currencies', () => {
   it('rounds a zero-decimal primary currency to whole units, at the end', () => {
     const jpy: RewardCardConfig = {

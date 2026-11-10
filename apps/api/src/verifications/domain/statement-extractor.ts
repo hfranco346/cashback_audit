@@ -66,6 +66,8 @@ export interface AuditFacts {
     expiredInPeriod: string;
     earned: string | null;
   } | null;
+  /** Set when the card-wide reward cap reduced the expected total. */
+  rewardCap: { cap: string; uncapped: string; capped: string } | null;
   excludedForeignLines: number;
   warningCodes: string[];
 }

@@ -1,5 +1,6 @@
 import { Decimal } from 'decimal.js';
 import type { CardRule } from '../../cards/domain/card.js';
+import type { RewardProgramChoice } from './loyalty-program-selector.js';
 import type { RewardReportingProposal } from './reward-reporting.js';
 import type { DetectedRate } from './statement.js';
 import type { SuggestedCategory } from './statement-hints.js';
@@ -38,6 +39,8 @@ export interface RateProposal {
   suggestedCategories: SuggestedCategory[];
   /** Null unless the verification is AWAITING_RATES or COMPLETED. */
   rewardReporting: RewardReportingProposal | null;
+  /** Non-null only in AWAITING_RATES when the user must pick the loyalty program. */
+  rewardProgramChoice: RewardProgramChoice | null;
 }
 
 export interface RateProposalInput {
