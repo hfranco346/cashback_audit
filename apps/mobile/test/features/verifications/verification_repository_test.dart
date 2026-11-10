@@ -8,6 +8,7 @@ import 'package:cashback_audit/core/storage/token_storage.dart';
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
 import 'package:cashback_audit/features/verifications/data/verification_repository_impl.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
+import 'package:cashback_audit/features/verifications/domain/verification_events.dart';
 import 'package:decimal/decimal.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
@@ -446,5 +447,91 @@ void main() {
     expect(req.path, '/verifications/v1/transactions/1');
     expect(req.data, {'categoryId': 'cat1'});
     expect(await db.readVerificationDetail('v1'), isNotNull);
+  });
+
+  group('change events', () {
+    late VerificationEvents events;
+    late int emitted;
+
+    VerificationRepositoryImpl withEvents() => VerificationRepositoryImpl(
+      buildDio(
+        baseUrl: 'http://test/api/v1',
+        tokens: InMemoryTokenStorage(),
+        events: SessionEvents(),
+        adapter: adapter,
+      ),
+      db,
+      events: events,
+    );
+
+    setUp(() {
+      events = VerificationEvents();
+      emitted = 0;
+      events.changes.listen((_) => emitted++);
+    });
+
+    Future<void> settle() => Future<void>.delayed(Duration.zero);
+
+    test('upload, confirm, seen and delete announce a change', () async {
+      final file = File('${tmp.path}/e.pdf')..writeAsBytesSync([37]);
+      adapter = FakeAdapter(
+        (o) => FakeResponse(
+          o.method == 'DELETE' || o.path.endsWith('/seen') ? 204 : 200,
+          o.path == '/verifications'
+              ? processingVerificationJson()
+              : verificationJson(),
+        ),
+      );
+      final r = withEvents();
+      await r.upload(cardId: 'c1', filePath: file.path);
+      await settle();
+      expect(emitted, 1);
+      await r.confirm(
+        'v1',
+        ConfirmRequest(
+          baseRatePercent: Decimal.parse('1'),
+          categoryRates: const [],
+        ),
+      );
+      await settle();
+      expect(emitted, 2);
+      await r.markSeen('v1');
+      await settle();
+      expect(emitted, 3);
+      await r.delete('v1');
+      await settle();
+      expect(emitted, 4);
+    });
+
+    test('get announces only once the analysis left PROCESSING', () async {
+      adapter = FakeAdapter(
+        (o) => FakeResponse(200, processingVerificationJson()),
+      );
+      await withEvents().get('v1');
+      await settle();
+      expect(emitted, 0);
+      adapter = FakeAdapter((o) => FakeResponse(200, verificationJson()));
+      await withEvents().get('v1');
+      await settle();
+      expect(emitted, 1);
+    });
+
+    test(
+      'reading lists and details never announces (no refresh loop)',
+      () async {
+        adapter = FakeAdapter(
+          (o) => FakeResponse(200, {
+            'items': [summaryJson('v1')],
+            'page': 1,
+            'pageSize': 20,
+            'total': 1,
+          }),
+        );
+        await withEvents().history();
+        await withEvents().attention();
+        await settle();
+        expect(emitted, 0);
+      },
+    );
   });
 }

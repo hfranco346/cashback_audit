@@ -7,9 +7,11 @@ import 'core/l10n/strings.dart';
 import 'core/routing/app_navigator.dart';
 import 'core/routing/app_pages.dart';
 import 'core/routing/app_routes.dart';
+import 'core/routing/home_return_notifier.dart';
 import 'core/theme/app_theme.dart';
 import 'features/settings/presentation/locale_controller.dart';
 import 'features/settings/presentation/theme_controller.dart';
+import 'features/verifications/domain/verification_events.dart';
 
 class CashbackAuditApp extends StatelessWidget {
   const CashbackAuditApp({super.key});
@@ -35,6 +37,8 @@ class CashbackAuditApp extends StatelessWidget {
         return child ?? const SizedBox.shrink();
       },
       initialBinding: InitialBinding(),
+      routingCallback: (routing) =>
+          notifyOnReturnToHome(routing, Get.find<VerificationEvents>()),
       initialRoute: Routes.splash,
       getPages: AppPages.pages,
     );

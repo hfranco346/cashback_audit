@@ -25,6 +25,7 @@ import '../../features/settings/presentation/language_currencies_page.dart';
 import '../../features/settings/presentation/locale_controller.dart';
 import '../../features/verifications/domain/pdf_picker.dart';
 import '../../features/verifications/domain/verification_entities.dart';
+import '../../features/verifications/domain/verification_events.dart';
 import '../../features/verifications/domain/verification_repository.dart';
 import '../../features/verifications/presentation/attention_controller.dart';
 import '../../features/verifications/presentation/confirm_rates_controller.dart';
@@ -124,13 +125,18 @@ abstract final class AppPages {
       binding: BindingsBuilder(() {
         final session = Get.find<SessionController>();
         final drafts = Get.find<OnboardingDraftRepository>();
-        Get.put(ShellController());
+        final shell = Get.put(ShellController());
+        final events = Get.find<VerificationEvents>();
+        bool homeOnTop() => Get.currentRoute == Routes.home;
         // Tabs reuse the screens' controllers; the shell registers them
         // because no route binding runs for a tab.
         Get.lazyPut(
           () => HistoryController(
             repository: Get.find<VerificationRepository>(),
             navigator: Get.find<AppNavigator>(),
+            events: events,
+            shell: shell.tab,
+            isRouteOnTop: homeOnTop,
           ),
         );
         Get.put(
@@ -148,6 +154,9 @@ abstract final class AppPages {
               drafts: drafts,
             ),
             isSignedIn: () => session.user.value != null,
+            events: events,
+            shell: shell.tab,
+            isRouteOnTop: homeOnTop,
             startup: () async {
               await session.restore();
               await Get.find<SubscriptionController>().fetchStatus();

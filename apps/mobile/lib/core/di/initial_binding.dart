@@ -16,6 +16,7 @@ import '../../features/categories/presentation/catalog_controller.dart';
 import '../../features/verifications/data/file_picker_pdf_picker.dart';
 import '../../features/verifications/data/verification_repository_impl.dart';
 import '../../features/verifications/domain/pdf_picker.dart';
+import '../../features/verifications/domain/verification_events.dart';
 import '../../features/verifications/domain/verification_repository.dart';
 import '../../features/verifications/presentation/attention_controller.dart';
 import '../../features/verifications/presentation/history_controller.dart';
@@ -103,8 +104,13 @@ class InitialBinding extends Bindings {
       MerchantRepositoryImpl(dio, db),
       permanent: true,
     );
+    Get.put<VerificationEvents>(VerificationEvents(), permanent: true);
     Get.put<VerificationRepository>(
-      VerificationRepositoryImpl(dio, db),
+      VerificationRepositoryImpl(
+        dio,
+        db,
+        events: Get.find<VerificationEvents>(),
+      ),
       permanent: true,
     );
     Get.lazyPut<AttentionController>(

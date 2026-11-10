@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../cards/domain/card_entities.dart';
@@ -7,7 +6,9 @@ import '../../categories/presentation/catalog_controller.dart';
 import '../../credits/presentation/credits_controller.dart';
 import '../../onboarding/data/onboarding_sync.dart';
 import '../../onboarding/domain/onboarding_draft.dart';
+import '../../verifications/domain/verification_events.dart';
 import '../../verifications/domain/verification_repository.dart';
+import '../../verifications/presentation/auto_refresh.dart';
 import '../../verifications/presentation/attention_controller.dart';
 import '../../verifications/presentation/history_controller.dart';
 
@@ -28,7 +29,7 @@ enum HomeLayout {
 
 /// Start-up work of the signed-in area and the data Home shows. Pending
 /// verifications (`attention`) refresh on load and whenever the app resumes.
-class HomeController extends GetxController with WidgetsBindingObserver {
+class HomeController extends GetxController {
   HomeController({
     required this._attention,
     required this._cards,
@@ -40,6 +41,10 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     required this._sync,
     required this.startup,
     this.isSignedIn,
+    this.events,
+    this.shell,
+    this.isRouteOnTop,
+    this.pollInterval = const Duration(seconds: 5),
   });
 
   final AttentionController _attention;
@@ -56,6 +61,25 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   final Future<void> Function() startup;
   final bool Function()? isSignedIn;
 
+  /// Wiring of the automatic refresh (see `AutoRefresh`): change events, the
+  /// shell's selected tab (Home is tab 0), whether the Home route is on top
+  /// and the poll period.
+  final VerificationEvents? events;
+  final RxInt? shell;
+  final bool Function()? isRouteOnTop;
+  final Duration pollInterval;
+
+  late final AutoRefresh _auto = AutoRefresh(
+    refresh: _refreshVerifications,
+    poll: _pollVerifications,
+    hasPending: () => _attention.items.any((e) => e.isProcessing),
+    events: events,
+    tab: shell,
+    tabIndex: 0,
+    isRouteOnTop: isRouteOnTop,
+    interval: pollInterval,
+  );
+
   /// The guided setup just ended: Home mirrors what was registered.
   final fresh = false.obs;
 
@@ -71,7 +95,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   @override
   void onInit() {
     super.onInit();
-    WidgetsBinding.instance.addObserver(this);
+    _auto.start();
   }
 
   @override
@@ -82,17 +106,27 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   Future<void> _begin() async {
     await startup();
-    _attention.reload();
+    await _attention.reload();
+    _auto.sync();
     await _syncPendingDraft();
     await _loadFresh();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _attention.reload();
-      _latest.load();
-      _credits.fetch();
+  /// Everything Home shows that verifications can change: the pending list,
+  /// the latest ones and the balance (an upload spends a credit, a failure
+  /// refunds it).
+  Future<void> _refreshVerifications() =>
+      Future.wait([_attention.reload(), _latest.load(), _credits.fetch()]);
+
+  /// Poll tick: reload the pending list and, only when a status changed,
+  /// the latest verifications and the balance.
+  Future<void> _pollVerifications() async {
+    String signature() =>
+        _attention.items.map((e) => '${e.id}:${e.status.name}').join(',');
+    final before = signature();
+    await _attention.reload();
+    if (signature() != before) {
+      await Future.wait([_latest.load(), _credits.fetch()]);
     }
   }
 
@@ -170,7 +204,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   @override
   void onClose() {
-    WidgetsBinding.instance.removeObserver(this);
+    _auto.dispose();
     super.onClose();
   }
 }

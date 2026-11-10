@@ -18,8 +18,10 @@ import 'package:cashback_audit/features/onboarding/data/onboarding_sync.dart';
 import 'package:cashback_audit/features/onboarding/domain/onboarding_draft.dart';
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_entities.dart';
+import 'package:cashback_audit/features/verifications/domain/verification_events.dart';
 import 'package:cashback_audit/features/verifications/presentation/attention_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/history_controller.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -28,6 +30,7 @@ import '../../core/ui/ui_harness.dart';
 import '../../support/fake_credits_repository.dart';
 import '../../support/fake_verification_repository.dart';
 import '../../support/fakes.dart';
+import '../../support/lifecycle.dart';
 import '../../support/fixtures.dart';
 import '../categories/fake_catalog.dart';
 
@@ -66,7 +69,13 @@ VerificationSummary _summary(
 });
 
 class HomeHarness {
-  HomeHarness({List<CreditCard>? cards, bool signedIn = true}) {
+  HomeHarness({
+    List<CreditCard>? cards,
+    bool signedIn = true,
+    this.events,
+    this.shell,
+    this.routeOnTop,
+  }) {
     cardRepo = FakeCardRepo(cards ?? []);
     drafts = OnboardingDraftRepositoryImpl(freshPrefs());
     cardsC = CardsController(cardRepo);
@@ -96,9 +105,15 @@ class HomeHarness {
       ),
       startup: () async => startups++,
       isSignedIn: () => signedIn,
+      events: events,
+      shell: shell,
+      isRouteOnTop: routeOnTop,
     );
   }
 
+  final VerificationEvents? events;
+  final RxInt? shell;
+  final bool Function()? routeOnTop;
   final nav = FakeNavigator();
   final verifications = FakeVerificationRepository();
   int startups = 0;
@@ -119,7 +134,7 @@ Future<void> _settle() async {
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
   group('HomeController', () {
     test('loads pending verifications on start and on app resume', () async {
@@ -133,9 +148,9 @@ void main() {
       expect(h.attention.items.map((e) => e.id), ['a']);
 
       h.verifications.attentionItems = [_summary('a', 'AWAITING_RATES')];
-      h.c.didChangeAppLifecycleState(AppLifecycleState.paused);
+      setAppLifecycle(binding, AppLifecycleState.paused);
       expect(h.verifications.attentionCalls, 1); // only resume refreshes
-      h.c.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      setAppLifecycle(binding, AppLifecycleState.resumed);
       await _settle();
       expect(h.verifications.attentionCalls, 2);
       expect(h.attention.items.single.isAwaitingRates, isTrue);
@@ -524,6 +539,114 @@ void main() {
       expect(find.text('History'), findsOneWidget);
       expect(find.text('Categories'), findsOneWidget);
       expect(find.text('Profile'), findsOneWidget);
+    });
+  });
+
+  group('Home auto refresh', () {
+    const five = Duration(seconds: 5);
+    tearDown(() => setAppLifecycle(binding, AppLifecycleState.resumed));
+
+    test('polls the pending list every 5 s while processing, then stops', () {
+      fakeAsync((async) {
+        final h = HomeHarness(events: VerificationEvents(), shell: 0.obs);
+        h.verifications.attentionItems = [_summary('a', 'PROCESSING')];
+        h.c.onInit();
+        h.c.onReady();
+        async.flushMicrotasks();
+        expect(h.verifications.attentionCalls, 1);
+
+        async.elapse(five);
+        expect(h.verifications.attentionCalls, 2);
+        async.elapse(five);
+        expect(h.verifications.attentionCalls, 3);
+
+        // The analysis ends: the pending row changes with no pull-to-refresh
+        // and the latest list and the balance reload with it.
+        final historyBefore = h.verifications.historyCalls;
+        h.verifications.attentionItems = [_summary('a', 'AWAITING_RATES')];
+        async.elapse(five);
+        expect(h.attention.items.single.isAwaitingRates, isTrue);
+        expect(h.verifications.historyCalls, greaterThan(historyBefore));
+
+        // Nothing processing: no more requests.
+        final settled = h.verifications.attentionCalls;
+        async.elapse(five * 4);
+        expect(h.verifications.attentionCalls, settled);
+        h.c.onClose();
+      });
+    });
+
+    test('does not poll when nothing is processing', () {
+      fakeAsync((async) {
+        final h = HomeHarness(events: VerificationEvents(), shell: 0.obs);
+        h.verifications.attentionItems = [_summary('a', 'COMPLETED')];
+        h.c.onInit();
+        h.c.onReady();
+        async.flushMicrotasks();
+        async.elapse(five * 3);
+        expect(h.verifications.attentionCalls, 1);
+        h.c.onClose();
+      });
+    });
+
+    test('stops on another tab or route and refreshes when shown again', () {
+      fakeAsync((async) {
+        final tab = 0.obs;
+        var onTop = true;
+        final h = HomeHarness(
+          events: VerificationEvents(),
+          shell: tab,
+          routeOnTop: () => onTop,
+        );
+        h.verifications.attentionItems = [_summary('a', 'PROCESSING')];
+        h.c.onInit();
+        h.c.onReady();
+        async.flushMicrotasks();
+        async.elapse(five);
+        expect(h.verifications.attentionCalls, 2);
+
+        tab.value = 2; // Categories
+        async.flushMicrotasks();
+        async.elapse(five * 3);
+        expect(h.verifications.attentionCalls, 2);
+
+        tab.value = 0;
+        async.flushMicrotasks();
+        expect(h.verifications.attentionCalls, 3); // refreshed on show
+
+        onTop = false; // a pushed route covers Home
+        async.elapse(five * 3);
+        expect(h.verifications.attentionCalls, 3);
+        h.c.onClose();
+      });
+    });
+
+    test('refreshes on upload / confirm / seen events and on resume', () {
+      fakeAsync((async) {
+        final events = VerificationEvents();
+        final h = HomeHarness(events: events, shell: 0.obs);
+        h.verifications.attentionItems = [];
+        h.c.onInit();
+        h.c.onReady();
+        async.flushMicrotasks();
+        expect(h.verifications.attentionCalls, 1);
+
+        // Returning from verify / progress / confirm / result emits one.
+        h.verifications.attentionItems = [_summary('n', 'PROCESSING')];
+        events.notify();
+        async.flushMicrotasks();
+        expect(h.attention.items.single.id, 'n');
+        expect(h.verifications.attentionCalls, 2);
+        // The balance moves with it (an upload spends a credit).
+        expect(h.credits.balance.value, isNotNull);
+
+        setAppLifecycle(binding, AppLifecycleState.paused);
+        h.verifications.attentionItems = [_summary('n', 'COMPLETED')];
+        setAppLifecycle(binding, AppLifecycleState.resumed);
+        async.flushMicrotasks();
+        expect(h.attention.items.single.isCompleted, isTrue);
+        h.c.onClose();
+      });
     });
   });
 

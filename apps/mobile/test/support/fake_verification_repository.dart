@@ -39,6 +39,8 @@ class FakeVerificationRepository implements VerificationRepository {
   Object? suggestionsError;
   List<VerificationSummary> items = [];
   int pageSizeSeen = 0;
+  int historyCalls = 0;
+  Object? historyError;
 
   @override
   Future<Verification> upload({
@@ -111,6 +113,8 @@ class FakeVerificationRepository implements VerificationRepository {
     int pageSize = 20,
   }) async {
     pageSizeSeen = pageSize;
+    historyCalls++;
+    if (historyError != null) throw historyError!;
     final start = (page - 1) * pageSize;
     final slice = items.skip(start).take(pageSize).toList();
     return Cached(

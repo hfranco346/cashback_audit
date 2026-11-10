@@ -5,14 +5,16 @@ import '../../../core/db/app_database.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/utils/cached.dart';
 import '../domain/verification_entities.dart';
+import '../domain/verification_events.dart';
 import '../domain/verification_repository.dart';
 import 'verification_mapper.dart';
 
 class VerificationRepositoryImpl implements VerificationRepository {
-  VerificationRepositoryImpl(this._dio, this._db);
+  VerificationRepositoryImpl(this._dio, this._db, {this._events});
 
   final Dio _dio;
   final AppDatabase _db;
+  final VerificationEvents? _events;
 
   @override
   Future<Verification> upload({
@@ -45,13 +47,19 @@ class VerificationRepositoryImpl implements VerificationRepository {
         sendTimeout: const Duration(minutes: 2),
       ),
     );
-    return _store(res.data!);
+    final stored = await _store(res.data!);
+    _events?.notify();
+    return stored;
   });
 
   @override
   Future<Verification> get(String id) => guardApi(() async {
     final res = await _dio.get<JsonMap>('/verifications/$id');
-    return _store(res.data!);
+    final stored = await _store(res.data!);
+    // The analysis ended (rates to confirm, result or failure): lists that
+    // still show it as running must refresh.
+    if (!stored.isProcessing) _events?.notify();
+    return stored;
   });
 
   @override
@@ -67,8 +75,10 @@ class VerificationRepositoryImpl implements VerificationRepository {
   });
 
   @override
-  Future<void> markSeen(String id) =>
-      guardApi(() => _dio.post<void>('/verifications/$id/seen'));
+  Future<void> markSeen(String id) => guardApi(() async {
+    await _dio.post<void>('/verifications/$id/seen');
+    _events?.notify();
+  });
 
   @override
   Future<Verification> confirm(String id, ConfirmRequest request) =>
@@ -77,7 +87,9 @@ class VerificationRepositoryImpl implements VerificationRepository {
           '/verifications/$id/confirm',
           data: VerificationMapper.confirmBody(request),
         );
-        return _store(res.data!);
+        final stored = await _store(res.data!);
+        _events?.notify();
+        return stored;
       });
 
   @override
@@ -191,5 +203,6 @@ class VerificationRepositoryImpl implements VerificationRepository {
   Future<void> delete(String id) => guardApi(() async {
     await _dio.delete<void>('/verifications/$id');
     await _db.removeVerification(id);
+    _events?.notify();
   });
 }
