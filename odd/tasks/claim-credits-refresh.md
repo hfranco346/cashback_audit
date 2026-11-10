@@ -19,8 +19,9 @@ User feedback (2026-11-09): could not find the prefilled claim; needs unlimited 
 - RDD off. Local commits on `main`; push after the owner approves.
 
 ## Tasks
-- [ ] C1 Backend: unlimitedCredits flag + gate/ledger bypass + balance/me fields + operator script; card claimEmail; tests; contract doc. Route: delegated.
+- [x] C1 Backend: unlimitedCredits flag + gate/ledger bypass + balance/me fields + operator script; card claimEmail; tests; contract doc. Route: delegated.
 - [ ] C2 Mobile: claim screen + entry from Result; unlimited credits UI; status auto-refresh in Home/History; tests. Route: delegated.
 - [ ] C3 Deploy API, set unlimited for the owner in production, install builds on devices. Route: inline.
 
 ## Progress / evidence
+- C1 (delegated, done): migration `20261110120000_unlimited_credits_card_claim_email` applied to dev DB; gate/reserve bypass in CreditsService; `unlimited` in GET /credits/me, `unlimitedCredits` in GET /me; card `claimEmail`; operator command `node --env-file=.env dist/cli/set-unlimited-credits.js <email> [on|off]` (docs/deploy.md); contract + changelog updated. Checks in apps/api: lint clean, build ok, test 347 passed, test:e2e 166 passed. Commit: feat(api) unlimited credits (see git log).
