@@ -9,6 +9,7 @@ import '../../../cards/domain/card_entities.dart';
 import '../../domain/verification_entities.dart';
 import '../format_reward.dart';
 import 'result_summary_tab.dart' show KvCard, KvRow, LoyaltyCard;
+import 'reward_derivation.dart';
 
 /// "Categories" tab: the percentages the audit used (and the reward
 /// conversion), the per-currency subtotals of a multi-currency statement
@@ -91,7 +92,18 @@ class ResultCategoriesTab extends StatelessWidget {
             cumulativeWarning: v.hasWarning('REPORTED_VALUE_MAY_BE_CUMULATIVE'),
           ),
         ],
-        if (applied == null && !showCurrencies && v.loyalty.programs.isEmpty)
+        if (v.rewardReporting case final r? when r.isCumulative) ...[
+          const SizedBox(height: AppSpacing.md),
+          RewardDerivationSection(
+            reporting: r,
+            unit: v.unit,
+            currency: v.resolvedRewardCurrency,
+          ),
+        ],
+        if (applied == null &&
+            !showCurrencies &&
+            v.loyalty.programs.isEmpty &&
+            !(v.rewardReporting?.isCumulative ?? false))
           Text(
             l10n.noTransactionsMatch,
             style: theme.textTheme.bodyMedium?.copyWith(color: muted),

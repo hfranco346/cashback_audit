@@ -9,6 +9,7 @@ import 'confirm_rates_controller.dart';
 import 'period_label.dart';
 import 'widgets/confirm_rates_view.dart';
 import 'widgets/delete_verification_dialog.dart';
+import 'widgets/reward_reporting_card.dart';
 
 /// Container: wires [ConfirmRatesController] to [ConfirmRatesView].
 class ConfirmRatesPage extends GetView<ConfirmRatesController> {
@@ -23,6 +24,36 @@ class ConfirmRatesPage extends GetView<ConfirmRatesController> {
     if (!ok) return;
     final error = await controller.deleteVerification();
     if (error != null) messenger.showSnackBar(SnackBar(content: Text(error)));
+  }
+
+  Widget? _reportingSection() {
+    final proposal = controller.reportingProposal.value;
+    if (proposal == null) return null;
+    return RewardReportingCard(
+      proposal: proposal,
+      mode: controller.reportingMode.value,
+      onMode: controller.setReportingMode,
+      remember: controller.rememberReporting.value,
+      onRemember: controller.setRememberReporting,
+      previousBalance: controller.previousBalance,
+      previousSource: controller.previousBalanceSource.value,
+      previousRequired: controller.previousBalanceRequired,
+      previousError: controller.previousBalanceError,
+      onPreviousTouched: controller.touchPreviousBalance,
+      unit: controller.unit,
+      currency: controller.rewardDisplayCurrency,
+      programName: proposal.programName ?? controller.programName,
+      earned: controller.liveEarned,
+      onUpload: controller.canUploadPrevious
+          ? controller.pickPreviousStatement
+          : null,
+      uploading: controller.uploadingPrevious.value,
+      uploadProgress: controller.previousUploadProgress.value,
+      uploadError: controller.previousUploadError.value,
+      programChoices: controller.previousProgramChoices.toList(),
+      onChooseProgram: controller.choosePreviousProgram,
+      busy: controller.submitting.value,
+    );
   }
 
   @override
@@ -109,6 +140,7 @@ class ConfirmRatesPage extends GetView<ConfirmRatesController> {
         onCreateSuggestions: controller.createSuggestedCategories,
         creatingSuggestions: controller.creatingSuggestions.value,
         suggestionsCreated: controller.suggestionsCreatedNotice.value,
+        reportingSection: _reportingSection(),
       );
     });
   }

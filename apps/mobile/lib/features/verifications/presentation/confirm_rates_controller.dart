@@ -14,6 +14,7 @@ import '../../cards/domain/card_validator.dart';
 import '../../cards/presentation/cards_controller.dart';
 import '../../categories/presentation/catalog_controller.dart';
 import '../../credits/presentation/credits_controller.dart';
+import '../domain/pdf_picker.dart';
 import '../domain/verification_entities.dart';
 import '../domain/verification_repository.dart';
 import 'delete_verification.dart';
@@ -159,6 +160,7 @@ class ConfirmRatesController extends GetxController {
     required this._navigator,
     required this.args,
     this._catalog,
+    this._picker,
     this.credits,
     this.savedRates = const {},
     this.savedRatesPrimary,
@@ -168,6 +170,7 @@ class ConfirmRatesController extends GetxController {
   final CardsController _cards;
   final AppNavigator _navigator;
   final CatalogController? _catalog;
+  final PdfPicker? _picker;
   final CreditsController? credits;
   final ConfirmRatesArgs args;
 
@@ -218,6 +221,22 @@ class ConfirmRatesController extends GetxController {
   /// The statement shows no usable reward figure: the user types it.
   final needsReportedOverride = false.obs;
 
+  /// How the bank's reward figure is reported: the section is shown while a
+  /// proposal exists (or the server asked for the previous balance).
+  final reportingProposal = Rxn<RewardReportingProposal>();
+  final reportingMode = RewardReporting.monthly.obs;
+  final rememberReporting = false.obs;
+  final previousBalance = TextEditingController();
+  final previousBalanceSource = Rxn<PreviousBalanceSource>();
+  final uploadingPrevious = false.obs;
+  final previousUploadProgress = 0.0.obs;
+  final previousUploadError = RxnString();
+
+  /// Programs read from last month's PDF when none matched (pick one).
+  final previousProgramChoices = <PreviousStatementProgram>[].obs;
+  bool _serverWantsPreviousBalance = false;
+  bool _settingPrevious = false;
+
   /// Bumped on every edit so `canConfirm` is reactive.
   final _revision = 0.obs;
 
@@ -234,6 +253,13 @@ class ConfirmRatesController extends GetxController {
     final v = verification.value;
     return v == null ? null : _cards.byId(v.cardId);
   }
+
+  /// Currency of the reward figures (the reward currency when it differs
+  /// from the card's, as the conversion card asks).
+  String get rewardDisplayCurrency =>
+      rewardConversion.value?.toCurrency ??
+      verification.value?.resolvedRewardCurrency ??
+      primaryCurrency;
 
   String get primaryCurrency => verification.value?.currency ?? 'MXN';
 
@@ -287,6 +313,53 @@ class ConfirmRatesController extends GetxController {
     return null;
   }
 
+  bool get canUploadPrevious => _picker != null;
+
+  bool get showReporting => reportingProposal.value != null;
+
+  bool get isCumulative => reportingMode.value == RewardReporting.cumulative;
+
+  /// The previous balance as a number, `null` when empty or not numeric.
+  Decimal? get previousBalanceValue =>
+      CardValidator.parse(previousBalance.text);
+
+  /// Inline error of a filled previous balance (0 or more, up to 2 decimals).
+  String? get previousBalanceError {
+    if (previousBalance.text.trim().isEmpty) return null;
+    final d = previousBalanceValue;
+    return d == null || d < Decimal.zero || d.scale > 2
+        ? S.overrideInvalid
+        : null;
+  }
+
+  /// A cumulative figure needs the previous balance unless the statement
+  /// already gives what was earned.
+  bool get previousBalanceRequired {
+    _revision.value; // reactive dependency
+    final p = reportingProposal.value;
+    if (p == null || !isCumulative) return false;
+    if (previousBalance.text.trim().isNotEmpty) return false;
+    return _serverWantsPreviousBalance || p.earned == null;
+  }
+
+  /// What was earned this month, live: from the typed previous balance, or
+  /// the amount the statement itself prints.
+  Decimal? get liveEarned {
+    _revision.value; // reactive dependency
+    final p = reportingProposal.value;
+    if (p == null || !isCumulative) return null;
+    final previous = previousBalanceValue;
+    if (previous == null || previousBalanceError != null) {
+      return previousBalance.text.trim().isEmpty ? p.earned : null;
+    }
+    return deriveEarned(
+      current: p.currentBalance,
+      previous: previous,
+      redeemed: p.redeemedInPeriod,
+      expired: p.expiredInPeriod,
+    );
+  }
+
   /// Name of the program that will be audited (single or chosen), if known.
   String? get programName {
     final loyalty = verification.value?.loyalty;
@@ -311,6 +384,7 @@ class ConfirmRatesController extends GetxController {
         S.current.programChooserTitle,
       if (needsReportedOverride.value && reportedOverride.text.trim().isEmpty)
         S.current.overrideLabel,
+      if (previousBalanceRequired) S.current.reportingPreviousLabel,
     ];
   }
 
@@ -331,6 +405,8 @@ class ConfirmRatesController extends GetxController {
           reportedOverride.text.trim().isNotEmpty &&
           overrideError != null)
         S.current.overrideLabel,
+      if (isCumulative && previousBalanceError != null)
+        S.current.reportingPreviousLabel,
     ];
   }
 
@@ -344,6 +420,9 @@ class ConfirmRatesController extends GetxController {
     if (programChoices.isNotEmpty && selectedProgram.value == null) {
       return false;
     }
+    if (uploadingPrevious.value) return false;
+    if (previousBalanceRequired) return false;
+    if (isCumulative && previousBalanceError != null) return false;
     return overrideError == null;
   }
 
@@ -393,6 +472,9 @@ class ConfirmRatesController extends GetxController {
     _loadConversion(v);
     reportedOverride.removeListener(_bump);
     reportedOverride.addListener(_bump);
+    previousBalance.removeListener(_onPreviousEdited);
+    previousBalance.addListener(_onPreviousEdited);
+    _loadReporting(v);
     final requested = v.conversion.requestedRate;
     exchangeRate.text = requested == null ? '' : decimalToApi(requested);
     programChoices.assignAll(
@@ -403,6 +485,150 @@ class ConfirmRatesController extends GetxController {
   }
 
   void _bump() => _revision.value++;
+
+  /// Preselects the mode the backend proposes and prefills the previous
+  /// balance it resolved. A completed verification being recalculated keeps
+  /// its cumulative derivation (and can switch it).
+  void _loadReporting(Verification v) {
+    final proposal = v.rewardReportingProposal ?? _proposalFromResult(v);
+    reportingProposal.value = proposal;
+    _serverWantsPreviousBalance = false;
+    previousUploadError.value = null;
+    previousProgramChoices.clear();
+    uploadingPrevious.value = false;
+    rememberReporting.value = false;
+    reportingMode.value = proposal?.mode ?? RewardReporting.monthly;
+    final previous = proposal?.previousBalance;
+    _setPrevious(
+      previous == null ? '' : decimalToApi(previous),
+      previous == null ? null : proposal?.previousBalanceSource,
+    );
+  }
+
+  static RewardReportingProposal? _proposalFromResult(Verification v) {
+    final r = v.rewardReporting;
+    if (!v.isCompleted || r == null || !r.isCumulative) return null;
+    return RewardReportingProposal(
+      mode: RewardReporting.cumulative,
+      suggestedMode: RewardReporting.cumulative,
+      reason: ReportingReason.none,
+      currentBalance: r.currentBalance,
+      previousBalance: r.previousBalance,
+      previousBalanceSource: r.previousBalanceSource,
+      redeemedInPeriod: r.redeemedInPeriod,
+      expiredInPeriod: r.expiredInPeriod,
+      earned: r.earned,
+      programName: v.reported?.label,
+    );
+  }
+
+  void _setPrevious(String text, PreviousBalanceSource? source) {
+    _settingPrevious = true;
+    previousBalance.text = text;
+    _settingPrevious = false;
+    previousBalanceSource.value = text.trim().isEmpty ? null : source;
+    _bump();
+  }
+
+  /// Typing replaces whatever source the value had.
+  void _onPreviousEdited() {
+    if (!_settingPrevious) {
+      previousBalanceSource.value = previousBalance.text.trim().isEmpty
+          ? null
+          : PreviousBalanceSource.user;
+    }
+    _bump();
+  }
+
+  /// The user picks "earned this month" or "accumulated balance". Changing
+  /// the proposed answer turns "remember for this card" on (they can undo).
+  void setReportingMode(RewardReporting mode) {
+    if (mode == RewardReporting.auto) return;
+    reportingMode.value = mode;
+    rememberReporting.value = mode != reportingProposal.value?.mode;
+    _bump();
+  }
+
+  void setRememberReporting(bool value) => rememberReporting.value = value;
+
+  void touchPreviousBalance() => _bump();
+
+  /// Free: reads only the program balance of last month's PDF. A matched
+  /// balance fills the field; otherwise the user picks the program.
+  Future<void> pickPreviousStatement() async {
+    final picker = _picker;
+    final v = verification.value;
+    if (picker == null || v == null || uploadingPrevious.value) return;
+    final picked = await picker.pick();
+    if (picked == null) return;
+    if (!picked.name.toLowerCase().endsWith('.pdf')) {
+      previousUploadError.value = S.fileNotPdf;
+      return;
+    }
+    if (picked.sizeBytes > maxPdfBytes) {
+      previousUploadError.value = S.fileTooLarge;
+      return;
+    }
+    previousUploadError.value = null;
+    previousProgramChoices.clear();
+    previousUploadProgress.value = 0;
+    uploadingPrevious.value = true;
+    _bump();
+    try {
+      final result = await _repository.readPreviousStatement(
+        v.id,
+        filePath: picked.path,
+        onProgress: (sent, total) {
+          if (total > 0) previousUploadProgress.value = sent / total;
+        },
+      );
+      final matched = result.matchedBalance;
+      if (matched != null) {
+        _setPrevious(
+          decimalToApi(matched),
+          PreviousBalanceSource.previousStatement,
+        );
+      } else if (result.programs.isNotEmpty) {
+        previousProgramChoices.assignAll(result.programs);
+      } else {
+        previousUploadError.value = S.errProgramNotFound;
+      }
+    } on AppException catch (e) {
+      previousUploadError.value = userMessageFor(e);
+    } finally {
+      uploadingPrevious.value = false;
+      _bump();
+    }
+  }
+
+  void choosePreviousProgram(PreviousStatementProgram program) {
+    previousProgramChoices.clear();
+    _setPrevious(
+      decimalToApi(program.balance),
+      PreviousBalanceSource.previousStatement,
+    );
+  }
+
+  static const maxPdfBytes = 10 * 1024 * 1024;
+
+  RewardReportingInput? _reportingInput() {
+    if (reportingProposal.value == null) return null;
+    if (!isCumulative) {
+      return RewardReportingInput(
+        mode: RewardReporting.monthly,
+        rememberForCard: rememberReporting.value,
+      );
+    }
+    final previous = previousBalanceValue;
+    return RewardReportingInput(
+      mode: RewardReporting.cumulative,
+      previousBalance: previous,
+      previousBalanceSource: previous == null
+          ? null
+          : (previousBalanceSource.value ?? PreviousBalanceSource.user),
+      rememberForCard: rememberReporting.value,
+    );
+  }
 
   /// Prefill priority for the reward and foreign rates: what the
   /// verification was audited with / sent before > what the statement prints
@@ -680,6 +906,7 @@ class ConfirmRatesController extends GetxController {
       },
       rewardExchangeRate: _rewardApiRate,
       rewardProgramName: selectedProgram.value,
+      rewardReporting: _reportingInput(),
     );
   }
 
@@ -729,7 +956,7 @@ class ConfirmRatesController extends GetxController {
     errorMessage.value = null;
     try {
       final result = await _repository.confirm(v.id, buildRequest());
-      if (saveToCard.value) _cards.load();
+      if (saveToCard.value || rememberReporting.value) _cards.load();
       if (args.returnToResult) {
         _navigator.pop(result: result);
       } else {
@@ -781,6 +1008,16 @@ class ConfirmRatesController extends GetxController {
         }
         rewardRateTouched = true;
         errorMessage.value = userMessageFor(e);
+      case 'PREVIOUS_BALANCE_REQUIRED':
+        // Also covers servers whose proposal did not announce the question.
+        reportingProposal.value ??= const RewardReportingProposal(
+          mode: RewardReporting.cumulative,
+          suggestedMode: RewardReporting.cumulative,
+          previousBalanceRequired: true,
+        );
+        reportingMode.value = RewardReporting.cumulative;
+        _serverWantsPreviousBalance = true;
+        errorMessage.value = userMessageFor(e);
       case 'RATES_REQUIRED':
         final missing = ((e.details as Map?)?['missing'] as List?) ?? const [];
         final ids = {
@@ -815,6 +1052,7 @@ class ConfirmRatesController extends GetxController {
       f.dispose();
     }
     reportedOverride.dispose();
+    previousBalance.dispose();
     super.onClose();
   }
 }

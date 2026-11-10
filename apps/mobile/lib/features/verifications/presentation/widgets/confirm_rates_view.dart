@@ -64,6 +64,7 @@ class ConfirmRatesView extends StatelessWidget {
     this.statementRateNote,
     this.overrideError,
     this.errorMessage,
+    this.reportingSection,
   });
 
   final List<RateEntryDraft> entries;
@@ -107,6 +108,10 @@ class ConfirmRatesView extends StatelessWidget {
   final TextEditingController reportedOverride;
   final String? overrideError;
   final String? errorMessage;
+
+  /// "Reward reported by your bank" card (null when the server did not
+  /// propose the question).
+  final Widget? reportingSection;
 
   /// Reward paid in another currency than the card's (required rate).
   final RewardConversion? rewardConversion;
@@ -294,6 +299,10 @@ class ConfirmRatesView extends StatelessWidget {
                       selected: selectedProgram,
                       onSelected: onSelectProgram,
                     ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (reportingSection != null) ...[
+                    reportingSection!,
                     const SizedBox(height: AppSpacing.md),
                   ],
                   if (needsOverride) ...[

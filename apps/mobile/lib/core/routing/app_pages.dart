@@ -239,6 +239,7 @@ abstract final class AppPages {
             cards: Get.find<CardsController>(),
             navigator: Get.find<AppNavigator>(),
             catalog: Get.find<CatalogController>(),
+            picker: Get.find<PdfPicker>(),
             credits: Get.find<CreditsController>(),
             savedRates:
                 Get.find<SessionController>().user.value?.currencyRates ??

@@ -16,6 +16,7 @@ String? warningText(AppLocalizations l10n, VerificationWarning w) =>
         l10n.warnExchangeMultiple,
       'REPORTED_VALUE_MAY_BE_CUMULATIVE' => l10n.warnCumulative,
       'REPORTED_UNIT_DIFFERS_FROM_CARD' => l10n.warnUnitDiffers,
+      'REWARD_BALANCE_INCONSISTENT' => l10n.warnBalanceInconsistent,
       'EXPLANATION_UNAVAILABLE' => null,
       _ => w.message.isEmpty ? null : w.message,
     };

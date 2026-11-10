@@ -10,6 +10,7 @@ import '../../../cards/domain/card_entities.dart';
 import '../../domain/verification_entities.dart';
 import '../warning_text.dart';
 import '../format_reward.dart';
+import 'reward_derivation.dart';
 
 /// Rows of a card separated by hairlines (`.card` + `.kv`).
 class KvCard extends StatelessWidget {
@@ -176,6 +177,9 @@ class ResultSummaryTab extends StatelessWidget {
         .where((e) => e.isNotEmpty)
         .toList();
     final programs = v.loyalty.programs;
+    final derived = v.rewardReporting?.isCumulative ?? false
+        ? v.rewardReporting
+        : null;
 
     return ListView(
       key: const Key('result-summary'),
@@ -201,11 +205,21 @@ class ResultSummaryTab extends StatelessWidget {
             expected: reward(v.expectedAmount ?? Decimal.zero),
             reportedLabel: reported.fromOverride
                 ? '${l10n.reportedByBank} · ${l10n.reportedOverrideNote}'
+                : derived != null
+                ? '${l10n.reportedByBank} · ${l10n.reportedDerivedNote}'
                 : l10n.reportedByBank,
             reported: reward(reported.amount),
             equivalence: equivalence,
           ),
         ),
+        if (derived != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          RewardDerivationSection(
+            reporting: derived,
+            unit: v.unit,
+            currency: rewardCurrency,
+          ),
+        ],
         if (verdict == Verdict.underpaid && onClaim != null) ...[
           const SizedBox(height: AppSpacing.md),
           AppButton(

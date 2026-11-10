@@ -16,6 +16,7 @@ import 'package:cashback_audit/features/cards/presentation/cards_controller.dart
 import 'package:cashback_audit/features/categories/presentation/catalog_controller.dart';
 import 'package:cashback_audit/features/credits/presentation/credits_controller.dart';
 import 'package:cashback_audit/features/verifications/data/verification_mapper.dart';
+import 'package:cashback_audit/features/verifications/domain/pdf_picker.dart';
 import 'package:cashback_audit/features/verifications/domain/verification_repository.dart';
 import 'package:cashback_audit/features/verifications/presentation/attention_controller.dart';
 import 'package:cashback_audit/features/verifications/presentation/confirm_rates_page.dart';
@@ -53,6 +54,11 @@ class _AuthRepo implements AuthRepository {
 /// Routing-level regression for the Result screen's "recalculate with other
 /// rates" controls, using the real [GetMaterialApp], the app's [GetPage]s and
 /// the real [GetAppNavigator].
+class _NoPicker implements PdfPicker {
+  @override
+  Future<PickedPdf?> pick() async => null;
+}
+
 void main() {
   setUpAll(() async {
     await initializeDateFormatting('es_MX');
@@ -72,6 +78,7 @@ void main() {
     final navigator = GetAppNavigator();
     Get.put<AppNavigator>(navigator);
     Get.put<VerificationRepository>(repo);
+    Get.put<PdfPicker>(_NoPicker());
     Get.put(CardsController(_CardRepo()));
     Get.put(CreditsController(repository: FakeCreditsRepository([balance()])));
     Get.put(
