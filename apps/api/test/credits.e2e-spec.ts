@@ -158,6 +158,7 @@ describe('Credits (e2e)', () => {
         purchased: 0,
         total: 1,
         subscriptionActive: false,
+        unlimited: false,
       });
       // Signing in again never grants another one.
       await signInAs(ctx.app, 'alice');
@@ -579,6 +580,101 @@ describe('Credits (e2e)', () => {
         })
         .expect(402);
       expect(res.body.code).toBe('NO_CREDITS');
+    });
+  });
+
+  describe('unlimited accounts', () => {
+    const setUnlimited = (user: TestUser, value = true) =>
+      ctx.prisma.user.update({
+        where: { id: user.id },
+        data: { unlimitedCredits: value },
+      });
+
+    it('exposes the flag in /credits/me and /me, false by default', async () => {
+      expect((await credits()).unlimited).toBe(false);
+      const me = await http().get('/api/v1/me').set(alice.auth).expect(200);
+      expect(me.body.unlimitedCredits).toBe(false);
+      await setUnlimited(alice);
+      expect((await credits()).unlimited).toBe(true);
+      const after = await http().get('/api/v1/me').set(alice.auth).expect(200);
+      expect(after.body.unlimitedCredits).toBe(true);
+    });
+
+    it('never answers 402 and writes no ledger rows for the uploads', async () => {
+      await setUnlimited(alice);
+      await ctx.prisma.creditLedger.deleteMany({ where: { userId: alice.id } });
+      // zero balance, yet uploads keep being accepted
+      for (let i = 0; i < 3; i++) await verify().expect(202);
+      await settle();
+      expect(
+        await ctx.prisma.creditLedger.count({ where: { userId: alice.id } }),
+      ).toBe(0);
+      expect(extractCalls).toBe(3);
+    });
+
+    it('refunds nothing when the evaluation fails', async () => {
+      await setUnlimited(alice);
+      await credits();
+      const before = await ctx.prisma.creditLedger.count({
+        where: { userId: alice.id },
+      });
+      extractorError = new UnreadableStatementError();
+      const v = (await verify().expect(202)).body;
+      await settle();
+      const got = await http()
+        .get(`/api/v1/verifications/${v.id}`)
+        .set(alice.auth)
+        .expect(200);
+      expect(got.body.status).toBe('FAILED');
+      expect(
+        await ctx.prisma.creditLedger.count({ where: { userId: alice.id } }),
+      ).toBe(before);
+      expect(
+        await ctx.prisma.creditLedger.count({
+          where: { verificationId: v.id },
+        }),
+      ).toBe(0);
+    });
+
+    it('keeps gating everybody else, and cannot be set through the API', async () => {
+      const bob = await signInAs(ctx.app, 'bob');
+      await setUnlimited(alice);
+      const bobCard = (
+        await http().post('/api/v1/cards').set(bob.auth).send({
+          alias: 'c',
+          bank: 'b',
+          last4: '1111',
+          rewardUnit: 'CASHBACK_CURRENCY',
+          baseRatePercent: 1,
+          currency: 'MXN',
+        })
+      ).body.id;
+      const upload = () =>
+        http()
+          .post('/api/v1/verifications')
+          .set(bob.auth)
+          .field('cardId', bobCard)
+          .attach('file', PDF, {
+            filename: 's.pdf',
+            contentType: 'application/pdf',
+          });
+      await upload().expect(202);
+      await upload().expect(402);
+      await settle();
+      for (const [method, path] of [
+        ['patch', '/api/v1/me/preferences'],
+        ['patch', '/api/v1/me'],
+      ] as const) {
+        await http()
+          [method](path)
+          .set(bob.auth)
+          .send({ unlimitedCredits: true })
+          .expect((res) => expect([400, 404]).toContain(res.status));
+      }
+      expect(
+        (await ctx.prisma.user.findUnique({ where: { id: bob.id } }))
+          ?.unlimitedCredits,
+      ).toBe(false);
     });
   });
 

@@ -4,6 +4,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsEnum,
+  IsEmail,
   IsISO4217CurrencyCode,
   IsNotEmpty,
   IsOptional,
@@ -22,6 +23,9 @@ const upper = ({ value }: { value: unknown }) =>
 
 const upperOrNull = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim().toUpperCase() || null : value;
+
+const emailOrNull = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim().toLowerCase() || null : value;
 
 const RATE = { min: '0', max: '100', maxDecimals: 4 } as const;
 const CAP = {
@@ -142,6 +146,18 @@ export class CreateCardDto {
   @IsISO4217CurrencyCode()
   rewardCurrency?: string | null;
 
+  @ApiPropertyOptional({
+    example: 'reclamos@banco.com',
+    nullable: true,
+    description:
+      'Where claims to the bank are sent (valid email, lowercased); null clears it',
+  })
+  @IsOptional()
+  @Transform(emailOrNull)
+  @IsEmail()
+  @MaxLength(254)
+  claimEmail?: string | null;
+
   @ApiPropertyOptional({ type: [CardRuleDto] })
   @IsOptional()
   @IsArray()
@@ -218,6 +234,18 @@ export class UpdateCardDto {
   @Transform(upperOrNull)
   @IsISO4217CurrencyCode()
   rewardCurrency?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'reclamos@banco.com',
+    nullable: true,
+    description:
+      'Where claims to the bank are sent (valid email, lowercased); null clears it',
+  })
+  @IsOptional()
+  @Transform(emailOrNull)
+  @IsEmail()
+  @MaxLength(254)
+  claimEmail?: string | null;
 
   @ApiPropertyOptional({
     type: [CardRuleDto],

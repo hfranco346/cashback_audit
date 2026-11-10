@@ -40,6 +40,7 @@ export class MeController {
         provider: 'GOOGLE',
         email: 'ana@example.com',
         name: 'Ana Perez',
+        unlimitedCredits: false,
         createdAt: '2026-01-01T00:00:00.000Z',
         locale: 'auto',
         primaryCurrency: 'HNL',
@@ -63,6 +64,7 @@ export class MeController {
       provider: user.provider,
       email: user.email,
       name: user.name,
+      unlimitedCredits: user.unlimitedCredits,
       createdAt: user.createdAt.toISOString(),
       ...presentPreferences(preferences),
     };

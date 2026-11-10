@@ -33,3 +33,15 @@ GPS Platform owns `3000–3999` (services) and `5432–5499` / `6379–6399` (Po
 |---|---|---|
 | HTTP APIs | `4300–4399` | `4300` |
 | Postgres (bound to `127.0.0.1` only) | `15432–15499` | `15432` |
+
+## Operator commands
+
+Run on the VM from `~/cashback-audit/api` (the `.env` supplies `DATABASE_URL`).
+
+Grant or revoke unlimited credits (no gate, nothing consumed or refunded) for every account with that email, across sign-in providers:
+
+```bash
+node --env-file=.env dist/cli/set-unlimited-credits.js <email> [on|off]   # default: on
+```
+
+It prints the affected user ids and exits non-zero (`1`) when no user has that email (`2` on bad arguments). The change applies immediately; no restart needed.

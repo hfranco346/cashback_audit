@@ -38,6 +38,9 @@ model User {
   /// ISO 4217 code the user reads amounts in; null until chosen.
   primaryCurrency String?    @db.Char(3)
 
+  /// Operator-set (CLI/SQL only): the credits gate never blocks and nothing is consumed or refunded.
+  unlimitedCredits Boolean @default(false)
+
   @@unique([provider, providerSubject])
 }
 
@@ -100,6 +103,8 @@ model Card {
   rewardProgramName     String?
   /// Currency the reward is paid in when it differs from `currency`; overrides detection.
   rewardCurrency        String?    @db.Char(3)
+  /// Where the user sends bank claims (prefilled "To" of the claim email).
+  claimEmail            String?
   /// Soft delete: a deleted card is hidden but keeps its verification history.
   deletedAt             DateTime?
   createdAt             DateTime   @default(now())

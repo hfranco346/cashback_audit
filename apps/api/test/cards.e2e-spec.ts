@@ -100,6 +100,54 @@ describe('Cards (e2e)', () => {
       .expect(400);
   });
 
+  it('stores claimEmail (null by default, normalized, clearable, validated)', async () => {
+    const created = await http()
+      .post('/api/v1/cards')
+      .set(alice.auth)
+      .send(validCard())
+      .expect(201);
+    expect(created.body.claimEmail).toBeNull();
+    const withEmail = await http()
+      .post('/api/v1/cards')
+      .set(alice.auth)
+      .send(validCard({ claimEmail: '  Reclamos@Banco.COM ' }))
+      .expect(201);
+    expect(withEmail.body.claimEmail).toBe('reclamos@banco.com');
+    const set = await http()
+      .patch(`/api/v1/cards/${created.body.id}`)
+      .set(alice.auth)
+      .send({ claimEmail: 'Ayuda@Banco.com' })
+      .expect(200);
+    expect(set.body.claimEmail).toBe('ayuda@banco.com');
+    const got = await http()
+      .get(`/api/v1/cards/${created.body.id}`)
+      .set(alice.auth)
+      .expect(200);
+    expect(got.body.claimEmail).toBe('ayuda@banco.com');
+    const list = await http().get('/api/v1/cards').set(alice.auth).expect(200);
+    expect(list.body.map((c: any) => c.claimEmail)).toContain(
+      'ayuda@banco.com',
+    );
+    for (const bad of ['not-an-email', 'a@b', 5]) {
+      await http()
+        .patch(`/api/v1/cards/${created.body.id}`)
+        .set(alice.auth)
+        .send({ claimEmail: bad })
+        .expect(400);
+    }
+    await http()
+      .post('/api/v1/cards')
+      .set(alice.auth)
+      .send(validCard({ claimEmail: 'nope' }))
+      .expect(400);
+    const cleared = await http()
+      .patch(`/api/v1/cards/${created.body.id}`)
+      .set(alice.auth)
+      .send({ claimEmail: null })
+      .expect(200);
+    expect(cleared.body.claimEmail).toBeNull();
+  });
+
   it.each([
     ['5 digits', { last4: '12345' }],
     ['a full PAN', { last4: '4111111111111111' }],
@@ -235,7 +283,9 @@ describe('Cards (e2e)', () => {
     ).body;
     await http().delete(`/api/v1/cards/${card.id}`).set(alice.auth).expect(204);
     await http().get(`/api/v1/cards/${card.id}`).set(alice.auth).expect(404);
-    expect((await http().get('/api/v1/cards').set(alice.auth)).body).toEqual([]);
+    expect((await http().get('/api/v1/cards').set(alice.auth)).body).toEqual(
+      [],
+    );
     await http()
       .patch(`/api/v1/cards/${card.id}`)
       .set(alice.auth)

@@ -33,6 +33,8 @@ export type GrantOutcome = 'APPLIED' | 'DUPLICATE' | 'NOTHING';
  */
 export abstract class CreditLedgerRepository {
   abstract balance(userId: string, now: Date): Promise<CreditBalance>;
+  /** Operator-set flag: the user is never gated, charged or refunded. */
+  abstract isUnlimited(userId: string): Promise<boolean>;
   abstract history(
     userId: string,
     skip: number,

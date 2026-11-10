@@ -37,6 +37,8 @@ export interface Card {
    * (e.g. spend in HNL, cashback in USD). Overrides what the statement says.
    */
   rewardCurrency: string | null;
+  /** Where the user sends bank claims; null when not set. */
+  claimEmail: string | null;
   rules: CardRule[];
   createdAt: Date;
   updatedAt: Date;

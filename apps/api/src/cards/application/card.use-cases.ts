@@ -26,6 +26,7 @@ export interface CardInput {
   currency: string;
   rewardProgramName?: string | null;
   rewardCurrency?: string | null;
+  claimEmail?: string | null;
   rules?: RuleInput[];
 }
 
@@ -71,6 +72,7 @@ export class CreateCardUseCase {
       currency: input.currency,
       rewardProgramName: input.rewardProgramName || null,
       rewardCurrency: input.rewardCurrency || null,
+      claimEmail: input.claimEmail || null,
       rules: await this.rules.toRules(userId, input.rules ?? []),
     });
   }
@@ -120,6 +122,9 @@ export class UpdateCardUseCase {
     }
     if (input.rewardCurrency !== undefined) {
       patch.rewardCurrency = input.rewardCurrency || null;
+    }
+    if (input.claimEmail !== undefined) {
+      patch.claimEmail = input.claimEmail || null;
     }
     if (input.pointsPerCurrencyUnit !== undefined) {
       patch.pointsPerCurrencyUnit = new Decimal(input.pointsPerCurrencyUnit);

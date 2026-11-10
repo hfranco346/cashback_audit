@@ -40,6 +40,7 @@ export class CreditsController {
       purchased: b.purchased,
       total: b.total,
       subscriptionActive: b.subscriptionActive,
+      unlimited: b.unlimited,
     };
   }
 

@@ -11,11 +11,14 @@ import {
 
 export interface BalanceView extends CreditBalance {
   subscriptionActive: boolean;
+  /** Operator-granted accounts are never gated, charged or refunded. */
+  unlimited: boolean;
 }
 
 /**
  * The backend is the source of truth for credits. With the gate disabled
- * (local development) nothing is checked, spent or refunded.
+ * (local development) nothing is checked, spent or refunded; accounts with
+ * `unlimitedCredits` are treated the same way.
  */
 @Injectable()
 export class CreditsService {
@@ -38,11 +41,12 @@ export class CreditsService {
   }
 
   async balance(userId: string, now = new Date()): Promise<BalanceView> {
-    const [balance, subscription] = await Promise.all([
+    const [balance, subscription, unlimited] = await Promise.all([
       this.ledger.balance(userId, now),
       this.subscription.execute(userId),
+      this.ledger.isUnlimited(userId),
     ]);
-    return { ...balance, subscriptionActive: subscription.active };
+    return { ...balance, subscriptionActive: subscription.active, unlimited };
   }
 
   async history(userId: string, page: number, pageSize: number) {
@@ -56,7 +60,7 @@ export class CreditsService {
 
   /** Cheap pre-check (not binding): fails with NO_CREDITS when nothing is left. */
   async assertHasCredits(userId: string): Promise<void> {
-    if (!this.gateEnabled) return;
+    if (!this.gateEnabled || (await this.ledger.isUnlimited(userId))) return;
     await this.grantFree(userId);
     const view = await this.balance(userId);
     if (view.total <= 0) throw this.noCredits(view);
@@ -70,7 +74,9 @@ export class CreditsService {
     userId: string,
     verificationId: string,
   ): Promise<Reservation | null> {
-    if (!this.gateEnabled) return null;
+    if (!this.gateEnabled || (await this.ledger.isUnlimited(userId))) {
+      return null;
+    }
     const result = await this.ledger.reserve(userId, {
       now: new Date(),
       freeCredits: this.freeCredits,
@@ -81,6 +87,7 @@ export class CreditsService {
       throw this.noCredits({
         ...result.balance,
         subscriptionActive: subscription.active,
+        unlimited: false,
       });
     }
     return result.reservation;

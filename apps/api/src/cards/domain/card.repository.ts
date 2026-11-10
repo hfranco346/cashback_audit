@@ -13,6 +13,7 @@ export interface NewCard {
   currency: string;
   rewardProgramName: string | null;
   rewardCurrency: string | null;
+  claimEmail: string | null;
   rules: CardRule[];
 }
 

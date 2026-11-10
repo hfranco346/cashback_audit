@@ -6,6 +6,8 @@ export interface User {
   providerSubject: string;
   email: string | null;
   name: string | null;
+  /** Operator-set; no API endpoint can change it. */
+  unlimitedCredits: boolean;
   createdAt: Date;
 }
 

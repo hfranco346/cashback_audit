@@ -45,6 +45,7 @@ export const card: Card = {
   currency: 'MXN',
   rewardProgramName: null,
   rewardCurrency: null,
+  claimEmail: null,
   rules: [{ categoryId: CAT_SUPER, ratePercent: d(5), monthlyCap: null }],
   createdAt: new Date(),
   updatedAt: new Date(),

@@ -367,6 +367,7 @@ unknown or already revoked tokens also return `204`. Revokes the whole session.
   "provider": "GOOGLE",
   "email": "ana@example.com",
   "name": "Ana Perez",
+  "unlimitedCredits": false,
   "createdAt": "2026-01-01T00:00:00.000Z",
   "locale": "auto",
   "primaryCurrency": "HNL",
@@ -377,6 +378,10 @@ unknown or already revoked tokens also return `204`. Revokes the whole session.
 ```
 
 `provider` is `"GOOGLE"`, `"APPLE"` or `"EMAIL"`. Errors: `401`.
+
+`unlimitedCredits` (boolean, always present) is `true` for accounts an operator
+flagged as unlimited (see `unlimited` in `GET /credits/me`). It is read-only:
+no endpoint can set it.
 
 `locale` (`"auto" | "es" | "en"`, default `"auto"` = follow the phone),
 `primaryCurrency` (ISO 4217 or `null` until chosen) and `currencies` (the
@@ -564,6 +569,7 @@ Card object:
   "currency": "MXN",
   "rewardProgramName": null,
   "rewardCurrency": null,
+  "claimEmail": null,
   "rules": [
     { "categoryId": "6f1c...", "ratePercent": "5", "monthlyCap": "500" }
   ],
@@ -586,6 +592,7 @@ Field rules:
 | `currency` | string | required, ISO 4217 code (`HNL`, `USD`...). Uppercased by the server. The card's **primary currency**: rates, caps, rewards and totals are expressed in it. Statement lines in other currencies are converted into it (see section 8) |
 | `rewardProgramName` | string or null | optional, max 80 chars, trimmed, `null`/`""` clears it. Name of the loyalty program to audit when the statement lists several (e.g. `"CASH BAC CREDOMATIC"`). Matched case/accent-insensitively with "contains" against the program names printed on the statement |
 | `rewardCurrency` | string or null | optional ISO 4217 code, `null`/`""` clears it. Currency the **reward is paid in** when it differs from `currency` (spend in `HNL`, cashback in `USD`). Overrides what the statement indicates. Effective reward currency = `rewardCurrency` ?? the chosen program's `currency` ?? `currency`. Ignored for `POINTS` cards (no conversion applies) |
+| `claimEmail` | string or null | optional valid email (max 254), trimmed and lowercased; `null`/`""` clears it. Where claims to the bank are sent (prefilled "To" of the claim email). Always present in card responses (`null` when unset); invalid values are `400` |
 | `rules` | array | optional, max 50, **one rule per category** |
 
 Rule (`rules[]`):
@@ -1388,7 +1395,8 @@ RevenueCat SDK's own entitlement state is fine for unlocking the UI optimistical
   "planPeriodEnd": "2026-03-01T10:00:00.000Z",
   "purchased": 2,
   "total": 5,
-  "subscriptionActive": true
+  "subscriptionActive": true,
+  "unlimited": false
 }
 ```
 
@@ -1397,6 +1405,11 @@ RevenueCat SDK's own entitlement state is fine for unlocking the UI optimistical
   there are none).
 - `total = free + plan + purchased`: how many analyses the user can still run.
 - `subscriptionActive`: same as `GET /subscriptions/me`.`active`.
+- `unlimited` (boolean, always present): `true` for accounts flagged by an
+  operator. Those accounts are never answered `402 NO_CREDITS`, uploads consume
+  nothing and failed analyses refund nothing (no ledger rows). The buckets and
+  `total` still show the real ledger; clients should show "unlimited" instead of
+  the count. The flag can only be set by an operator (CLI/SQL), never by the API.
 
 Like the subscription, purchases are asynchronous: after a purchase succeeds in
 the app, poll `GET /credits/me` (e.g. every 2 s for up to ~30 s) until the
@@ -1559,6 +1572,14 @@ consumable products in RevenueCat/the stores.
 ---
 
 ## 12. Changelog (breaking changes)
+
+### Unlimited credits and card claim email
+
+- `GET /credits/me` gains `unlimited` (boolean, always present).
+- `GET /me` gains `unlimitedCredits` (boolean, always present, read-only).
+- Cards gain `claimEmail` (nullable email) in every card response; optional on
+  `POST /cards` and `PATCH /cards/:id` (`null` clears it).
+- Additive only: existing clients keep working.
 
 ### Card deletion keeps verification history
 

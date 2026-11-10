@@ -164,6 +164,7 @@ export class PrismaUserRepository extends UserRepository {
       providerSubject: row.providerSubject,
       email: row.email,
       name: row.name,
+      unlimitedCredits: row.unlimitedCredits,
       createdAt: row.createdAt,
     };
   }

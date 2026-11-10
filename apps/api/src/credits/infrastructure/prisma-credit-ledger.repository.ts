@@ -109,6 +109,14 @@ export class PrismaCreditLedgerRepository extends CreditLedgerRepository {
     return balanceOf(await this.state(this.prisma, userId), now);
   }
 
+  async isUnlimited(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { unlimitedCredits: true },
+    });
+    return user?.unlimitedCredits ?? false;
+  }
+
   async history(userId: string, skip: number, take: number) {
     const [rows, total] = await Promise.all([
       this.prisma.creditLedger.findMany({
