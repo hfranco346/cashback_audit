@@ -105,6 +105,8 @@ model Card {
   rewardCurrency        String?    @db.Char(3)
   /// Where the user sends bank claims (prefilled "To" of the claim email).
   claimEmail            String?
+  /// How the bank prints the reward: this month's earnings, an accumulated balance, or decide per statement.
+  rewardReporting       RewardReporting @default(AUTO)
   /// Soft delete: a deleted card is hidden but keeps its verification history.
   deletedAt             DateTime?
   createdAt             DateTime   @default(now())
@@ -163,6 +165,12 @@ model CardRule {
 
   @@unique([cardId, categoryId])
   @@index([categoryId])
+}
+
+enum RewardReporting {
+  AUTO
+  MONTHLY
+  CUMULATIVE
 }
 
 enum Verdict {
@@ -238,6 +246,8 @@ model Verification {
   appliedRates   Json?
   /// Short narrative of the result; never used in calculations.
   explanation    String?
+  /// How the reward figure was derived (monthly vs cumulative) and the balances kept for next month.
+  rewardReporting Json?
   breakdown      Json
   transactions   Json
   warnings       Json

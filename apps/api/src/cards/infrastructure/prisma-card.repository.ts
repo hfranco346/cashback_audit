@@ -31,6 +31,7 @@ export function toDomainCard(row: Row): Card {
     rewardProgramName: row.rewardProgramName,
     rewardCurrency: row.rewardCurrency,
     claimEmail: row.claimEmail,
+    rewardReporting: row.rewardReporting,
     rules: row.rules.map((r) => ({
       categoryId: r.categoryId,
       ratePercent: dec(r.ratePercent),

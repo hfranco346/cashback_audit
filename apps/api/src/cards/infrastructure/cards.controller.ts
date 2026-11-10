@@ -36,6 +36,7 @@ export const presentCard = (card: Card) => ({
   rewardProgramName: card.rewardProgramName,
   rewardCurrency: card.rewardCurrency,
   claimEmail: card.claimEmail,
+  rewardReporting: card.rewardReporting,
   rules: card.rules.map((r) => ({
     categoryId: r.categoryId,
     ratePercent: r.ratePercent.toString(),

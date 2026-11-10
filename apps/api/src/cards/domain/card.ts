@@ -1,5 +1,7 @@
 import type { Decimal } from 'decimal.js';
 
+export type RewardReportingSetting = 'AUTO' | 'MONTHLY' | 'CUMULATIVE';
+
 export type RewardUnit = 'CASHBACK_CURRENCY' | 'POINTS';
 
 export interface CardRule {
@@ -39,6 +41,8 @@ export interface Card {
   rewardCurrency: string | null;
   /** Where the user sends bank claims; null when not set. */
   claimEmail: string | null;
+  /** Whether the bank prints this month's reward or an accumulated balance. */
+  rewardReporting: RewardReportingSetting;
   rules: CardRule[];
   createdAt: Date;
   updatedAt: Date;

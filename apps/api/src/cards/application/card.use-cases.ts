@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { CategoryNotFoundError } from '../../categories/domain/category-errors.js';
 import { CategoryRepository } from '../../categories/domain/category.repository.js';
-import type { Card, RewardUnit } from '../domain/card.js';
+import type {
+  Card,
+  RewardReportingSetting,
+  RewardUnit,
+} from '../domain/card.js';
 import {
   CardNotFoundError,
   DuplicateRuleCategoryError,
@@ -27,6 +31,7 @@ export interface CardInput {
   rewardProgramName?: string | null;
   rewardCurrency?: string | null;
   claimEmail?: string | null;
+  rewardReporting?: RewardReportingSetting;
   rules?: RuleInput[];
 }
 
@@ -73,6 +78,7 @@ export class CreateCardUseCase {
       rewardProgramName: input.rewardProgramName || null,
       rewardCurrency: input.rewardCurrency || null,
       claimEmail: input.claimEmail || null,
+      rewardReporting: input.rewardReporting ?? 'AUTO',
       rules: await this.rules.toRules(userId, input.rules ?? []),
     });
   }
@@ -125,6 +131,9 @@ export class UpdateCardUseCase {
     }
     if (input.claimEmail !== undefined) {
       patch.claimEmail = input.claimEmail || null;
+    }
+    if (input.rewardReporting !== undefined) {
+      patch.rewardReporting = input.rewardReporting;
     }
     if (input.pointsPerCurrencyUnit !== undefined) {
       patch.pointsPerCurrencyUnit = new Decimal(input.pointsPerCurrencyUnit);

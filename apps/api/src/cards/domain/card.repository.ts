@@ -1,4 +1,9 @@
-import type { Card, CardRule, RewardUnit } from './card.js';
+import type {
+  Card,
+  CardRule,
+  RewardReportingSetting,
+  RewardUnit,
+} from './card.js';
 import type { Decimal } from 'decimal.js';
 
 export interface NewCard {
@@ -14,6 +19,7 @@ export interface NewCard {
   rewardProgramName: string | null;
   rewardCurrency: string | null;
   claimEmail: string | null;
+  rewardReporting: RewardReportingSetting;
   rules: CardRule[];
 }
 

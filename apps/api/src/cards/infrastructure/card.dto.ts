@@ -158,6 +158,15 @@ export class CreateCardDto {
   @MaxLength(254)
   claimEmail?: string | null;
 
+  @ApiPropertyOptional({
+    enum: ['AUTO', 'MONTHLY', 'CUMULATIVE'],
+    description:
+      'How the bank prints the reward: MONTHLY = earned this month, CUMULATIVE = running balance, AUTO (default) = ask per statement',
+  })
+  @IsOptional()
+  @IsEnum(['AUTO', 'MONTHLY', 'CUMULATIVE'])
+  rewardReporting?: 'AUTO' | 'MONTHLY' | 'CUMULATIVE';
+
   @ApiPropertyOptional({ type: [CardRuleDto] })
   @IsOptional()
   @IsArray()
@@ -246,6 +255,15 @@ export class UpdateCardDto {
   @IsEmail()
   @MaxLength(254)
   claimEmail?: string | null;
+
+  @ApiPropertyOptional({
+    enum: ['AUTO', 'MONTHLY', 'CUMULATIVE'],
+    description:
+      'How the bank prints the reward: MONTHLY = earned this month, CUMULATIVE = running balance, AUTO (default) = ask per statement',
+  })
+  @IsOptional()
+  @IsEnum(['AUTO', 'MONTHLY', 'CUMULATIVE'])
+  rewardReporting?: 'AUTO' | 'MONTHLY' | 'CUMULATIVE';
 
   @ApiPropertyOptional({
     type: [CardRuleDto],
