@@ -571,6 +571,7 @@ Card object:
   "rewardCurrency": null,
   "claimEmail": null,
   "rewardReporting": "AUTO",
+  "rewardCap": null,
   "rules": [
     { "categoryId": "6f1c...", "ratePercent": "5", "monthlyCap": "500" }
   ],
@@ -595,6 +596,7 @@ Field rules:
 | `rewardCurrency` | string or null | optional ISO 4217 code, `null`/`""` clears it. Currency the **reward is paid in** when it differs from `currency` (spend in `HNL`, cashback in `USD`). Overrides what the statement indicates. Effective reward currency = `rewardCurrency` ?? the chosen program's `currency` ?? `currency`. Ignored for `POINTS` cards (no conversion applies) |
 | `claimEmail` | string or null | optional valid email (max 254), trimmed and lowercased; `null`/`""` clears it. Where claims to the bank are sent (prefilled "To" of the claim email). Always present in card responses (`null` when unset); invalid values are `400` |
 | `rewardReporting` | enum | optional, default `"AUTO"`. How the bank prints the reward figure: `MONTHLY` (what you earned this month), `CUMULATIVE` (an accumulated running balance) or `AUTO` (ask on each confirm). Always present in card responses. Updated from the confirm step with `rewardReporting.rememberForCard`. Invalid values are `400` |
+| `rewardCap` | decimal or null | optional, `> 0` (`0`/negative are `400`), max 2 decimals; `null` clears it. Card-wide maximum reward **per statement period**, in the same units as `monthlyCap` (the card currency amount, or points for `POINTS` cards). Applied to the **total** after summing every category and after the per-rule `monthlyCap`s; the excess is dropped. Always present in card responses (`null` = no cap). See "Card reward cap" in section 8 |
 | `rules` | array | optional, max 50, **one rule per category** |
 
 Rule (`rules[]`):
@@ -612,7 +614,8 @@ transaction the rate is the card rule of the transaction's category if the
 card has one, otherwise `baseRatePercent`. Refunds/credits subtract. Lines in a
 foreign currency are first converted into the card currency. For
 `POINTS` cards the reward is multiplied by `pointsPerCurrencyUnit`. Each rule's
-total for the statement is then limited to its `monthlyCap`. When the reward
+total for the statement is then limited to its `monthlyCap`, and the sum of all
+of them to the card's `rewardCap` (if any). When the reward
 is paid in another currency than the card's, the total (computed in the card
 currency) is finally converted with the reward exchange rate. Money amounts are
 rounded **once, at the end**, to the ISO 4217 minor units of their currency
@@ -811,6 +814,46 @@ with `details.programs` (array of names): let the user pick and retry with
 program and, when it cannot choose, returns `loyalty.selectedProgram: null`;
 the `422` is raised by step 2 unless it carries `rewardProgramName` or
 `reportedRewardOverride`.
+
+**Choosing the program in the UI.** While a verification is `AWAITING_RATES`
+and the statement lists several programs that neither the upload's
+`rewardProgramName`, an earlier confirm nor the card's `rewardProgramName`
+resolves, the detail carries `rewardProgramChoice` (otherwise `null`; also
+`null` with a single program, which is chosen automatically):
+
+```json
+{
+  "required": true,
+  "options": [
+    { "name": "PUNTOS BAC CREDOMATIC", "unit": "POINTS", "currency": null, "reportedLabel": "Acumulado" },
+    { "name": "CASH BAC CREDOMATIC", "unit": "CURRENCY", "currency": "USD", "reportedLabel": null }
+  ]
+}
+```
+
+`unit` is `CURRENCY`, `POINTS` or `UNKNOWN`; `currency` is the program's ISO
+4217 code or `null`; `reportedLabel` the column label printed for the figure,
+or `null`. Send the chosen `options[].name` as `rewardProgramName` in
+`POST /verifications/:id/confirm` (optionally with `rememberProgramForCard`).
+Re-confirming with another name recomputes with that program (free).
+
+**Card reward cap.** When the card has a `rewardCap` and the expected reward
+(after the per-rule caps) exceeds it, the expected total becomes the cap, the
+verdict/difference use the capped figure (cumulative reporting compares the
+earned amount against the capped expected too), and the completed detail
+carries `rewardCapApplied`:
+
+```json
+{ "cap": "1500", "uncapped": "2100", "capped": "1500" }
+```
+
+`rewardCapApplied` is `null` when the card has no cap or the cap was not
+reached, and always `null` before `COMPLETED`. `cap`/`uncapped`/`capped` are in
+the same units as `monthlyCap` (the card's primary currency, or points); if the
+reward is then converted to another currency, `expected.amount` is the capped
+figure converted. `transactions[].expectedReward` and `breakdown[]` stay
+uncapped (per rule `monthlyCap`s excepted): the card cap only reduces the total.
+The Spanish `explanation` mentions the cap when it was hit.
 The value audited is the program's **`accumulated`** ("Acumulados") column unless
 overridden; the other columns are exposed in `loyalty.programs`.
 
@@ -954,6 +997,7 @@ Claude, so it can be repeated freely (`200`). Allowed on `AWAITING_RATES` and
   "exchangeRates": { "USD": "25.80", "EUR": "28.10" },
   "rewardExchangeRate": "25.80",
   "rewardProgramName": "CASH BAC CREDOMATIC",
+  "rememberProgramForCard": true,
   "rewardReporting": {
     "mode": "CUMULATIVE",
     "previousBalance": "100.50",
@@ -972,7 +1016,8 @@ Claude, so it can be repeated freely (`200`). Allowed on `AWAITING_RATES` and
 | `exchangeRate` | no | Legacy: one rate applied to **any** foreign currency (kept for compatibility; prefer `exchangeRates`). Replaces the one given at upload |
 | `exchangeRates` | no | Object `{ "<ISO 4217>": "<rate>" }`, one rate per foreign spend currency. **Direction: units of the primary (card) currency per 1 unit of that currency.** Examples: card `HNL`, `{ "USD": "25.80" }` means 1 USD = 25.80 HNL; card `CRC`, `{ "EUR": "560" }` means 1 EUR = 560 CRC. Each rate must be `> 0` with at most 6 decimals; keys cannot be the primary currency (`400 INVALID_EXCHANGE_RATE`). Merged over the rates sent earlier; a currency without a rate is left out (warning `NO_EXCHANGE_RATE` names only that currency) |
 | `rewardExchangeRate` | when `rewardConversion.required` | Same direction: **primary-currency units per 1 unit of the reward currency** (card `HNL`, reward `USD`: `"25.80"`). If the reward currency is also a foreign spend currency and `exchangeRates` has it, that rate is reused when this field is absent. Without any rate: `422 REWARD_EXCHANGE_RATE_REQUIRED`. Can be changed on every re-confirm (free recalculation) |
-| `rewardProgramName` | no | As in step 1; replaces the one given at upload |
+| `rewardProgramName` | no | Program to audit. Must match one program of the statement (`rewardProgramChoice.options[].name`, or `loyalty.programs[].name`; case/accent-insensitive, an unambiguous "contains" is accepted and stored with its canonical name), else `400 INVALID_REWARD_PROGRAM`. Replaces the one given at upload / earlier; can change on every re-confirm. Used for the reported figure and for the cumulative derivation |
+| `rememberProgramForCard` | no | Default `false`. `true` saves the chosen program name as the card's `rewardProgramName` (only after a successful audit; ignored without `rewardProgramName`) |
 | `rewardReporting` | no | See "Earned this month or accumulated balance" below. Omitted = keep the choice made earlier on this verification, else the card's `rewardReporting` (`CUMULATIVE` only when the card says so), else `MONTHLY` (the printed figure is the earned amount, as before) |
 
 The confirmed rates **completely replace the card rules for this verification**
@@ -1032,6 +1077,7 @@ keep the ones stored earlier. The response is the full verification with
 | 422 | `RATES_REQUIRED` | `details.missing` = `[{ categoryId, categoryName }]` required entries without a rate: ask the user and resend |
 | 400 | `INVALID_EXCHANGE_RATE` | A rate in `exchangeRates` / `rewardExchangeRate` is not a positive decimal (max 6 decimals), or a key is not an ISO 4217 code other than the primary currency |
 | 422 | `REWARD_EXCHANGE_RATE_REQUIRED` | The reward currency differs from the primary currency and no rate is known. `details` = `{ fromCurrency, toCurrency }` (primary, reward). Ask for `rewardExchangeRate` and resend |
+| 400 | `INVALID_REWARD_PROGRAM` | `rewardProgramName` matches none (or several) of the statement's programs. `details.programs` = valid names |
 | 422 | `REWARD_PROGRAM_AMBIGUOUS` | `details.programs` = names; resend with `rewardProgramName` |
 | 422 | `REPORTED_REWARD_NOT_FOUND` | No usable reward figure for the chosen program (or none at all); resend with `reportedRewardOverride` |
 | 422 | `PREVIOUS_BALANCE_REQUIRED` | `rewardReporting.mode` is `CUMULATIVE` and no previous balance could be resolved (not typed, not printed, no earlier audit). Ask the user for it (or read it with `POST /verifications/:id/previous-statement`) and resend |
@@ -1729,6 +1775,24 @@ consumable products in RevenueCat/the stores.
 ---
 
 ## 12. Changelog (breaking changes)
+
+### Card reward cap and program choice
+
+- Cards gain `rewardCap` (decimal string or `null`, `> 0`) in every card
+  response; optional on `POST /cards` and `PATCH /cards/:id` (`null` clears it).
+  It limits the expected reward of the whole statement after the per-rule caps.
+- `COMPLETED` verification details gain `rewardCapApplied`
+  (`{ cap, uncapped, capped }` or `null`); `expected`/`verdict`/`difference` use
+  the capped figure.
+- `AWAITING_RATES` details gain `rewardProgramChoice`
+  (`{ required: true, options: [{ name, unit, currency, reportedLabel }] }` or
+  `null`).
+- `POST /verifications/:id/confirm` accepts `rememberProgramForCard`, and
+  `rewardProgramName` is now validated: a name that matches no program of the
+  statement is `400 INVALID_REWARD_PROGRAM` (before, it fell through to
+  `422 REWARD_PROGRAM_AMBIGUOUS`).
+- Additive otherwise: cards without a cap and clients that omit the new fields
+  behave as before.
 
 ### Cumulative reward balance
 
