@@ -39,8 +39,13 @@ class GetAppNavigator implements AppNavigator {
       Get.offNamed<void>(route, arguments: arguments);
 
   @override
-  Future<T?> pushForResult<T>(String route, {Object? arguments}) async =>
-      Get.toNamed<T>(route, arguments: arguments);
+  Future<T?> pushForResult<T>(String route, {Object? arguments}) async {
+    // GetX builds a `GetPageRoute<dynamic>`; asking `toNamed` for a concrete
+    // `T` makes `Navigator.pushNamed` cast it to `Route<T>` and throw a
+    // TypeError before the page opens. Push untyped and narrow the result.
+    final result = await Get.toNamed<dynamic>(route, arguments: arguments);
+    return result is T ? result : null;
+  }
 
   @override
   void pop({Object? result}) => Get.back<Object?>(result: result);
